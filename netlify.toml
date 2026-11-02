@@ -1,0 +1,32 @@
+# SILLYGER (SG) Netlify Deployment Configuration
+
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[redirects]]
+  from = "/katiba"
+  to = "/constitution.html"
+  status = 200
+
+[[redirects]]
+  from = "/jiunge"
+  to = "/register.html"
+  status = 200
+
+[[redirects]]
+  from = "/portal"
+  to = "/member-portal.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin-portal.html"
+  status = 200

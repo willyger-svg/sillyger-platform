@@ -1,0 +1,370 @@
+/**
+ * SILLYGER (SG) Local Storage & State Management Layer
+ * Provides zero-dependency, free client-side persistence for Phase 1-3 testing,
+ * architected for seamless transition to Supabase in Phase 4.
+ */
+
+// Safe storage abstraction (browser localStorage with in-memory fallback for headless/Node testing)
+const _sgStorage = (typeof localStorage !== 'undefined') ? localStorage : {
+    _data: {},
+    getItem(k) { return this._data[k] || null; },
+    setItem(k, v) { this._data[k] = String(v); },
+    removeItem(k) { delete this._data[k]; }
+};
+
+const SGStore = {
+    // Initialize default seed data if local storage is empty
+    init() {
+        if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) {
+            const initialMembers = [
+                {
+                    id: "usr_admin_001",
+                    member_id: "SG-000001",
+                    full_name: "Willyger Admin",
+                    username: "willyger",
+                    email: "admin@sillyger.org",
+                    phone: "+255712345678",
+                    password_hash: "admin123", // In prod/phase 4 Supabase handles hashing
+                    track: "Computer Systems & OS",
+                    experience: "Advanced",
+                    role: "Super Administrator",
+                    status: "ACTIVE", // Can access WhatsApp & Admin portal
+                    agreed_constitution: true,
+                    agreed_ethics: true,
+                    agreed_pdpa: true,
+                    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
+                    approved_at: new Date(Date.now() - 29 * 86400000).toISOString(),
+                    approved_by: "SYSTEM_FOUNDER"
+                },
+                {
+                    id: "usr_active_002",
+                    member_id: "SG-000002",
+                    full_name: "Baraka Juma",
+                    username: "baraka_dev",
+                    email: "baraka@example.com",
+                    phone: "+255765432100",
+                    password_hash: "member123",
+                    track: "Cybersecurity & Ethical Hacking",
+                    experience: "Intermediate",
+                    role: "Member",
+                    status: "ACTIVE", // Can see unlocked WhatsApp card
+                    agreed_constitution: true,
+                    agreed_ethics: true,
+                    agreed_pdpa: true,
+                    created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
+                    approved_at: new Date(Date.now() - 14 * 86400000).toISOString(),
+                    approved_by: "usr_admin_001"
+                },
+                {
+                    id: "usr_pending_003",
+                    member_id: null, // Spec: Pending has member_id = NULL
+                    full_name: "Amina Salum",
+                    username: "amina_ai",
+                    email: "amina@example.com",
+                    phone: "+255788990011",
+                    password_hash: "pending123",
+                    track: "SILLYGER AI",
+                    experience: "Beginner",
+                    role: "Applicant",
+                    status: "PENDING", // Spec: WhatsApp invite link is LOCKED/HIDDEN
+                    agreed_constitution: true,
+                    agreed_ethics: true,
+                    agreed_pdpa: true,
+                    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+                    approved_at: null,
+                    approved_by: null
+                }
+            ];
+            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(initialMembers));
+        }
+
+        if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) {
+            const initialAudit = [
+                {
+                    id: "log_001",
+                    action: "SYSTEM_INITIALIZATION",
+                    actor: "SYSTEM",
+                    target: "Constitution v1.4 Engine",
+                    details: "Initialized SG Community Platform with 11 Divisions and 10 Curriculum Levels.",
+                    timestamp: new Date(Date.now() - 30 * 86400000).toISOString()
+                },
+                {
+                    id: "log_002",
+                    action: "MEMBER_APPROVED",
+                    actor: "SYSTEM_FOUNDER",
+                    target: "willyger (SG-000001)",
+                    details: "First Super Administrator membership verified and active.",
+                    timestamp: new Date(Date.now() - 29 * 86400000).toISOString()
+                }
+            ];
+            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(initialAudit));
+        }
+    },
+
+    // Get all members / applicants
+    getMembers() {
+        this.init();
+        try {
+            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) || [];
+        } catch (e) {
+            console.error("Error reading applicants store", e);
+            return [];
+        }
+    },
+
+    // Save members array
+    saveMembers(members) {
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
+    },
+
+    // Find member by email or username
+    findMemberByCredential(credential) {
+        const members = this.getMembers();
+        const search = (credential || "").trim().toLowerCase();
+        return members.find(m => 
+            (m.email && m.email.toLowerCase() === search) || 
+            (m.username && m.username.toLowerCase() === search) ||
+            (m.phone && m.phone.replace(/[\s\-\+]/g, '') === search.replace(/[\s\-\+]/g, ''))
+        );
+    },
+
+    // Find member by ID
+    findMemberById(id) {
+        return this.getMembers().find(m => m.id === id);
+    },
+
+    // Register a new Applicant (Default status = 'PENDING', member_id = null)
+    registerApplicant(data) {
+        this.init();
+        const members = this.getMembers();
+
+        // Check duplicates
+        const normalizedEmail = data.email.trim().toLowerCase();
+        const normalizedUsername = data.username.trim().toLowerCase();
+        const normalizedPhone = this.normalizePhone(data.phone);
+
+        if (members.some(m => m.email.toLowerCase() === normalizedEmail)) {
+            throw new Error("Barua pepe hii (Email) tayari imesajiliwa. Tafadhali ingia au tumia barua pepe nyingine.");
+        }
+
+        if (members.some(m => m.username.toLowerCase() === normalizedUsername)) {
+            throw new Error("Jina la mtumiaji (Username) hili tayari limetumika. Tafadhali chagua jina jingine.");
+        }
+
+        if (members.some(m => m.phone === normalizedPhone)) {
+            throw new Error("Namba hii ya WhatsApp tayari imesajiliwa. Tumia namba yako halisi au wasiliana na utawala.");
+        }
+
+        const newApplicant = {
+            id: "usr_" + Date.now().toString(36) + "_" + Math.random().toString(36).substr(2, 5),
+            member_id: null, // SPEC: Strict null for PENDING
+            full_name: data.full_name.trim(),
+            username: normalizedUsername,
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            password_hash: data.password, // Plain for local demo; Supabase auth will manage salt/hash in Phase 4
+            track: data.track || "Computer Fundamentals & Electronics",
+            experience: data.experience || "Beginner",
+            motivation: data.motivation || "",
+            role: "Applicant",
+            status: "PENDING", // SPEC: Strict PENDING status upon registration
+            agreed_constitution: !!data.agreed_constitution,
+            agreed_ethics: !!data.agreed_ethics,
+            agreed_pdpa: !!data.agreed_pdpa,
+            created_at: new Date().toISOString(),
+            approved_at: null,
+            approved_by: null
+        };
+
+        members.push(newApplicant);
+        this.saveMembers(members);
+
+        // Audit Log
+        this.addAuditLog({
+            action: "APPLICANT_REGISTERED",
+            actor: newApplicant.username,
+            target: newApplicant.full_name,
+            details: `New registration received from ${newApplicant.phone} (${newApplicant.track}). Status: PENDING review.`
+        });
+
+        return newApplicant;
+    },
+
+    // Generate Next Sequential SG-xxxxxx ID
+    getNextMemberId() {
+        const members = this.getMembers();
+        let maxNum = 0;
+        members.forEach(m => {
+            if (m.member_id && m.member_id.startsWith("SG-")) {
+                const numPart = parseInt(m.member_id.replace("SG-", ""), 10);
+                if (!isNaN(numPart) && numPart > maxNum) {
+                    maxNum = numPart;
+                }
+            }
+        });
+        const nextNum = maxNum + 1;
+        return "SG-" + String(nextNum).padStart(6, '0');
+    },
+
+    // Admin Approves Member (Transitions status PENDING -> ACTIVE & assigns SG-xxxxxx)
+    approveMember(applicantId, adminActor = "ADMIN") {
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const member = members[index];
+        if (member.status === "ACTIVE") {
+            throw new Error("Mwanachama huyu tayari ni ACTIVE.");
+        }
+
+        // Assign sequential ID if not present
+        if (!member.member_id) {
+            member.member_id = this.getNextMemberId();
+        }
+
+        member.status = "ACTIVE";
+        member.role = member.role === "Applicant" ? "Member" : member.role;
+        member.approved_at = new Date().toISOString();
+        member.approved_by = adminActor;
+
+        members[index] = member;
+        this.saveMembers(members);
+
+        this.addAuditLog({
+            action: "MEMBER_APPROVED",
+            actor: adminActor,
+            target: `${member.username} (${member.member_id})`,
+            details: `Application approved. Assigned Unique Member ID: ${member.member_id}. WhatsApp Community gate unlocked.`
+        });
+
+        return member;
+    },
+
+    // Update status (e.g. ON_HOLD, SUSPENDED, INACTIVE, TERMINATED)
+    updateMemberStatus(applicantId, newStatus, reason = "", adminActor = "ADMIN") {
+        const validStatuses = ["PENDING", "ACTIVE", "ON_HOLD", "SUSPENDED", "INACTIVE", "TERMINATED"];
+        if (!validStatuses.includes(newStatus)) {
+            throw new Error(`Hali batili: ${newStatus}`);
+        }
+
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const oldStatus = members[index].status;
+        members[index].status = newStatus;
+        this.saveMembers(members);
+
+        this.addAuditLog({
+            action: `STATUS_CHANGE_${newStatus}`,
+            actor: adminActor,
+            target: `${members[index].username} (${members[index].member_id || 'NO-ID'})`,
+            details: `Status altered from ${oldStatus} to ${newStatus}. Reason: ${reason || 'Administrative action'}.`
+        });
+
+        return members[index];
+    },
+
+    // Audit Log Helpers
+    getAuditLogs() {
+        this.init();
+        try {
+            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) || [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    addAuditLog({ action, actor, target, details }) {
+        const logs = this.getAuditLogs();
+        const entry = {
+            id: "log_" + Date.now().toString(36) + "_" + Math.random().toString(36).substr(2, 4),
+            action,
+            actor: actor || "SYSTEM",
+            target: target || "N/A",
+            details: details || "",
+            timestamp: new Date().toISOString()
+        };
+        logs.unshift(entry); // newest first
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 500))); // keep 500 recent
+        return entry;
+    },
+
+    // Session Management (Local demo)
+    setCurrentSession(user) {
+        if (!user) {
+            _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            return;
+        }
+        // Exclude plain password from active session representation
+        const safeSession = { ...user };
+        delete safeSession.password_hash;
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION, JSON.stringify(safeSession));
+    },
+
+    getCurrentSession() {
+        try {
+            const data = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    logout() {
+        const user = this.getCurrentSession();
+        if (user) {
+            this.addAuditLog({
+                action: "USER_LOGOUT",
+                actor: user.username,
+                target: user.full_name,
+                details: "Member signed out from portal session."
+            });
+        }
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+    },
+
+    // Phone normalizer (Converts 07xx, 2557xx, etc. to +2557xxxxxxxx)
+    normalizePhone(raw) {
+        if (!raw) return "";
+        let clean = raw.toString().replace(/[\s\-\(\)]/g, "");
+        if (clean.startsWith("+")) {
+            return clean;
+        }
+        if (clean.startsWith("0")) {
+            return "+255" + clean.substring(1);
+        }
+        if (clean.startsWith("255")) {
+            return "+" + clean;
+        }
+        return clean.length === 9 ? "+255" + clean : "+" + clean;
+    },
+
+    // Validate phone number strictly for Tanzania format (+255 followed by 9 digits)
+    isValidTzPhone(phone) {
+        const norm = this.normalizePhone(phone);
+        return /^\+255[67]\d{8}$/.test(norm);
+    },
+
+    // Platform statistics
+    getStats() {
+        const members = this.getMembers();
+        return {
+            totalRegistered: members.length,
+            activeMembers: members.filter(m => m.status === "ACTIVE").length,
+            pendingApplicants: members.filter(m => m.status === "PENDING").length,
+            divisionsCount: SG_CONFIG.DIVISIONS.length,
+            curriculumLevels: SG_CONFIG.CURRICULUM.length
+        };
+    }
+};
+
+// Auto-run init
+SGStore.init();
+
+if (typeof window !== 'undefined') {
+    window.SGStore = SGStore;
+}
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = SGStore;
+}

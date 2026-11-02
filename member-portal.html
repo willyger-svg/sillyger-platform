@@ -131,38 +131,6 @@
                     </a>
                 </div>
 
-                <!-- QUICK DEMO TEST SWITCHER -->
-                <div class="mt-8 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-left">
-                    <span class="text-[10px] font-mono-sg font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                        ⚡ JARIBU HARAKA KWA AKAUNTI ZA SAMPLE (1-CLICK TEST):
-                    </span>
-                    <div class="space-y-2">
-                        <button 
-                            type="button" 
-                            onclick="quickLoginAs('baraka@example.com')" 
-                            class="w-full text-left p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 hover:bg-emerald-950/40 transition flex items-center justify-between text-xs group"
-                        >
-                            <div>
-                                <span class="font-bold text-white block group-hover:text-emerald-300">Baraka Juma (Active Member)</span>
-                                <span class="text-[10px] text-slate-400 font-mono-sg">ID: SG-000002 • WhatsApp Unlocked</span>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded badge-active uppercase">ACTIVE</span>
-                        </button>
-
-                        <button 
-                            type="button" 
-                            onclick="quickLoginAs('amina@example.com')" 
-                            class="w-full text-left p-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 hover:bg-amber-950/40 transition flex items-center justify-between text-xs group"
-                        >
-                            <div>
-                                <span class="font-bold text-white block group-hover:text-amber-300">Amina Salum (Pending Applicant)</span>
-                                <span class="text-[10px] text-slate-400 font-mono-sg">ID: NULL • WhatsApp Locked</span>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded badge-pending uppercase">PENDING</span>
-                        </button>
-                    </div>
-                </div>
-
             </div>
         </div>
 
@@ -443,6 +411,8 @@
     </div>
 
     <!-- Scripts -->
+    <!-- Supabase JS Client (Free CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/store.js"></script>
     <script src="js/member-portal.js"></script>

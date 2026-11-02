@@ -12,6 +12,19 @@ const _sgStorage = (typeof localStorage !== 'undefined') ? localStorage : {
     removeItem(k) { delete this._data[k]; }
 };
 
+let _supabaseClient = null;
+function getSupabaseClient() {
+    if (_supabaseClient) return _supabaseClient;
+    if (typeof supabase !== 'undefined' && typeof SG_CONFIG !== 'undefined' && SG_CONFIG.SUPABASE && SG_CONFIG.SUPABASE.isConfigured) {
+        try {
+            _supabaseClient = supabase.createClient(SG_CONFIG.SUPABASE.url, SG_CONFIG.SUPABASE.anonKey);
+        } catch (e) {
+            console.warn("Supabase init error:", e);
+        }
+    }
+    return _supabaseClient;
+}
+
 const SGStore = {
     // Initialize default seed data if local storage is empty
     init() {
@@ -24,55 +37,17 @@ const SGStore = {
                     username: "willyger",
                     email: "admin@sillyger.org",
                     phone: "+255712345678",
-                    password_hash: "admin123", // In prod/phase 4 Supabase handles hashing
+                    password_hash: "admin123",
                     track: "Computer Systems & OS",
                     experience: "Advanced",
                     role: "Super Administrator",
-                    status: "ACTIVE", // Can access WhatsApp & Admin portal
+                    status: "ACTIVE", // Super Administrator
                     agreed_constitution: true,
                     agreed_ethics: true,
                     agreed_pdpa: true,
-                    created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
-                    approved_at: new Date(Date.now() - 29 * 86400000).toISOString(),
+                    created_at: new Date().toISOString(),
+                    approved_at: new Date().toISOString(),
                     approved_by: "SYSTEM_FOUNDER"
-                },
-                {
-                    id: "usr_active_002",
-                    member_id: "SG-000002",
-                    full_name: "Baraka Juma",
-                    username: "baraka_dev",
-                    email: "baraka@example.com",
-                    phone: "+255765432100",
-                    password_hash: "member123",
-                    track: "Cybersecurity & Ethical Hacking",
-                    experience: "Intermediate",
-                    role: "Member",
-                    status: "ACTIVE", // Can see unlocked WhatsApp card
-                    agreed_constitution: true,
-                    agreed_ethics: true,
-                    agreed_pdpa: true,
-                    created_at: new Date(Date.now() - 15 * 86400000).toISOString(),
-                    approved_at: new Date(Date.now() - 14 * 86400000).toISOString(),
-                    approved_by: "usr_admin_001"
-                },
-                {
-                    id: "usr_pending_003",
-                    member_id: null, // Spec: Pending has member_id = NULL
-                    full_name: "Amina Salum",
-                    username: "amina_ai",
-                    email: "amina@example.com",
-                    phone: "+255788990011",
-                    password_hash: "pending123",
-                    track: "SILLYGER AI",
-                    experience: "Beginner",
-                    role: "Applicant",
-                    status: "PENDING", // Spec: WhatsApp invite link is LOCKED/HIDDEN
-                    agreed_constitution: true,
-                    agreed_ethics: true,
-                    agreed_pdpa: true,
-                    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-                    approved_at: null,
-                    approved_by: null
                 }
             ];
             _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(initialMembers));
@@ -86,18 +61,32 @@ const SGStore = {
                     actor: "SYSTEM",
                     target: "Constitution v1.4 Engine",
                     details: "Initialized SG Community Platform with 11 Divisions and 10 Curriculum Levels.",
-                    timestamp: new Date(Date.now() - 30 * 86400000).toISOString()
-                },
-                {
-                    id: "log_002",
-                    action: "MEMBER_APPROVED",
-                    actor: "SYSTEM_FOUNDER",
-                    target: "willyger (SG-000001)",
-                    details: "First Super Administrator membership verified and active.",
-                    timestamp: new Date(Date.now() - 29 * 86400000).toISOString()
+                    timestamp: new Date().toISOString()
                 }
             ];
             _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(initialAudit));
+        }
+
+        // Trigger background sync if Supabase is connected
+        this.syncWithSupabase();
+    },
+
+    async syncWithSupabase() {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        try {
+            const { data: dbMembers, error: mErr } = await client.from('members').select('*');
+            if (!mErr && dbMembers && dbMembers.length > 0) {
+                this.saveMembers(dbMembers);
+            }
+
+            const { data: dbLogs, error: lErr } = await client.from('audit_logs').select('*').order('timestamp', { ascending: false }).limit(200);
+            if (!lErr && dbLogs && dbLogs.length > 0) {
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(dbLogs));
+            }
+        } catch (e) {
+            console.warn("Supabase sync notice:", e);
         }
     },
 
@@ -179,6 +168,29 @@ const SGStore = {
         members.push(newApplicant);
         this.saveMembers(members);
 
+        // Async write to Supabase if connected
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('members').insert([{
+                full_name: newApplicant.full_name,
+                username: newApplicant.username,
+                email: newApplicant.email,
+                phone: newApplicant.phone,
+                password_hash: newApplicant.password_hash,
+                track: newApplicant.track,
+                experience: newApplicant.experience,
+                motivation: newApplicant.motivation,
+                role: 'Applicant',
+                status: 'PENDING',
+                member_id: null,
+                agreed_constitution: true,
+                agreed_ethics: true,
+                agreed_pdpa: true
+            }]).then(({ error }) => {
+                if (error) console.error("Supabase insert error:", error);
+            });
+        }
+
         // Audit Log
         this.addAuditLog({
             action: "APPLICANT_REGISTERED",
@@ -229,6 +241,20 @@ const SGStore = {
 
         members[index] = member;
         this.saveMembers(members);
+
+        // Async write to Supabase if connected
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('members').update({
+                member_id: member.member_id,
+                status: 'ACTIVE',
+                role: member.role,
+                approved_at: member.approved_at,
+                approved_by: member.approved_by
+            }).eq('username', member.username).then(({ error }) => {
+                if (error) console.error("Supabase approve error:", error);
+            });
+        }
 
         this.addAuditLog({
             action: "MEMBER_APPROVED",
@@ -287,6 +313,20 @@ const SGStore = {
         };
         logs.unshift(entry); // newest first
         _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 500))); // keep 500 recent
+
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('audit_logs').insert([{
+                action: entry.action,
+                actor: entry.actor,
+                target: entry.target,
+                details: entry.details,
+                timestamp: entry.timestamp
+            }]).then(({ error }) => {
+                if (error) console.error("Supabase audit insert error:", error);
+            });
+        }
+
         return entry;
     },
 

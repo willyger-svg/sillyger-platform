@@ -70,17 +70,6 @@ function setupLoginForm() {
     }
 }
 
-// Quick 1-Click Login for rapid local testing
-window.quickLoginAs = function(email) {
-    const member = SGStore.findMemberByCredential(email);
-    if (member) {
-        SGStore.setCurrentSession(member);
-        initMemberPortal();
-    } else {
-        alert("Akaunti ya majaribio haikupatikana.");
-    }
-};
-
 window.handleMemberLogout = function() {
     SGStore.logout();
     initMemberPortal();

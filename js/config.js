@@ -27,11 +27,13 @@ const SG_CONFIG = {
         SUPPORT_TICKETS: "sg_tickets_v1_4"
     },
 
-    // Supabase Configuration (Populated in Phase 4)
+    // Supabase Configuration (Populated via Admin UI or directly here)
     SUPABASE: {
-        url: "",
-        anonKey: "",
-        isConfigured: false
+        url: (typeof localStorage !== 'undefined' && localStorage.getItem("sg_supabase_url")) || "",
+        anonKey: (typeof localStorage !== 'undefined' && localStorage.getItem("sg_supabase_key")) || "",
+        get isConfigured() {
+            return !!(this.url && this.anonKey);
+        }
     },
 
     // 11 Research & Development Divisions (Article 3)

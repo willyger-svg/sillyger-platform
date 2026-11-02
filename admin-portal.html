@@ -155,12 +155,22 @@
 
             <!-- TAB PANE 1: PENDING APPLICATION REVIEW QUEUE -->
             <div id="tab-pane-queue" class="admin-tab-pane space-y-4">
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-white">Maombi Mapya Yanayosubiri Ukaguzi (Pending Queue)</h2>
                         <p class="text-xs text-slate-400">
                             Watu hawa wamejaza fomu na kukubali Katiba v1.4. Ukibonyeza <strong>"Idhinisha"</strong>, mfumo unawapa Unique Member ID mara moja na kufungua kiungo cha WhatsApp!
                         </p>
+                    </div>
+                    <div>
+                        <button 
+                            id="btn-manual-refresh-queue"
+                            onclick="manualRefreshQueue()" 
+                            class="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/60 border border-purple-500/50 text-purple-300 hover:text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-500/10"
+                        >
+                            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                            <span>Onyesha Upya (Refresh Queue)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -466,6 +476,23 @@
                         >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                             <span>Download Full Backup (JSON)</span>
+                        </button>
+                    </div>
+
+                    <!-- Factory Reset / Clean Mock Data -->
+                    <div class="p-6 rounded-2xl bg-red-950/20 border border-red-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-red-400 mb-1">🧹 Safisha Data Zote za Majaribio (Pristine Clean)</h3>
+                            <p class="text-xs text-slate-400">
+                                Ondoa kabisa data zozote za majaribio au rekodi za zamani kwenye kifaa hiki na uweke mfumo katika hali safi ya uzinduzi (William Gerishom pekee atabaki kama Super Admin).
+                            </p>
+                        </div>
+                        <button 
+                            type="button"
+                            onclick="resetCommunityDataToPristine()" 
+                            class="px-5 py-2.5 rounded-xl border border-red-500/50 hover:bg-red-950/50 text-red-300 hover:text-white font-bold text-xs transition whitespace-nowrap"
+                        >
+                            Safisha Mfumo (Futa Majaribio)
                         </button>
                     </div>
 

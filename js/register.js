@@ -141,11 +141,31 @@ document.addEventListener("DOMContentLoaded", () => {
                     agreed_pdpa: agreePdpa
                 });
 
-                // Set session automatically so applicant can see their portal in PENDING state immediately
-                SGStore.setCurrentSession(newApplicant);
+                // Check if current active session belongs to Super Administrator / Admin
+                const currentSession = SGStore.getCurrentSession();
+                const isAdmin = currentSession && (
+                    currentSession.role === "Super Administrator" ||
+                    currentSession.role === "Administrator" ||
+                    currentSession.role === "Membership Administrator" ||
+                    currentSession.username === "willyger" ||
+                    currentSession.email === "wshavu@gmail.com"
+                );
+
+                if (!isAdmin) {
+                    // Normal applicant: Set session so they can inspect their PENDING dashboard immediately
+                    SGStore.setCurrentSession(newApplicant);
+                }
+
+                // Cross-tab broadcast notification
+                try {
+                    if (typeof BroadcastChannel !== 'undefined') {
+                        const bc = new BroadcastChannel('sg_platform_sync');
+                        bc.postMessage({ type: 'APPLICANT_REGISTERED', applicant: newApplicant });
+                    }
+                } catch (e) {}
 
                 // Display success confirmation card
-                displaySuccessScreen(newApplicant);
+                displaySuccessScreen(newApplicant, isAdmin, currentSession);
 
             } catch (err) {
                 formError.textContent = err.message || "Hitilafu imetokea. Jaribu tena.";
@@ -155,11 +175,72 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    function displaySuccessScreen(applicant) {
+    function displaySuccessScreen(applicant, isAdmin = false, adminSession = null) {
         if (formCard) formCard.classList.add("hidden");
         if (!regSuccessCard) return;
 
         regSuccessCard.classList.remove("hidden");
+
+        if (isAdmin) {
+            // ADMIN TESTING VIEW: Keep William logged in and give direct link to approve
+            regSuccessCard.innerHTML = `
+                <div class="sg-glass p-8 md:p-12 rounded-3xl border border-purple-500/50 text-center relative overflow-hidden bg-gradient-to-b from-purple-950/30 to-slate-950">
+                    <div class="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/40 text-purple-400 mx-auto flex items-center justify-center mb-6">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+
+                    <div class="inline-block px-3 py-1 rounded-full badge-active text-xs font-mono-sg font-bold uppercase mb-4">
+                        UTAWALA: MAOMBI YAMEHIFADHIWA KWENYE QUEUE
+                    </div>
+
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-3">
+                        ${applicant.full_name} amesajiliwa!
+                    </h2>
+                    
+                    <p class="text-sm md:text-base text-slate-300 max-w-xl mx-auto leading-relaxed mb-6">
+                        Akaunti mpya imepokelewa kwenye mfumo. Kwa kuwa wewe ni <strong class="text-purple-400">Super Administrator (${adminSession ? adminSession.full_name : 'William Gerishom'})</strong>, kikao chako cha utawala hakijavurugwa.
+                    </p>
+
+                    <!-- Applicant Summary Box -->
+                    <div class="max-w-md mx-auto p-5 rounded-2xl bg-slate-950/80 border border-slate-800 text-left text-xs font-mono-sg space-y-2 mb-8">
+                        <div class="flex justify-between border-b border-slate-800/80 pb-2">
+                            <span class="text-slate-500">Username:</span>
+                            <span class="text-white font-bold">@${applicant.username}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800/80 pb-2">
+                            <span class="text-slate-500">WhatsApp:</span>
+                            <span class="text-cyan-400 font-bold">${applicant.phone}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800/80 pb-2">
+                            <span class="text-slate-500">Kitengo (Track):</span>
+                            <span class="text-slate-300 truncate max-w-[200px]">${applicant.track}</span>
+                        </div>
+                        <div class="flex justify-between border-b border-slate-800/80 pb-2">
+                            <span class="text-slate-500">Hadhi (Status):</span>
+                            <span class="text-amber-400 font-bold">PENDING (Inasubiri Idhini Yako)</span>
+                        </div>
+                        <div class="flex justify-between pt-1">
+                            <span class="text-slate-500">Unique Member ID:</span>
+                            <span class="text-slate-500 italic">Itatolewa kiotomatiki ukibonyeza Approve</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <a href="admin-portal.html" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2">
+                            <span>Fungua Admin Dashboard (Idhinisha Sasa)</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </a>
+                        <button onclick="window.location.reload()" class="px-6 py-3 rounded-xl border border-slate-700 hover:border-slate-500 text-xs text-slate-300 hover:text-white transition">
+                            + Sajili Mwanachama Mwingine
+                        </button>
+                    </div>
+                </div>
+            `;
+            regSuccessCard.scrollIntoView({ behavior: "smooth" });
+            return;
+        }
+
+        // REGULAR APPLICANT VIEW
         regSuccessCard.innerHTML = `
             <div class="sg-glass p-8 md:p-12 rounded-3xl border border-cyan-500/40 text-center relative overflow-hidden">
                 <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 mx-auto flex items-center justify-center mb-6">

@@ -26,57 +26,97 @@ function getSupabaseClient() {
 }
 
 const SGStore = {
-    // Initialize default seed data if local storage is empty
+    // Initialize default seed data if local storage is empty or needs migration
     init() {
-        if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) {
-            const initialMembers = [
-                {
-                    id: "usr_admin_001",
-                    member_id: "SG-000001",
-                    full_name: "William Gerishom William",
-                    username: "willyger",
-                    email: "wshavu@gmail.com",
-                    phone: "+255750449373",
-                    password_hash: "admin123",
-                    track: "SILLYGER Systems & Architecture",
-                    experience: "Advanced",
-                    role: "Super Administrator",
-                    status: "ACTIVE",
-                    agreed_constitution: true,
-                    agreed_ethics: true,
-                    agreed_pdpa: true,
-                    created_at: new Date().toISOString(),
-                    approved_at: new Date().toISOString(),
-                    approved_by: "SYSTEM_FOUNDER"
-                }
-            ];
-            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(initialMembers));
-        } else {
-            // Self-healing migration for existing localStorage
-            try {
-                const members = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) || [];
-                const adminIdx = members.findIndex(m => m.username === "willyger" || m.email === "admin@sillyger.org");
-                if (adminIdx !== -1) {
-                    members[adminIdx].full_name = "William Gerishom William";
-                    members[adminIdx].username = "willyger";
-                    members[adminIdx].email = "wshavu@gmail.com";
-                    members[adminIdx].phone = "+255750449373";
-                    members[adminIdx].role = "Super Administrator";
-                    members[adminIdx].status = "ACTIVE";
-                    members[adminIdx].member_id = "SG-000001";
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
-                }
-            } catch (e) {}
+        let members = [];
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
+            members = raw ? JSON.parse(raw) : [];
+        } catch (e) {
+            members = [];
         }
 
+        // 1. Purge ANY mock / test users (baraka_dev, amina_ai, dummy data)
+        members = members.filter(m => {
+            if (!m) return false;
+            const u = (m.username || '').toLowerCase();
+            const e = (m.email || '').toLowerCase();
+            const id = (m.id || '');
+            if (u === 'baraka_dev' || u === 'amina_ai' || u === 'test_user') return false;
+            if (e === 'baraka@example.com' || e === 'amina@example.com' || e === 'admin@sillyger.org' || e === 'test@example.com') return false;
+            if (id.startsWith('usr_mock')) return false;
+            return true;
+        });
+
+        // 2. Ensure William Gerishom William (Founder & Super Administrator) is strictly present
+        const founderRecord = {
+            id: "usr_admin_001",
+            member_id: "SG-000001",
+            full_name: "William Gerishom William",
+            username: "willyger",
+            email: "wshavu@gmail.com",
+            phone: "+255750449373",
+            password_hash: "admin123",
+            track: "SILLYGER Systems & Architecture",
+            experience: "Advanced",
+            role: "Super Administrator",
+            status: "ACTIVE",
+            agreed_constitution: true,
+            agreed_ethics: true,
+            agreed_pdpa: true,
+            created_at: "2026-08-01T00:00:00.000Z",
+            approved_at: "2026-08-01T00:00:00.000Z",
+            approved_by: "SYSTEM_FOUNDER"
+        };
+
+        const adminIdx = members.findIndex(m => 
+            m.username === "willyger" || 
+            m.email === "wshavu@gmail.com" || 
+            m.member_id === "SG-000001"
+        );
+
+        if (adminIdx === -1) {
+            members.unshift(founderRecord);
+        } else {
+            // Lock founder identity & privileges
+            members[adminIdx] = {
+                ...members[adminIdx],
+                ...founderRecord,
+                password_hash: members[adminIdx].password_hash || "admin123"
+            };
+        }
+
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
+
+        // 3. Purge mock attendance records from storage
+        try {
+            const rawAtt = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
+            if (rawAtt) {
+                const attList = JSON.parse(rawAtt) || [];
+                const cleanAtt = attList.filter(a => a && !["att_001", "att_002", "att_003"].includes(a.id));
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(cleanAtt));
+            }
+        } catch (e) {}
+
+        // 4. Purge mock fund ledger transactions from storage
+        try {
+            const rawFund = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
+            if (rawFund) {
+                const fundList = JSON.parse(rawFund) || [];
+                const cleanFund = fundList.filter(tx => tx && !["tx_001", "tx_002"].includes(tx.id));
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(cleanFund));
+            }
+        } catch (e) {}
+
+        // 5. Initialize clean audit log if missing
         if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) {
             const initialAudit = [
                 {
                     id: "log_001",
                     action: "SYSTEM_INITIALIZATION",
-                    actor: "SYSTEM",
-                    target: "Constitution v1.4 Engine",
-                    details: "Initialized SG Community Platform with 11 Divisions and 10 Curriculum Levels.",
+                    actor: "willyger (SG-000001)",
+                    target: "SILLYGER Governance Engine v1.4",
+                    details: "Initialized clean SG Community Platform with 11 Divisions and 10 Curriculum Levels under Super Administrator William Gerishom William.",
                     timestamp: new Date().toISOString()
                 }
             ];
@@ -186,6 +226,14 @@ const SGStore = {
 
         members.push(newApplicant);
         this.saveMembers(members);
+
+        // Cross-tab real-time broadcast notification
+        try {
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('sg_platform_sync');
+                bc.postMessage({ type: 'APPLICANT_REGISTERED', applicant: newApplicant });
+            }
+        } catch (e) {}
 
         // Async write to Supabase if connected
         const client = getSupabaseClient();
@@ -406,6 +454,54 @@ const SGStore = {
         return members[index];
     },
 
+    // SUPER ADMINISTRATOR: Reject / Delete Member or Applicant
+    deleteMember(applicantId, adminActor = "SUPER_ADMIN") {
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const member = members[index];
+        if (member.username === "willyger" || member.email === "wshavu@gmail.com" || member.member_id === "SG-000001") {
+            throw new Error("Huwezi kufuta akaunti ya Mwanzilishi / Super Administrator!");
+        }
+
+        members.splice(index, 1);
+        this.saveMembers(members);
+
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('members').delete().eq('id', member.id).then(() => {});
+        }
+
+        this.addAuditLog({
+            action: "MEMBER_DELETED",
+            actor: adminActor,
+            target: `${member.username} (${member.full_name})`,
+            details: `Record deleted from system by ${adminActor}.`
+        });
+
+        // Trigger cross-tab sync
+        try {
+            if (typeof BroadcastChannel !== 'undefined') {
+                const bc = new BroadcastChannel('sg_platform_sync');
+                bc.postMessage({ type: 'MEMBER_DELETED', id: applicantId });
+            }
+        } catch (e) {}
+
+        return true;
+    },
+
+    // Factory Reset: Clean all stored caches and keep strictly William Gerishom William as Super Admin
+    resetToPristine() {
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS);
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS);
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS);
+        this.init();
+    },
+
     // SUPER ADMINISTRATOR & ANNOUNCEMENTS (Article 6.8 & 11)
     getAnnouncements() {
         try {
@@ -450,26 +546,14 @@ const SGStore = {
     // SUPER ADMINISTRATOR: SG Community Fund Ledger (Article 13)
     getFundLedger() {
         try {
-            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER)) || [
-                {
-                    id: "tx_001",
-                    type: "INCOME",
-                    amount: 2500000,
-                    category: "Research Sponsorship",
-                    description: "Ufadhili wa vifaa vya maabara ya Computer Architecture & FPGA.",
-                    actor: "willyger",
-                    date: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0]
-                },
-                {
-                    id: "tx_002",
-                    type: "EXPENSE",
-                    amount: 1050000,
-                    category: "Servers & Cloud Infra",
-                    description: "Gharama za Dedicated Server na High-Bandwidth Cloud hosting.",
-                    actor: "willyger",
-                    date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]
-                }
-            ];
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
+            let list = raw ? JSON.parse(raw) : [];
+            // Strictly purge mock transactions (tx_001, tx_002)
+            const cleanList = list.filter(tx => tx && !["tx_001", "tx_002"].includes(tx.id));
+            if (cleanList.length !== list.length) {
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(cleanList));
+            }
+            return cleanList;
         } catch (e) {
             return [];
         }
@@ -605,42 +689,17 @@ const SGStore = {
     getAttendanceRecords(memberId = null) {
         this.init();
         try {
-            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE)) || [
-                {
-                    id: "att_001",
-                    member_id: "SG-000001",
-                    session_title: "Week 4: Logic Gates & ALU Construction",
-                    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
-                    is_planned: true,
-                    is_verified: true,
-                    verified_by: "SYSTEM"
-                },
-                {
-                    id: "att_002",
-                    member_id: "SG-000002",
-                    session_title: "Week 4: Logic Gates & ALU Construction",
-                    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
-                    is_planned: true,
-                    is_verified: true,
-                    verified_by: "willyger (SG-000001)"
-                },
-                {
-                    id: "att_003",
-                    member_id: "SG-000002",
-                    session_title: "Week 5: Operating System Syscalls & Linux Shell",
-                    date: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
-                    is_planned: true,
-                    is_verified: false, // Planned but pending instructor verification
-                    verified_by: null
-                }
-            ];
-            if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE)) {
-                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
+            let list = raw ? JSON.parse(raw) : [];
+            // Strictly purge mock records (att_001, att_002, att_003)
+            const cleanList = list.filter(a => a && !["att_001", "att_002", "att_003"].includes(a.id));
+            if (cleanList.length !== list.length) {
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(cleanList));
             }
             if (memberId) {
-                return list.filter(a => a.member_id === memberId);
+                return cleanList.filter(a => a.member_id === memberId);
             }
-            return list;
+            return cleanList;
         } catch (e) {
             return [];
         }

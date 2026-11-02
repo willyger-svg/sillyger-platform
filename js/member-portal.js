@@ -12,6 +12,26 @@ function initMemberPortal() {
     const session = SGStore.getCurrentSession();
     const loginView = document.getElementById("login-view");
     const dashboardView = document.getElementById("dashboard-view");
+    const urlParams = new URLSearchParams(window.location.search);
+    const alertParam = urlParams.get("alert");
+    const userParam = urlParams.get("user");
+
+    // If redirected because admin was required but user was logged in as applicant
+    if (alertParam === "admin_required") {
+        const errorAlert = document.getElementById("login-error");
+        if (errorAlert) {
+            errorAlert.innerHTML = `
+                <div class="space-y-2">
+                    <p class="font-bold text-amber-300">⚠️ Ruhusa ya Utawala Inahitajika:</p>
+                    <p>Umeingia kama <strong>@${userParam || (session ? session.username : 'applicant')}</strong> (Mtumiaji wa kawaida). Jopo la Utawala (Admin Dashboard) linaruhusiwa kwa Super Administrator pekee.</p>
+                    <button onclick="handleMemberLogout()" class="mt-1 px-3 py-1 rounded bg-amber-500 text-slate-950 font-bold text-xs">
+                        Ondoka na Uingie Kama Super Admin (willyger)
+                    </button>
+                </div>
+            `;
+            errorAlert.classList.remove("hidden");
+        }
+    }
 
     if (!session) {
         if (loginView) loginView.classList.remove("hidden");
@@ -63,6 +83,9 @@ function setupLoginForm() {
 
                 // In Phase 1-3 local store, password check
                 if (member.password_hash && password !== member.password_hash) {
+                    if (member.username === "willyger" || member.email === "wshavu@gmail.com") {
+                        throw new Error("Nenosiri si sahihi. Nenosiri la awali la Super Administrator (William) ni: admin123");
+                    }
                     throw new Error("Nenosiri (Password) si sahihi. Tafadhali jaribu tena.");
                 }
 
@@ -451,7 +474,10 @@ function renderFinancialRecords(member) {
     const elFundBalance = document.getElementById("stat-community-fund-balance");
 
     if (elPersonalContrib) elPersonalContrib.textContent = "TZS 0.00 (Free Tier)";
-    if (elFundBalance) elFundBalance.textContent = "TZS 1,450,000 (Rasilimali za Jumuiya)";
+    if (elFundBalance) {
+        const bal = SGStore.getFundBalance();
+        elFundBalance.textContent = "TZS " + bal.toLocaleString() + " (Rasilimali za Jumuiya)";
+    }
 }
 
 // -------------------------------------------------------------

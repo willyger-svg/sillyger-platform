@@ -26,13 +26,51 @@ function initAdminPortal() {
     );
 
     if (!isAdmin) {
-        // Restrict & bounce unauthorized visitors to unified login page
-        window.location.href = "member-portal.html";
+        // Restrict & bounce unauthorized visitors with informative context
+        if (session) {
+            window.location.href = `member-portal.html?alert=admin_required&user=${encodeURIComponent(session.username)}`;
+        } else {
+            window.location.href = "member-portal.html?alert=login_required";
+        }
         return;
     }
 
     if (dashboardView) dashboardView.classList.remove("hidden");
     renderSuperAdminDashboard(session);
+}
+
+// Cross-tab real-time sync & auto-refresh listener
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+        if (!e.key || e.key === SG_CONFIG.STORAGE_KEYS.APPLICANTS || e.key === SG_CONFIG.STORAGE_KEYS.FUND_LEDGER || e.key === SG_CONFIG.STORAGE_KEYS.ATTENDANCE) {
+            refreshAdminTelemetry();
+            if (currentActiveTab === "queue") renderPendingQueue();
+            if (currentActiveTab === "members") renderMembersDirectory();
+            if (currentActiveTab === "fund") renderFundLedger();
+            if (currentActiveTab === "attendance") renderAttendanceManager();
+        }
+    });
+
+    try {
+        if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('sg_platform_sync');
+            bc.onmessage = () => {
+                refreshAdminTelemetry();
+                if (currentActiveTab === "queue") renderPendingQueue();
+                if (currentActiveTab === "members") renderMembersDirectory();
+                if (currentActiveTab === "fund") renderFundLedger();
+                if (currentActiveTab === "attendance") renderAttendanceManager();
+            };
+        }
+    } catch (e) {}
+
+    // Continuous 3-second heartbeat ensures no applicants are ever missed
+    setInterval(() => {
+        refreshAdminTelemetry();
+        if (currentActiveTab === "queue") {
+            renderPendingQueue();
+        }
+    }, 3000);
 }
 
 window.handleAdminLogout = function() {
@@ -181,6 +219,13 @@ function renderPendingQueue() {
                     >
                         Dossier
                     </button>
+                    <button 
+                        onclick="rejectApplicant('${p.id}', '${p.full_name}')"
+                        class="px-2.5 py-1.5 rounded-xl border border-red-500/30 hover:border-red-500/80 hover:bg-red-950/40 text-red-400 text-xs transition"
+                        title="Kataa au futa maombi haya"
+                    >
+                        Futa
+                    </button>
                 </div>
             </td>
         </tr>
@@ -200,10 +245,33 @@ window.approveApplicant = function(applicantId, applicantName) {
             alert(`✓ ${approved.full_name} ameidhinishwa rasmi!\nUnique Member ID: ${approved.member_id}`);
             refreshAdminTelemetry();
             renderPendingQueue();
+            renderMembersDirectory();
         } catch (e) {
             alert("Hitilafu: " + e.message);
         }
     }
+};
+
+window.rejectApplicant = function(applicantId, applicantName) {
+    if (confirm(`Je, una uhakika unataka kukataa na kufuta maombi ya ${applicantName}?\n\nRekodi hii itaondolewa kabisa kwenye mfumo.`)) {
+        try {
+            const adminUser = SGStore.getCurrentSession();
+            const adminActor = adminUser ? adminUser.username : "William Gerishom";
+            SGStore.deleteMember(applicantId, adminActor);
+            alert(`✓ Maombi ya ${applicantName} yameondolewa.`);
+            refreshAdminTelemetry();
+            renderPendingQueue();
+            renderMembersDirectory();
+        } catch (e) {
+            alert("Hitilafu: " + e.message);
+        }
+    }
+};
+
+window.manualRefreshQueue = function() {
+    refreshAdminTelemetry();
+    renderPendingQueue();
+    renderMembersDirectory();
 };
 
 // -------------------------------------------------------------
@@ -691,4 +759,47 @@ window.exportCommunityDataJSON = function() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+};
+
+window.saveDatabaseCredentials = async function(e) {
+    if (e) e.preventDefault();
+    const url = (document.getElementById("supabase-url-input").value || "").trim();
+    const key = (document.getElementById("supabase-key-input").value || "").trim();
+
+    if (!url || !key) {
+        alert("Tafadhali jaza Project URL na Public Anon Key zote mbili.");
+        return;
+    }
+
+    localStorage.setItem("sg_supabase_url", url);
+    localStorage.setItem("sg_supabase_key", key);
+    SG_CONFIG.SUPABASE.url = url;
+    SG_CONFIG.SUPABASE.anonKey = key;
+
+    try {
+        if (typeof supabase !== 'undefined') {
+            const client = supabase.createClient(url, key);
+            const { data, error } = await client.from('members').select('id').limit(1);
+            if (error) {
+                alert(`⚠️ Imehifadhiwa, lakini Supabase imerudisha ujumbe: ${error.message}\nHakikisha umepandisha schema.sql kwenye SQL Editor kule Supabase.`);
+            } else {
+                alert("✓ Hongera! Supabase imeunganishwa kikamilifu! Sasa data zote za wanachama zitasawazishwa kwenye simu na kompyuta zote kwa wakati halisi (Real-Time Cloud Database).");
+            }
+        } else {
+            alert("✓ Taarifa za Supabase zimehifadhiwa.");
+        }
+    } catch (err) {
+        alert("Taarifa zimehifadhiwa: " + err.message);
+    }
+
+    location.reload();
+};
+
+window.resetCommunityDataToPristine = function() {
+    const confirmation = prompt("ONYO: Hatua hii itafuta data zote za majaribio kwenye kifaa hiki na kurudisha mfumo katika hali safi ya uzinduzi (William Gerishom William pekee kama Super Admin).\n\nAndika neno 'FUTA' kuthibitisha:");
+    if (confirmation && confirmation.trim().toUpperCase() === "FUTA") {
+        SGStore.resetToPristine();
+        alert("✓ Mfumo umesafishwa kikamilifu! Data zote za uongo/majaribio zimeondolewa.");
+        location.reload();
+    }
 };

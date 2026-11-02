@@ -24,7 +24,9 @@ const SG_CONFIG = {
         AUDIT_LOGS: "sg_audit_logs_v1_4",
         ATTENDANCE: "sg_attendance_v1_4",
         LEAVE_REQUESTS: "sg_leaves_v1_4",
-        SUPPORT_TICKETS: "sg_tickets_v1_4"
+        SUPPORT_TICKETS: "sg_tickets_v1_4",
+        ANNOUNCEMENTS: "sg_announcements_v1_4",
+        FUND_LEDGER: "sg_fund_ledger_v1_4"
     },
 
     // Supabase Configuration (Populated via Admin UI or directly here)

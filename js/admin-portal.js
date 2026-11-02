@@ -1,7 +1,8 @@
 /**
- * SILLYGER (SG) Administration Portal Controller (Phase 3 & Production Engine)
- * Manages RBAC, Member Approval Queue, Sequential SG-ID Generation,
- * Attendance Verifications, Leave Management, and Audit Logs Viewer.
+ * SILLYGER (SG) Super Administrator Control Engine (Article 7 & Appendix B)
+ * Full governance: Member Dossier Inspector, RBAC Role Assignment,
+ * Status Management, Sequential ID Generator, Announcements Publisher,
+ * SG Community Fund Ledger, and Immutable Audit Trail.
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -9,29 +10,29 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 let currentActiveTab = "queue";
+let inspectingMemberId = null;
 
 function initAdminPortal() {
     const session = SGStore.getCurrentSession();
     const dashboardView = document.getElementById("admin-dashboard-view");
 
-    // Check if logged in user has administrative privileges (Article 7.4)
+    // Check Super Administrator or Administrator privileges (Article 7.4)
     const isAdmin = session && (
         session.role === "Super Administrator" || 
         session.role === "Administrator" || 
         session.role === "Membership Administrator" ||
         session.email === "wshavu@gmail.com" ||
-        session.email === "admin@sillyger.org" ||
         session.username === "willyger"
     );
 
     if (!isAdmin) {
-        // Restrict & hide Admin Portal completely from non-admin visitors
+        // Restrict & bounce unauthorized visitors to unified login page
         window.location.href = "member-portal.html";
         return;
     }
 
     if (dashboardView) dashboardView.classList.remove("hidden");
-    renderAdminDashboard(session);
+    renderSuperAdminDashboard(session);
 }
 
 window.handleAdminLogout = function() {
@@ -40,39 +41,40 @@ window.handleAdminLogout = function() {
 };
 
 // -------------------------------------------------------------
-// ADMIN DASHBOARD RENDERING
+// EXECUTIVE DASHBOARD RENDERING
 // -------------------------------------------------------------
-function renderAdminDashboard(adminUser) {
-    // 1. Render Admin Profile & Stats
+function renderSuperAdminDashboard(adminUser) {
+    // 1. Executive Identity Banner
     const elAdminName = document.getElementById("admin-user-name");
     const elAdminRole = document.getElementById("admin-user-role");
+    const elAdminId = document.getElementById("admin-user-id");
     if (elAdminName) elAdminName.textContent = adminUser.full_name;
     if (elAdminRole) elAdminRole.textContent = adminUser.role;
+    if (elAdminId) elAdminId.textContent = adminUser.member_id || "SG-000001";
 
-    refreshAdminStats();
-
-    // 2. Setup Tab Switching
+    refreshAdminTelemetry();
     setupAdminTabs();
-
-    // 3. Render Initial Tab Content
     switchAdminTab(currentActiveTab);
 }
 
-function refreshAdminStats() {
+function refreshAdminTelemetry() {
     const members = SGStore.getMembers();
     const pending = members.filter(m => m.status === "PENDING").length;
     const active = members.filter(m => m.status === "ACTIVE").length;
     const total = members.length;
+    const fundBalance = SGStore.getFundBalance();
     const logsCount = SGStore.getAuditLogs().length;
 
     const elStatPending = document.getElementById("admin-stat-pending");
     const elStatActive = document.getElementById("admin-stat-active");
     const elStatTotal = document.getElementById("admin-stat-total");
+    const elStatFund = document.getElementById("admin-stat-fund");
     const elStatLogs = document.getElementById("admin-stat-logs");
 
     if (elStatPending) elStatPending.textContent = pending;
     if (elStatActive) elStatActive.textContent = active;
     if (elStatTotal) elStatTotal.textContent = total;
+    if (elStatFund) elStatFund.textContent = "TZS " + fundBalance.toLocaleString();
     if (elStatLogs) elStatLogs.textContent = logsCount;
 }
 
@@ -89,29 +91,27 @@ function setupAdminTabs() {
 window.switchAdminTab = function(tabName) {
     currentActiveTab = tabName;
 
-    // Highlight active button
     document.querySelectorAll(".admin-nav-tab").forEach(btn => {
         if (btn.getAttribute("data-tab") === tabName) {
-            btn.className = "admin-nav-tab px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center gap-2 transition";
+            btn.className = "admin-nav-tab px-4 py-2.5 rounded-xl bg-purple-600/20 border border-purple-500/50 text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-500/10";
         } else {
-            btn.className = "admin-nav-tab px-4 py-2 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition";
+            btn.className = "admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition";
         }
     });
 
-    // Hide all tab panes
     document.querySelectorAll(".admin-tab-pane").forEach(pane => {
         pane.classList.add("hidden");
     });
 
-    // Show target pane
     const targetPane = document.getElementById(`tab-pane-${tabName}`);
     if (targetPane) {
         targetPane.classList.remove("hidden");
     }
 
-    // Render corresponding data
     if (tabName === "queue") renderPendingQueue();
     else if (tabName === "members") renderMembersDirectory();
+    else if (tabName === "announcements") renderAnnouncementsManager();
+    else if (tabName === "fund") renderFundLedger();
     else if (tabName === "attendance") renderAttendanceManager();
     else if (tabName === "leaves") renderLeavesManager();
     else if (tabName === "audit") renderAuditLogsViewer();
@@ -132,7 +132,7 @@ function renderPendingQueue() {
         container.innerHTML = `
             <tr>
                 <td colspan="6" class="px-6 py-12 text-center text-slate-500 font-mono-sg text-xs">
-                    ✓ Hakuna maombi yanayosubiri ukaguzi kwa sasa (All applications reviewed).
+                    ✓ Hakuna maombi mapya yanayosubiri ukaguzi kwa sasa (All applications reviewed).
                 </td>
             </tr>
         `;
@@ -146,7 +146,10 @@ function renderPendingQueue() {
                 <span class="text-xs font-mono-sg text-cyan-400">@${p.username}</span>
             </td>
             <td class="px-4 py-4 text-xs font-mono-sg text-slate-300">
-                <span class="block">${p.phone}</span>
+                <a href="https://wa.me/${p.phone.replace(/[^0-9]/g, '')}" target="_blank" class="text-emerald-400 hover:underline flex items-center gap-1 font-bold">
+                    <span>${p.phone}</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                </a>
                 <span class="text-[11px] text-slate-500">${p.email}</span>
             </td>
             <td class="px-4 py-4 text-xs text-slate-300">
@@ -156,7 +159,7 @@ function renderPendingQueue() {
                 <span class="text-[10px] text-slate-500">Uzoefu: ${p.experience || 'Beginner'}</span>
             </td>
             <td class="px-4 py-4 text-xs text-slate-400 max-w-xs truncate" title="${p.motivation || ''}">
-                ${p.motivation ? p.motivation.substring(0, 50) + '...' : '<em class="text-slate-600">Bila maelezo</em>'}
+                ${p.motivation ? p.motivation : '<em class="text-slate-600">Bila maelezo</em>'}
             </td>
             <td class="px-4 py-4 text-xs font-mono-sg text-slate-400">
                 ${new Date(p.created_at).toLocaleDateString("sw-TZ")}
@@ -165,18 +168,18 @@ function renderPendingQueue() {
                 <div class="flex items-center justify-end gap-2">
                     <button 
                         onclick="approveApplicant('${p.id}', '${p.full_name}')"
-                        class="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-sm flex items-center gap-1"
+                        class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-500/20 flex items-center gap-1"
                         title="Idhinisha na kutoa namba ya SG-xxxxxx"
                     >
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         <span>Idhinisha (Approve)</span>
                     </button>
                     <button 
-                        onclick="holdApplicant('${p.id}')"
-                        class="px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-amber-500 text-slate-400 hover:text-amber-400 text-xs transition"
-                        title="Weka kwenye mapitio zaidi"
+                        onclick="openMemberDossier('${p.id}')"
+                        class="px-2.5 py-1.5 rounded-xl border border-slate-700 hover:border-purple-400 text-slate-300 hover:text-white text-xs transition"
+                        title="Kagua maelezo kamili"
                     >
-                        Hold
+                        Dossier
                     </button>
                 </div>
             </td>
@@ -186,16 +189,16 @@ function renderPendingQueue() {
 
 window.approveApplicant = function(applicantId, applicantName) {
     const adminUser = SGStore.getCurrentSession();
-    const adminActor = adminUser ? adminUser.username : "SUPER_ADMIN";
+    const adminActor = adminUser ? adminUser.username : "William Gerishom";
 
     const nextId = SGStore.getNextMemberId();
-    const confirmMsg = `Thibitisha kumuidhinisha ${applicantName}?\n\nMfumo utatoa namba ya kipekee: ${nextId}\nHadhi itabadilika kuwa ACTIVE na kiungo cha WhatsApp kitafunguliwa.`;
+    const confirmMsg = `Thibitisha kumuidhinisha ${applicantName}?\n\nMfumo utatoa Unique Member ID: ${nextId}\nHadhi itabadilika kuwa ACTIVE na kiungo cha WhatsApp kitafunguliwa.`;
 
     if (confirm(confirmMsg)) {
         try {
             const approved = SGStore.approveMember(applicantId, adminActor);
-            alert(`✓ ${approved.full_name} ameidhinishwa kikamilifu!\nNamba ya Mwanachama: ${approved.member_id}`);
-            refreshAdminStats();
+            alert(`✓ ${approved.full_name} ameidhinishwa rasmi!\nUnique Member ID: ${approved.member_id}`);
+            refreshAdminTelemetry();
             renderPendingQueue();
         } catch (e) {
             alert("Hitilafu: " + e.message);
@@ -203,32 +206,23 @@ window.approveApplicant = function(applicantId, applicantName) {
     }
 };
 
-window.holdApplicant = function(applicantId) {
-    const reason = prompt("Weka sababu ya kuweka maombi haya ON_HOLD:");
-    if (reason) {
-        SGStore.updateMemberStatus(applicantId, "ON_HOLD", reason, "ADMIN");
-        alert("Maombi yamewekwa ON_HOLD.");
-        refreshAdminStats();
-        renderPendingQueue();
-    }
-};
-
 // -------------------------------------------------------------
-// TAB 2: MEMBERS DIRECTORY
+// TAB 2: MEMBERS DIRECTORY & DOSSIER INSPECTOR
 // -------------------------------------------------------------
 function renderMembersDirectory(searchFilter = "") {
     const container = document.getElementById("members-directory-tbody");
     if (!container) return;
 
     let members = SGStore.getMembers();
-    const query = searchFilter.toLowerCase().trim();
+    const query = (searchFilter || "").toLowerCase().trim();
 
     if (query) {
         members = members.filter(m => 
             m.full_name.toLowerCase().includes(query) ||
             m.username.toLowerCase().includes(query) ||
             (m.member_id && m.member_id.toLowerCase().includes(query)) ||
-            (m.phone && m.phone.includes(query))
+            (m.phone && m.phone.includes(query)) ||
+            (m.role && m.role.toLowerCase().includes(query))
         );
     }
 
@@ -247,10 +241,14 @@ function renderMembersDirectory(searchFilter = "") {
                     <span class="text-slate-400 font-mono-sg text-[11px]">@${m.username}</span>
                 </td>
                 <td class="px-4 py-3 font-mono-sg text-slate-300">
-                    ${m.phone}
+                    <a href="https://wa.me/${m.phone.replace(/[^0-9]/g, '')}" target="_blank" class="hover:text-emerald-400 hover:underline">
+                        ${m.phone}
+                    </a>
                 </td>
-                <td class="px-4 py-3 text-slate-300 truncate max-w-[180px]">
-                    ${m.track}
+                <td class="px-4 py-3">
+                    <span class="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/50 text-purple-300 font-mono-sg text-[10px] font-bold">
+                        ${m.role || 'Member'}
+                    </span>
                 </td>
                 <td class="px-4 py-3">
                     <span class="px-2 py-0.5 rounded uppercase font-bold text-[10px] font-mono-sg ${badgeClass}">
@@ -258,33 +256,214 @@ function renderMembersDirectory(searchFilter = "") {
                     </span>
                 </td>
                 <td class="px-4 py-3 text-right">
-                    <select 
-                        onchange="changeMemberStatusDirectly('${m.id}', this.value)"
-                        class="bg-slate-900 border border-slate-700 text-slate-300 text-[11px] rounded px-2 py-1"
+                    <button 
+                        onclick="openMemberDossier('${m.id}')"
+                        class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-purple-950/60 border border-slate-700 hover:border-purple-500/50 text-cyan-300 hover:text-white font-bold text-xs transition"
                     >
-                        <option value="" disabled selected>Badili Hali...</option>
-                        <option value="ACTIVE" ${m.status === 'ACTIVE' ? 'disabled' : ''}>Weka ACTIVE</option>
-                        <option value="ON_HOLD" ${m.status === 'ON_HOLD' ? 'disabled' : ''}>Weka ON_HOLD</option>
-                        <option value="SUSPENDED" ${m.status === 'SUSPENDED' ? 'disabled' : ''}>Weka SUSPENDED</option>
-                    </select>
+                        ⚙️ Dhibiti (Inspect)
+                    </button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-window.changeMemberStatusDirectly = function(memberId, newStatus) {
-    if (!newStatus) return;
-    const reason = prompt(`Weka sababu ya kubadilisha hadhi kuwa ${newStatus}:`, "Administrative review");
-    if (reason !== null) {
-        SGStore.updateMemberStatus(memberId, newStatus, reason, "SUPER_ADMIN");
-        refreshAdminStats();
+// -------------------------------------------------------------
+// DOSSIER INSPECTOR MODAL (SUPER ADMIN OVERSIGHT)
+// -------------------------------------------------------------
+window.openMemberDossier = function(memberId) {
+    inspectingMemberId = memberId;
+    const member = SGStore.findMemberById(memberId);
+    if (!member) return;
+
+    const modal = document.getElementById("modal-member-dossier");
+    if (!modal) return;
+
+    document.getElementById("dossier-name").textContent = member.full_name;
+    document.getElementById("dossier-username").textContent = "@" + member.username;
+    document.getElementById("dossier-email").textContent = member.email;
+    document.getElementById("dossier-phone").textContent = member.phone;
+    document.getElementById("dossier-whatsapp-link").href = `https://wa.me/${member.phone.replace(/[^0-9]/g, '')}`;
+    document.getElementById("dossier-track").textContent = member.track;
+    document.getElementById("dossier-experience").textContent = member.experience || 'Beginner';
+    document.getElementById("dossier-motivation").textContent = member.motivation || 'Bila maelezo ya ziada';
+    document.getElementById("dossier-joined").textContent = new Date(member.created_at).toLocaleString("sw-TZ");
+
+    document.getElementById("dossier-member-id-input").value = member.member_id || '';
+    document.getElementById("dossier-role-select").value = member.role || 'Member';
+    document.getElementById("dossier-status-select").value = member.status || 'PENDING';
+
+    modal.classList.remove("hidden");
+};
+
+window.closeMemberDossier = function() {
+    const modal = document.getElementById("modal-member-dossier");
+    if (modal) modal.classList.add("hidden");
+    inspectingMemberId = null;
+};
+
+window.saveDossierChanges = function(e) {
+    if (e) e.preventDefault();
+    if (!inspectingMemberId) return;
+
+    const member = SGStore.findMemberById(inspectingMemberId);
+    if (!member) return;
+
+    const adminUser = SGStore.getCurrentSession();
+    const adminActor = adminUser ? adminUser.username : "William Gerishom";
+
+    const newId = document.getElementById("dossier-member-id-input").value.trim();
+    const newRole = document.getElementById("dossier-role-select").value;
+    const newStatus = document.getElementById("dossier-status-select").value;
+    const reason = document.getElementById("dossier-audit-reason").value.trim() || "Super Administrator modification";
+
+    try {
+        // 1. Check ID change
+        if (newId && newId !== member.member_id) {
+            SGStore.assignCustomMemberId(member.id, newId, reason, adminActor);
+        }
+
+        // 2. Check Role change
+        if (newRole && newRole !== member.role) {
+            SGStore.updateMemberRole(member.id, newRole, reason, adminActor);
+        }
+
+        // 3. Check Status change
+        if (newStatus && newStatus !== member.status) {
+            SGStore.updateMemberStatus(member.id, newStatus, reason, adminActor);
+        }
+
+        alert("✓ Taarifa za mwanachama zimesasishwa kikamilifu na kurekodiwa kwenye Audit Logs!");
+        closeMemberDossier();
+        refreshAdminTelemetry();
         renderMembersDirectory();
+        renderPendingQueue();
+
+    } catch (err) {
+        alert("Hitilafu: " + err.message);
     }
 };
 
 // -------------------------------------------------------------
-// TAB 3: ATTENDANCE MANAGER (VERIFICATIONS)
+// TAB 3: OFFICIAL ANNOUNCEMENTS PUBLISHER (Article 6.8 & 11)
+// -------------------------------------------------------------
+function renderAnnouncementsManager() {
+    const container = document.getElementById("announcements-feed-container");
+    if (!container) return;
+
+    const list = SGStore.getAnnouncements();
+
+    if (list.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-slate-500 font-mono-sg text-xs">Hakuna matangazo yaliyochapishwa bado.</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(a => `
+        <div class="sg-glass p-5 rounded-2xl border ${a.priority === 'HIGH' ? 'border-amber-500/40 bg-amber-950/10' : 'border-slate-800'} space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-mono-sg font-bold uppercase tracking-wider ${a.priority === 'HIGH' ? 'text-amber-400' : 'text-cyan-400'}">
+                    ● ${a.priority} PRIORITY ANNOUNCEMENT
+                </span>
+                <span class="text-[11px] text-slate-500 font-mono-sg">
+                    ${new Date(a.created_at).toLocaleDateString("sw-TZ")}
+                </span>
+            </div>
+            <h3 class="text-base font-bold text-white">${a.title}</h3>
+            <p class="text-xs md:text-sm text-slate-300 leading-relaxed">${a.content}</p>
+            <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono-sg text-slate-500">
+                <span>Mwandishi: <strong class="text-slate-300">${a.author}</strong></span>
+                <span>Inaonekana kwenye Member Portal</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.publishOfficialAnnouncement = function(e) {
+    if (e) e.preventDefault();
+    const title = document.getElementById("anc-title-input").value.trim();
+    const content = document.getElementById("anc-content-input").value.trim();
+    const priority = document.getElementById("anc-priority-input").value;
+
+    if (!title || !content) {
+        alert("Tafadhali weka kichwa cha habari na maudhui ya tangazo.");
+        return;
+    }
+
+    SGStore.createAnnouncement({
+        title,
+        content,
+        priority,
+        author: "William Gerishom William (Super Admin)"
+    });
+
+    alert("✓ Tangazo rasmi limechapishwa na linapatikana kwa wanachama wote!");
+    document.getElementById("form-create-announcement").reset();
+    renderAnnouncementsManager();
+};
+
+// -------------------------------------------------------------
+// TAB 4: SG COMMUNITY FUND LEDGER (Article 13)
+// -------------------------------------------------------------
+function renderFundLedger() {
+    const container = document.getElementById("fund-ledger-tbody");
+    const elLedgerBalance = document.getElementById("fund-ledger-balance-display");
+    if (!container) return;
+
+    const list = SGStore.getFundLedger();
+    const balance = SGStore.getFundBalance();
+
+    if (elLedgerBalance) {
+        elLedgerBalance.textContent = "TZS " + balance.toLocaleString();
+    }
+
+    if (list.length === 0) {
+        container.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 font-mono-sg text-xs">Hakuna miamala iliyorekodiwa bado.</td></tr>`;
+        return;
+    }
+
+    container.innerHTML = list.map(tx => `
+        <tr class="border-b border-slate-800/60 hover:bg-slate-900/40 transition text-xs font-mono-sg">
+            <td class="px-4 py-3 text-slate-400">${tx.date}</td>
+            <td class="px-4 py-3 font-bold">
+                ${tx.type === 'INCOME' ? 
+                    '<span class="text-emerald-400 font-bold">+ MAPATO (INCOME)</span>' : 
+                    '<span class="text-amber-400 font-bold">- MATUMIZI (EXPENSE)</span>'}
+            </td>
+            <td class="px-4 py-3 font-bold text-white">TZS ${tx.amount.toLocaleString()}</td>
+            <td class="px-4 py-3 text-cyan-400">${tx.category}</td>
+            <td class="px-4 py-3 text-slate-300 max-w-xs truncate" title="${tx.description}">${tx.description}</td>
+        </tr>
+    `).join('');
+}
+
+window.recordFundTransaction = function(e) {
+    if (e) e.preventDefault();
+    const type = document.getElementById("fund-type-select").value;
+    const amount = document.getElementById("fund-amount-input").value;
+    const category = document.getElementById("fund-category-input").value;
+    const description = document.getElementById("fund-desc-input").value.trim();
+
+    if (!amount || !description) {
+        alert("Tafadhali jaza kiasi na maelezo ya muamala.");
+        return;
+    }
+
+    SGStore.addFundTransaction({
+        type,
+        amount,
+        category,
+        description,
+        actor: "William Gerishom"
+    });
+
+    alert("✓ Muamala wa SG Community Fund umerekodiwa rasmi kwenye leja!");
+    document.getElementById("form-fund-transaction").reset();
+    refreshAdminTelemetry();
+    renderFundLedger();
+};
+
+// -------------------------------------------------------------
+// TAB 5: ATTENDANCE VERIFICATIONS (Article 9)
 // -------------------------------------------------------------
 function renderAttendanceManager() {
     const container = document.getElementById("attendance-manager-tbody");
@@ -317,9 +496,9 @@ function renderAttendanceManager() {
                 ${!a.is_verified ? `
                     <button 
                         onclick="verifyAttendanceRecord('${a.id}')"
-                        class="px-2.5 py-1 rounded bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition"
+                        class="px-3 py-1 rounded bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition"
                     >
-                        Thibitisha (Verify)
+                        Thibitisha
                     </button>
                 ` : '<span class="text-slate-600 text-[11px] font-mono-sg">Imethibitishwa</span>'}
             </td>
@@ -332,7 +511,7 @@ window.verifyAttendanceRecord = function(recordId) {
     const idx = list.findIndex(r => r.id === recordId);
     if (idx !== -1) {
         list[idx].is_verified = true;
-        list[idx].verified_by = "willyger (Super Admin)";
+        list[idx].verified_by = "William Gerishom (Super Admin)";
         _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
         SGStore.addAuditLog({
             action: "ATTENDANCE_VERIFIED",
@@ -344,8 +523,33 @@ window.verifyAttendanceRecord = function(recordId) {
     }
 };
 
+window.verifyAllPendingAttendance = function() {
+    const list = SGStore.getAttendanceRecords();
+    let count = 0;
+    list.forEach(a => {
+        if (!a.is_verified) {
+            a.is_verified = true;
+            a.verified_by = "William Gerishom (Super Admin)";
+            count++;
+        }
+    });
+    if (count > 0) {
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
+        SGStore.addAuditLog({
+            action: "MASS_ATTENDANCE_VERIFIED",
+            actor: "willyger",
+            target: "All Sessions",
+            details: `Super Administrator mass-verified ${count} attendance check-ins.`
+        });
+        alert(`✓ Vipindi ${count} vya mahudhurio vimethibitishwa vyote mara moja!`);
+        renderAttendanceManager();
+    } else {
+        alert("Hakuna mahudhurio mapya yasiyothibitishwa.");
+    }
+};
+
 // -------------------------------------------------------------
-// TAB 4: LEAVE REQUESTS
+// TAB 6: LEAVE REQUESTS (Article 10)
 // -------------------------------------------------------------
 function renderLeavesManager() {
     const container = document.getElementById("leaves-manager-tbody");
@@ -373,7 +577,7 @@ function renderLeavesManager() {
             </td>
             <td class="px-4 py-3 text-right">
                 ${l.status !== 'APPROVED' ? `
-                    <button onclick="approveLeave('${l.id}')" class="px-2.5 py-1 rounded bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition">
+                    <button onclick="approveLeave('${l.id}')" class="px-3 py-1 rounded bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition">
                         Kubali (Approve)
                     </button>
                 ` : '<span class="text-slate-500 text-[11px]">Tayari</span>'}
@@ -387,7 +591,7 @@ window.approveLeave = function(leaveId) {
     const idx = list.findIndex(l => l.id === leaveId);
     if (idx !== -1) {
         list[idx].status = "APPROVED";
-        list[idx].reviewed_by = "willyger";
+        list[idx].reviewed_by = "William Gerishom";
         _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(list));
         SGStore.addAuditLog({
             action: "LEAVE_APPROVED",
@@ -400,28 +604,32 @@ window.approveLeave = function(leaveId) {
 };
 
 // -------------------------------------------------------------
-// TAB 5: IMMUTABLE AUDIT LOGS VIEWER (Article 7.7)
+// TAB 7: IMMUTABLE AUDIT LOGS VIEWER (Article 7.7)
 // -------------------------------------------------------------
-function renderAuditLogsViewer() {
+function renderAuditLogsViewer(filterType = "") {
     const container = document.getElementById("audit-logs-tbody");
     if (!container) return;
 
-    const logs = SGStore.getAuditLogs();
+    let logs = SGStore.getAuditLogs();
+    if (filterType) {
+        logs = logs.filter(l => l.action.includes(filterType));
+    }
 
     if (logs.length === 0) {
-        container.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 font-mono-sg text-xs">Hakuna kumbukumbu za ukaguzi.</td></tr>`;
+        container.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-slate-500 font-mono-sg text-xs">Hakuna kumbukumbu za ukaguzi zilizopatikana.</td></tr>`;
         return;
     }
 
     container.innerHTML = logs.map(l => {
         let actionColor = "text-cyan-400";
         if (l.action.includes("APPROVED")) actionColor = "text-emerald-400";
-        else if (l.action.includes("SUSPEND")) actionColor = "text-red-400";
-        else if (l.action.includes("LOGIN")) actionColor = "text-blue-400";
+        else if (l.action.includes("SUSPEND") || l.action.includes("HOLD")) actionColor = "text-amber-400";
+        else if (l.action.includes("ROLE") || l.action.includes("OVERRIDE")) actionColor = "text-purple-400";
+        else if (l.action.includes("FUND")) actionColor = "text-teal-400";
 
         return `
             <tr class="border-b border-slate-800/60 hover:bg-slate-900/40 transition text-xs font-mono-sg">
-                <td class="px-4 py-3 text-slate-400 text-[11px]">
+                <td class="px-4 py-3 text-slate-400 text-[11px] whitespace-nowrap">
                     ${new Date(l.timestamp).toLocaleString("sw-TZ")}
                 </td>
                 <td class="px-4 py-3 font-bold ${actionColor}">
@@ -442,7 +650,7 @@ function renderAuditLogsViewer() {
 }
 
 // -------------------------------------------------------------
-// TAB 6: DATABASE & SYSTEM SETTINGS
+// TAB 8: DATABASE & COMPLIANCE DATA EXPORT
 // -------------------------------------------------------------
 function renderDatabaseSettings() {
     const statusBadge = document.getElementById("db-status-badge");
@@ -455,7 +663,7 @@ function renderDatabaseSettings() {
         if (isConnected) {
             statusBadge.innerHTML = `<span class="px-3 py-1 rounded-full badge-active text-xs font-mono-sg font-bold">● CONNECTED (SUPABASE POSTGRESQL)</span>`;
         } else {
-            statusBadge.innerHTML = `<span class="px-3 py-1 rounded-full badge-pending text-xs font-mono-sg font-bold">● LOCAL FALLBACK MODE</span>`;
+            statusBadge.innerHTML = `<span class="px-3 py-1 rounded-full badge-pending text-xs font-mono-sg font-bold">● LOCAL / HYBRID STORAGE</span>`;
         }
     }
 
@@ -463,20 +671,24 @@ function renderDatabaseSettings() {
     if (inputKey && SG_CONFIG.SUPABASE.anonKey) inputKey.value = SG_CONFIG.SUPABASE.anonKey;
 }
 
-window.saveDatabaseCredentials = function(e) {
-    if (e) e.preventDefault();
-    const url = document.getElementById("supabase-url-input").value.trim();
-    const key = document.getElementById("supabase-key-input").value.trim();
+window.exportCommunityDataJSON = function() {
+    const exportData = {
+        exported_at: new Date().toISOString(),
+        exported_by: "William Gerishom William (Super Administrator)",
+        compliance: "Tanzania Personal Data Protection Act, 2022 (PDPA - Article 15)",
+        members: SGStore.getMembers(),
+        audit_logs: SGStore.getAuditLogs(),
+        attendance: SGStore.getAttendanceRecords(),
+        fund_ledger: SGStore.getFundLedger(),
+        announcements: SGStore.getAnnouncements()
+    };
 
-    if (!url || !key) {
-        alert("Tafadhali weka Supabase URL na Public Anon Key.");
-        return;
-    }
-
-    // Persist to local config settings
-    localStorage.setItem("sg_supabase_url", url);
-    localStorage.setItem("sg_supabase_key", key);
-
-    alert("✓ Mipangilio ya Supabase imehifadhiwa! Mfumo unaunganisha moja kwa moja.");
-    window.location.reload();
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sillyger_community_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 };

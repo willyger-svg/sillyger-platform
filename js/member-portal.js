@@ -115,6 +115,9 @@ function renderMemberDashboard(member) {
     // 1. Render Header & Identity
     renderMemberIdentity(freshMember);
 
+    // 1.5. Render Super Admin Announcements (Article 6.8 & 11)
+    renderMemberAnnouncements();
+
     // 2. Render WhatsApp Access Gate Card (Article 6.8 & 11.3)
     renderWhatsAppGate(freshMember);
 
@@ -188,6 +191,34 @@ function renderMemberIdentity(member) {
         const date = new Date(member.created_at);
         elJoined.textContent = date.toLocaleDateString("sw-TZ", { year: 'numeric', month: 'short', day: 'numeric' });
     }
+}
+
+// -------------------------------------------------------------
+// OFFICIAL ANNOUNCEMENTS FROM SUPER ADMIN
+// -------------------------------------------------------------
+function renderMemberAnnouncements() {
+    const container = document.getElementById("member-announcements-slot");
+    if (!container) return;
+
+    const list = SGStore.getAnnouncements();
+    if (list.length === 0) {
+        container.innerHTML = "";
+        return;
+    }
+
+    container.innerHTML = list.map(a => `
+        <div class="sg-glass p-4 sm:p-5 rounded-2xl border ${a.priority === 'HIGH' ? 'border-amber-500/40 bg-amber-950/20' : 'border-cyan-500/30 bg-cyan-950/20'} flex items-start gap-3.5">
+            <span class="text-xl mt-0.5">📢</span>
+            <div class="flex-grow">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-white font-mono-sg uppercase">${a.title}</span>
+                    <span class="text-[10px] text-slate-400 font-mono-sg">${new Date(a.created_at).toLocaleDateString("sw-TZ")}</span>
+                </div>
+                <p class="text-xs text-slate-300 leading-relaxed">${a.content}</p>
+                <span class="text-[10px] text-slate-500 font-mono-sg block mt-1.5">— ${a.author}</span>
+            </div>
+        </div>
+    `).join('');
 }
 
 // -------------------------------------------------------------

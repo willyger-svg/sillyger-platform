@@ -310,6 +310,202 @@ const SGStore = {
         return members[index];
     },
 
+    // SUPER ADMINISTRATOR: Role-Based Access Control (RBAC - Article 7.4 & Appendix A4)
+    updateMemberRole(applicantId, newRole, reason = "", adminActor = "SUPER_ADMIN") {
+        const validRoles = [
+            "Applicant", 
+            "Member", 
+            "Instructor", 
+            "Project Lead", 
+            "Community Moderator", 
+            "Education Administrator", 
+            "Finance Administrator", 
+            "Administrator", 
+            "Super Administrator"
+        ];
+        if (!validRoles.includes(newRole)) {
+            throw new Error(`Jukumu batili: ${newRole}`);
+        }
+
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const oldRole = members[index].role;
+        members[index].role = newRole;
+        this.saveMembers(members);
+
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('members').update({ role: newRole }).eq('username', members[index].username).then(() => {});
+        }
+
+        this.addAuditLog({
+            action: `ROLE_CHANGE_${newRole.toUpperCase().replace(/\s+/g, '_')}`,
+            actor: adminActor,
+            target: `${members[index].username} (${members[index].member_id || 'NO-ID'})`,
+            details: `Role updated from ${oldRole} to ${newRole}. Reason: ${reason || 'Executive assignment'}.`
+        });
+
+        return members[index];
+    },
+
+    // SUPER ADMINISTRATOR: Full Member Record Editor
+    updateMemberFullRecord(applicantId, updates, adminActor = "SUPER_ADMIN") {
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const member = members[index];
+        Object.assign(member, updates);
+        members[index] = member;
+        this.saveMembers(members);
+
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('members').update(updates).eq('id', member.id).then(() => {});
+        }
+
+        this.addAuditLog({
+            action: "MEMBER_DOSSIER_UPDATED",
+            actor: adminActor,
+            target: `${member.username} (${member.member_id || 'NO-ID'})`,
+            details: `Super Administrator updated dossier parameters.`
+        });
+
+        return member;
+    },
+
+    // SUPER ADMINISTRATOR: Manual or Regenerated Member ID
+    assignCustomMemberId(applicantId, customId, reason = "", adminActor = "SUPER_ADMIN") {
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const formattedId = customId.trim().toUpperCase();
+        if (members.some((m, idx) => idx !== index && m.member_id === formattedId)) {
+            throw new Error(`Namba ya mwanachama ${formattedId} tayari inatumiwa na mtu mwingine.`);
+        }
+
+        const oldId = members[index].member_id;
+        members[index].member_id = formattedId;
+        this.saveMembers(members);
+
+        const client = getSupabaseClient();
+        if (client) {
+            client.from('members').update({ member_id: formattedId }).eq('id', members[index].id).then(() => {});
+        }
+
+        this.addAuditLog({
+            action: "MEMBER_ID_OVERRIDE",
+            actor: adminActor,
+            target: members[index].username,
+            details: `Member ID changed from ${oldId || 'NULL'} to ${formattedId}. Reason: ${reason || 'Administrative adjustment'}.`
+        });
+
+        return members[index];
+    },
+
+    // SUPER ADMINISTRATOR & ANNOUNCEMENTS (Article 6.8 & 11)
+    getAnnouncements() {
+        try {
+            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS)) || [
+                {
+                    id: "anc_001",
+                    title: "Uzinduzi Rasmi wa SILLYGER Community Platform v1.4",
+                    content: "Karibuni Sillygerians! Tovuti rasmi, mfumo wa uanachama na mtaala wa hatua 10 sasa vimefunguliwa rasmi. Kila mwanachama anatakiwa kupitia Katiba v1.4.",
+                    priority: "HIGH",
+                    author: "William Gerishom William (Super Admin)",
+                    created_at: new Date(Date.now() - 2 * 86400000).toISOString()
+                }
+            ];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    createAnnouncement({ title, content, priority = "NORMAL", author = "Super Administrator" }) {
+        const list = this.getAnnouncements();
+        const anc = {
+            id: "anc_" + Date.now().toString(36),
+            title,
+            content,
+            priority,
+            author,
+            created_at: new Date().toISOString()
+        };
+        list.unshift(anc);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+
+        this.addAuditLog({
+            action: "ANNOUNCEMENT_PUBLISHED",
+            actor: author,
+            target: title,
+            details: `Official announcement broadcasted to all Sillygerians.`
+        });
+
+        return anc;
+    },
+
+    // SUPER ADMINISTRATOR: SG Community Fund Ledger (Article 13)
+    getFundLedger() {
+        try {
+            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER)) || [
+                {
+                    id: "tx_001",
+                    type: "INCOME",
+                    amount: 2500000,
+                    category: "Research Sponsorship",
+                    description: "Ufadhili wa vifaa vya maabara ya Computer Architecture & FPGA.",
+                    actor: "willyger",
+                    date: new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0]
+                },
+                {
+                    id: "tx_002",
+                    type: "EXPENSE",
+                    amount: 1050000,
+                    category: "Servers & Cloud Infra",
+                    description: "Gharama za Dedicated Server na High-Bandwidth Cloud hosting.",
+                    actor: "willyger",
+                    date: new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0]
+                }
+            ];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    addFundTransaction({ type, amount, category, description, actor = "willyger" }) {
+        const list = this.getFundLedger();
+        const tx = {
+            id: "tx_" + Date.now().toString(36),
+            type: type || "EXPENSE",
+            amount: parseFloat(amount) || 0,
+            category: category || "Infrastructure",
+            description,
+            actor,
+            date: new Date().toISOString().split('T')[0]
+        };
+        list.unshift(tx);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(list));
+
+        this.addAuditLog({
+            action: `FUND_TRANSACTION_${tx.type}`,
+            actor,
+            target: `TZS ${tx.amount.toLocaleString()} (${tx.category})`,
+            details: tx.description
+        });
+
+        return tx;
+    },
+
+    getFundBalance() {
+        const list = this.getFundLedger();
+        return list.reduce((total, tx) => {
+            return tx.type === "INCOME" ? total + tx.amount : total - tx.amount;
+        }, 0);
+    },
+
     // Audit Log Helpers
     getAuditLogs() {
         this.init();
@@ -550,6 +746,7 @@ const SGStore = {
             totalRegistered: members.length,
             activeMembers: members.filter(m => m.status === "ACTIVE").length,
             pendingApplicants: members.filter(m => m.status === "PENDING").length,
+            fundBalance: this.getFundBalance(),
             divisionsCount: SG_CONFIG.DIVISIONS.length,
             curriculumLevels: SG_CONFIG.CURRICULUM.length
         };

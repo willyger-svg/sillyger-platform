@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SILLYGER Administration Portal — Governance & Member Management (v1.4)</title>
+    <title>SILLYGER Super Administrator Command Center — Governance & RBAC (v1.4)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -25,25 +25,31 @@
 </head>
 <body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-purple-500 selection:text-white">
 
-    <!-- Top Header Navigation -->
-    <header class="sticky top-0 z-50 sg-glass border-b border-purple-900/40 bg-slate-950/90">
+    <!-- Top Executive Header Navigation -->
+    <header class="sticky top-0 z-50 sg-glass border-b border-purple-900/50 bg-slate-950/95">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            <a href="index.html" class="flex items-center gap-2 group">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center font-mono-sg font-bold text-white text-base group-hover:scale-105 transition shadow-lg shadow-purple-500/20">
-                    SG
-                </div>
-                <div class="flex items-baseline gap-2">
-                    <span class="font-extrabold text-white text-lg tracking-wider">SILLYGER</span>
-                    <span class="text-xs font-mono-sg text-purple-400 hidden sm:inline">// ADMINISTRATION PORTAL (ART. 7)</span>
-                </div>
-            </a>
+            <div class="flex items-center gap-3">
+                <a href="member-portal.html" class="flex items-center gap-2 group" title="Rudi kwenye Member Dashboard">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center font-mono-sg font-bold text-white text-base group-hover:scale-105 transition shadow-lg shadow-purple-500/20">
+                        SG
+                    </div>
+                    <div>
+                        <span class="font-extrabold text-white text-lg tracking-wider block leading-none">SILLYGER</span>
+                        <span class="text-[10px] font-mono-sg text-purple-400 block tracking-widest uppercase">Executive Command</span>
+                    </div>
+                </a>
+                <span class="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-[10px] font-mono-sg text-purple-300 font-bold uppercase">
+                    Article 7 & Appendix B Governance
+                </span>
+            </div>
 
             <div class="flex items-center gap-4">
-                <a href="member-portal.html" class="text-xs text-slate-400 hover:text-cyan-400 transition hidden md:inline">
-                    Member Portal
+                <a href="member-portal.html" class="text-xs text-slate-300 hover:text-cyan-400 transition hidden md:inline flex items-center gap-1 font-semibold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span>Member Dashboard</span>
                 </a>
-                <a href="constitution.html" class="text-xs text-slate-400 hover:text-purple-400 transition hidden md:inline">
+                <a href="constitution.html" class="text-xs text-slate-400 hover:text-purple-300 transition hidden md:inline">
                     Katiba v1.4
                 </a>
                 <button 
@@ -57,44 +63,52 @@
         </div>
     </header>
 
-    <!-- MAIN ADMIN CONTAINER -->
+    <!-- MAIN EXECUTIVE CONTAINER -->
     <main class="flex-grow py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         
-        <!-- ADMIN DASHBOARD VIEW (Only accessed via authenticated admin session) -->
         <div id="admin-dashboard-view" class="space-y-8">
             
-            <!-- Top Admin Status & Stats Banner -->
-            <div class="sg-glass p-6 md:p-8 rounded-3xl border border-purple-900/50 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+            <!-- 1. EXECUTIVE TELEMETRY & IDENTITY BANNER -->
+            <div class="sg-glass p-6 md:p-8 rounded-3xl border border-purple-900/60 bg-gradient-to-r from-purple-950/30 via-slate-900 to-slate-950 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden shadow-2xl">
                 <div class="flex items-center gap-4">
-                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center font-mono-sg text-2xl font-black text-white shadow-lg shadow-purple-500/20">
-                        SG
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-700 flex items-center justify-center font-mono-sg text-2xl font-black text-white shadow-xl shadow-purple-500/30 border border-purple-400/30">
+                        WG
                     </div>
                     <div>
-                        <div class="flex items-center gap-3">
-                            <h1 id="admin-user-name" class="text-2xl md:text-3xl font-extrabold text-white">...</h1>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <h1 id="admin-user-name" class="text-2xl md:text-3xl font-extrabold text-white">William Gerishom William</h1>
                             <span id="admin-user-role" class="px-3 py-1 rounded-full badge-hold text-xs font-mono-sg font-bold uppercase tracking-wider">
                                 Super Administrator
                             </span>
+                            <span id="admin-user-id" class="px-2.5 py-0.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-400 text-xs font-mono-sg font-bold">
+                                SG-000001
+                            </span>
                         </div>
-                        <p class="text-xs text-slate-400 mt-1 font-mono-sg">
-                            SILLYGER Digital Governance Control Center (Article 7 & Appendix B)
+                        <p class="text-xs text-slate-400 mt-1 font-mono-sg flex items-center gap-2">
+                            <span>Mamlaka Kuu ya Utawala & Ulinzi wa Mfumo</span>
+                            <span>•</span>
+                            <span class="text-emerald-400">Tanzania PDPA 2022 Compliant</span>
                         </p>
                     </div>
                 </div>
 
-                <!-- Live Quick Counter Badges -->
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <!-- Live Quick Counter Telemetry -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
                         <span id="admin-stat-pending" class="text-xl font-extrabold text-amber-400 font-mono-sg">0</span>
-                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">Pending Review</span>
+                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">Pending</span>
                     </div>
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
                         <span id="admin-stat-active" class="text-xl font-extrabold text-emerald-400 font-mono-sg">0</span>
-                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">Active Members</span>
+                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">Active</span>
                     </div>
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
                         <span id="admin-stat-total" class="text-xl font-extrabold text-cyan-400 font-mono-sg">0</span>
-                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">Total Users</span>
+                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">Wote</span>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
+                        <span id="admin-stat-fund" class="text-sm font-extrabold text-teal-400 font-mono-sg truncate">0</span>
+                        <span class="text-[10px] text-slate-400 block uppercase font-mono-sg mt-0.5">SG Fund</span>
                     </div>
                     <div class="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-center">
                         <span id="admin-stat-logs" class="text-xl font-extrabold text-purple-400 font-mono-sg">0</span>
@@ -103,31 +117,39 @@
                 </div>
             </div>
 
-            <!-- Navigation Tabs Bar -->
+            <!-- 2. EXECUTIVE NAVIGATION TABS -->
             <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800/80">
-                <button data-tab="queue" class="admin-nav-tab px-4 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center gap-2 transition whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                <button data-tab="queue" class="admin-nav-tab px-4 py-2.5 rounded-xl bg-purple-600/20 border border-purple-500/50 text-white font-bold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     <span>Maombi Mapya (Queue)</span>
                 </button>
-                <button data-tab="members" class="admin-nav-tab px-4 py-2 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    <span>Orodha ya Wanachama</span>
+                <button data-tab="members" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <span>Wanachama & RBAC</span>
                 </button>
-                <button data-tab="attendance" class="admin-nav-tab px-4 py-2 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>Uthibitishaji wa Mahudhurio</span>
+                <button data-tab="announcements" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
+                    <span>Matangazo Rasmi</span>
                 </button>
-                <button data-tab="leaves" class="admin-nav-tab px-4 py-2 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    <span>Maombi ya Ruhusa</span>
+                <button data-tab="fund" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>SG Community Fund</span>
                 </button>
-                <button data-tab="audit" class="admin-nav-tab px-4 py-2 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    <span>Audit Logs (Ukaguzi)</span>
+                <button data-tab="attendance" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Mahudhurio</span>
                 </button>
-                <button data-tab="database" class="admin-nav-tab px-4 py-2 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
-                    <span>Database & Supabase</span>
+                <button data-tab="leaves" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span>Ruhusa (Art. 10)</span>
+                </button>
+                <button data-tab="audit" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>Audit Logs</span>
+                </button>
+                <button data-tab="database" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                    <span>Database & Backup</span>
                 </button>
             </div>
 
@@ -135,60 +157,60 @@
             <div id="tab-pane-queue" class="admin-tab-pane space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h2 class="text-xl font-bold text-white">Maombi Yanayosubiri Ukaguzi (Pending Queue)</h2>
+                        <h2 class="text-xl font-bold text-white">Maombi Mapya Yanayosubiri Ukaguzi (Pending Queue)</h2>
                         <p class="text-xs text-slate-400">
-                            Watu hawa wamejaza fomu na kukubali Katiba v1.4. Wakikaguliwa na kupewa idhini, watapewa <strong>Unique Member ID</strong> na kiungo cha WhatsApp kitafunguliwa.
+                            Watu hawa wamejaza fomu na kukubali Katiba v1.4. Ukibonyeza <strong>"Idhinisha"</strong>, mfumo unawapa Unique Member ID mara moja na kufungua kiungo cha WhatsApp!
                         </p>
                     </div>
                 </div>
 
-                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto">
+                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/60">
-                                <th class="px-4 py-3">Mwombaji</th>
-                                <th class="px-4 py-3">Mawasiliano (WhatsApp / Email)</th>
-                                <th class="px-4 py-3">Kitengo / Track</th>
-                                <th class="px-4 py-3">Nia / Motivation</th>
-                                <th class="px-4 py-3">Tarehe</th>
-                                <th class="px-4 py-3 text-right">Vitendo (Actions)</th>
+                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
+                                <th class="px-4 py-3.5">Mwombaji</th>
+                                <th class="px-4 py-3.5">Mawasiliano (WhatsApp / Email)</th>
+                                <th class="px-4 py-3.5">Kitengo / Track</th>
+                                <th class="px-4 py-3.5">Nia / Motivation</th>
+                                <th class="px-4 py-3.5">Tarehe</th>
+                                <th class="px-4 py-3.5 text-right">Vitendo (Actions)</th>
                             </tr>
                         </thead>
                         <tbody id="pending-queue-tbody" class="divide-y divide-slate-800/40">
-                            <!-- Populated dynamically -->
+                            <!-- Populated dynamically via admin-portal.js -->
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- TAB PANE 2: MEMBERS DIRECTORY -->
+            <!-- TAB PANE 2: MEMBERS DIRECTORY & RBAC INSPECTOR -->
             <div id="tab-pane-members" class="admin-tab-pane hidden space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h2 class="text-xl font-bold text-white">Orodha Kamili ya Wanachama (Directory)</h2>
-                        <p class="text-xs text-slate-400">Tafuta au dhibiti hali ya uanachama (ACTIVE, ON_HOLD, SUSPENDED).</p>
+                        <h2 class="text-xl font-bold text-white">Orodha Kamili ya Wanachama (Members Directory & RBAC)</h2>
+                        <p class="text-xs text-slate-400">Tafuta mwanachama, bonyeza "Dhibiti (Inspect)" kubadili cheo/jukumu, hadhi, au namba ya uanachama.</p>
                     </div>
-                    <div class="w-full sm:w-72">
+                    <div class="w-full sm:w-80">
                         <input 
                             type="text" 
                             id="search-members-input" 
                             oninput="renderMembersDirectory(this.value)"
-                            placeholder="Tafuta jina, namba ya simu au ID..." 
-                            class="w-full sg-input px-3.5 py-2 rounded-xl text-xs"
+                            placeholder="Tafuta jina, namba ya simu, username au ID..." 
+                            class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
                         >
                     </div>
                 </div>
 
-                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto">
+                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/60">
-                                <th class="px-4 py-3">Member ID</th>
-                                <th class="px-4 py-3">Jina & Username</th>
-                                <th class="px-4 py-3">WhatsApp Phone</th>
-                                <th class="px-4 py-3">Track</th>
-                                <th class="px-4 py-3">Hadhi (Status)</th>
-                                <th class="px-4 py-3 text-right">Badilisha Hali</th>
+                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
+                                <th class="px-4 py-3.5">Member ID</th>
+                                <th class="px-4 py-3.5">Jina & Username</th>
+                                <th class="px-4 py-3.5">WhatsApp Phone</th>
+                                <th class="px-4 py-3.5">Jukumu (Role)</th>
+                                <th class="px-4 py-3.5">Hadhi (Status)</th>
+                                <th class="px-4 py-3.5 text-right">Udhibiti</th>
                             </tr>
                         </thead>
                         <tbody id="members-directory-tbody" class="divide-y divide-slate-800/40">
@@ -198,24 +220,148 @@
                 </div>
             </div>
 
-            <!-- TAB PANE 3: ATTENDANCE MANAGER -->
-            <div id="tab-pane-attendance" class="admin-tab-pane hidden space-y-4">
-                <div>
-                    <h2 class="text-xl font-bold text-white">Uthibitishaji wa Mahudhurio (Attendance Verifications)</h2>
-                    <p class="text-xs text-slate-400">
-                        Kulingana na Katiba (Article 6.6 & 9.3), Planned Attendance lazima ithibitishwe na Mkufunzi au Admin ili kuwa Verified Attendance.
-                    </p>
+            <!-- TAB PANE 3: OFFICIAL ANNOUNCEMENTS PUBLISHER -->
+            <div id="tab-pane-announcements" class="admin-tab-pane hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Publisher Form (5 cols) -->
+                    <div class="lg:col-span-5 sg-glass p-6 rounded-3xl border border-slate-800 space-y-4">
+                        <div>
+                            <span class="text-xs font-mono-sg text-yellow-400 font-bold uppercase tracking-wider block mb-1">
+                                BROADCAST ENGINE (ART. 6.8 & 11)
+                            </span>
+                            <h3 class="text-lg font-bold text-white">Chapisha Tangazo Rasmi</h3>
+                            <p class="text-xs text-slate-400">Tangazo hili litaonekana moja kwa moja kwenye Member Dashboard za wanachama wote.</p>
+                        </div>
+
+                        <form id="form-create-announcement" onsubmit="publishOfficialAnnouncement(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="anc-title-input">Kichwa cha Tangazo</label>
+                                <input type="text" id="anc-title-input" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs" placeholder="mf. Ratiba ya Semina ya Jumamosi: Linux Kernel Drivers" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="anc-priority-input">Kiwango cha Umuhimu (Priority)</label>
+                                <select id="anc-priority-input" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs">
+                                    <option value="NORMAL">Normal Announcement (Taarifa ya Kawaida)</option>
+                                    <option value="HIGH">High Priority (Taarifa ya Muhimu / Tahadhari)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="anc-content-input">Maudhui Kamili ya Tangazo</label>
+                                <textarea id="anc-content-input" rows="4" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs" placeholder="Andika taarifa kamili hapa..." required></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-yellow-500/20">
+                                📢 Tangaza Kwa Wanachama Wote
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Announcements Feed (7 cols) -->
+                    <div class="lg:col-span-7 space-y-4">
+                        <h3 class="text-lg font-bold text-white">Matangazo Yaliyopo</h3>
+                        <div id="announcements-feed-container" class="space-y-4">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB PANE 4: SG COMMUNITY FUND LEDGER (Article 13) -->
+            <div id="tab-pane-fund" class="admin-tab-pane hidden space-y-6">
+                <!-- Balance & Summary Banner -->
+                <div class="sg-glass p-6 md:p-8 rounded-3xl border border-teal-500/40 bg-gradient-to-r from-teal-950/30 to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <span class="text-xs font-mono-sg text-teal-400 font-bold uppercase tracking-wider block mb-1">
+                            ARTICLE 13: MFUKO WA PAMOJA WA SILLYGER (SG COMMUNITY FUND)
+                        </span>
+                        <h2 class="text-xl md:text-2xl font-bold text-white">Leja Kuu ya Fedha na Rasilimali</h2>
+                        <p class="text-xs text-slate-300 mt-1">
+                            Fedha za mfuko huu zinatumika kwa ajili ya miundombinu (Servers, AI GPU compute, lab equipment). Hakuna kiongozi anayemiliki fedha hizi kibinafsi (Art. 13.6).
+                        </p>
+                    </div>
+                    <div class="text-right p-4 rounded-2xl bg-slate-950/80 border border-teal-800/60">
+                        <span class="text-[11px] text-slate-400 block font-mono-sg">Salio Kamili Lililopo:</span>
+                        <span id="fund-ledger-balance-display" class="text-2xl font-black text-emerald-400 font-mono-sg">TZS 0.00</span>
+                    </div>
                 </div>
 
-                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <!-- Record Transaction Form (5 cols) -->
+                    <div class="lg:col-span-4 sg-glass p-6 rounded-3xl border border-slate-800 space-y-4">
+                        <h3 class="text-base font-bold text-white">Rekodi Muamala Mpya</h3>
+                        <form id="form-fund-transaction" onsubmit="recordFundTransaction(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="fund-type-select">Aina ya Muamala</label>
+                                <select id="fund-type-select" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs font-mono-sg">
+                                    <option value="INCOME">+ MAPATO (Sponsorship / Miradi ya Jamii)</option>
+                                    <option value="EXPENSE">- MATUMIZI (Servers / AI / Vifaa / Labs)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="fund-amount-input">Kiasi (TZS)</label>
+                                <input type="number" id="fund-amount-input" step="1000" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs font-mono-sg" placeholder="mf. 500000" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="fund-category-input">Kitengo cha Matumizi / Mapato</label>
+                                <input type="text" id="fund-category-input" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs" placeholder="mf. Dedicated Servers, Domain/SSL, AI Chips, Lab Sensors" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="fund-desc-input">Ufafanuzi Kamili wa Muamala</label>
+                                <textarea id="fund-desc-input" rows="3" class="w-full sg-input px-3.5 py-2 rounded-xl text-xs" placeholder="Eleza muamala huu unahusu nini..." required></textarea>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-teal-500/20">
+                                Rekodi Kwenye Leja
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Ledger Table (8 cols) -->
+                    <div class="lg:col-span-8 sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
+                                    <th class="px-4 py-3.5">Tarehe</th>
+                                    <th class="px-4 py-3.5">Aina</th>
+                                    <th class="px-4 py-3.5">Kiasi</th>
+                                    <th class="px-4 py-3.5">Kitengo</th>
+                                    <th class="px-4 py-3.5">Maelezo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fund-ledger-tbody" class="divide-y divide-slate-800/40">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB PANE 5: ATTENDANCE VERIFICATIONS -->
+            <div id="tab-pane-attendance" class="admin-tab-pane hidden space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Uthibitishaji wa Mahudhurio (Attendance Verifications)</h2>
+                        <p class="text-xs text-slate-400">
+                            Planned attendance pekee si ushahidi kamili wa uelewa (Article 9.3). Thibitisha check-in za wanachama.
+                        </p>
+                    </div>
+                    <div>
+                        <button 
+                            onclick="verifyAllPendingAttendance()" 
+                            class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-500/20"
+                        >
+                            ✓ Thibitisha Zote Zilizopo (Verify All)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/60">
-                                <th class="px-4 py-3">Member ID</th>
-                                <th class="px-4 py-3">Kipindi / Session</th>
-                                <th class="px-4 py-3">Tarehe</th>
-                                <th class="px-4 py-3">Hali</th>
-                                <th class="px-4 py-3 text-right">Kitendo</th>
+                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
+                                <th class="px-4 py-3.5">Member ID</th>
+                                <th class="px-4 py-3.5">Kipindi / Session Title</th>
+                                <th class="px-4 py-3.5">Tarehe</th>
+                                <th class="px-4 py-3.5">Hali ya Uthibitisho</th>
+                                <th class="px-4 py-3.5 text-right">Uamuzi</th>
                             </tr>
                         </thead>
                         <tbody id="attendance-manager-tbody" class="divide-y divide-slate-800/40">
@@ -225,24 +371,24 @@
                 </div>
             </div>
 
-            <!-- TAB PANE 4: LEAVE REQUESTS -->
+            <!-- TAB PANE 6: LEAVE REQUESTS -->
             <div id="tab-pane-leaves" class="admin-tab-pane hidden space-y-4">
                 <div>
-                    <h2 class="text-xl font-bold text-white">Maombi ya Ruhusa (Leave Requests - Article 10)</h2>
+                    <h2 class="text-xl font-bold text-white">Maombi ya Ruhusa ya Kutoshiriki (Article 10)</h2>
                     <p class="text-xs text-slate-400">
-                        Kagua dharura za masomo, afya au changamoto za mtandao zilizowasilishwa na wanachama.
+                        Katiba inalinda wanachama: Dharura za kazi, afya au mitandao si sababu ya kufukuzwa moja kwa moja.
                     </p>
                 </div>
 
-                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto">
+                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/60">
-                                <th class="px-4 py-3">Member ID</th>
-                                <th class="px-4 py-3">Aina & Muda</th>
-                                <th class="px-4 py-3">Maelezo</th>
-                                <th class="px-4 py-3">Hali</th>
-                                <th class="px-4 py-3 text-right">Uamuzi</th>
+                            <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
+                                <th class="px-4 py-3.5">Member ID</th>
+                                <th class="px-4 py-3.5">Aina & Muda</th>
+                                <th class="px-4 py-3.5">Sababu / Maelezo</th>
+                                <th class="px-4 py-3.5">Hali</th>
+                                <th class="px-4 py-3.5 text-right">Uamuzi</th>
                             </tr>
                         </thead>
                         <tbody id="leaves-manager-tbody" class="divide-y divide-slate-800/40">
@@ -252,24 +398,36 @@
                 </div>
             </div>
 
-            <!-- TAB PANE 5: AUDIT LOGS VIEWER -->
+            <!-- TAB PANE 7: IMMUTABLE AUDIT LOGS VIEWER -->
             <div id="tab-pane-audit" class="admin-tab-pane hidden space-y-4">
-                <div>
-                    <h2 class="text-xl font-bold text-white">Kumbukumbu ya Ukaguzi wa Mfumo (Immutable Audit Logs - Art. 7.7)</h2>
-                    <p class="text-xs text-slate-400">
-                        Kila kitendo cha kiutawala, usajili, login, au badiliko la hadhi kinarekodiwa bila kufutika kwa ajili ya uwajibikaji.
-                    </p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Kumbukumbu ya Ukaguzi wa Mfumo (Immutable Audit Logs - Art. 7.7)</h2>
+                        <p class="text-xs text-slate-400">
+                            Kila badiliko la uanachama, hadhi, jukumu, login au fedha linarekodiwa bila kufutika kwa ajili ya uwajibikaji.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select onchange="renderAuditLogsViewer(this.value)" class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-xl px-3 py-2 font-mono-sg">
+                            <option value="">Matukio Yote (All Actions)</option>
+                            <option value="MEMBER_APPROVED">Kuidhinishwa (Approvals)</option>
+                            <option value="ROLE_CHANGE">Mabadiliko ya Vyeo (RBAC)</option>
+                            <option value="STATUS_CHANGE">Mabadiliko ya Hali (Status)</option>
+                            <option value="FUND_TRANSACTION">Fedha (Fund Transactions)</option>
+                            <option value="LOGIN">Kuingia Mfumoni (Logins)</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto max-h-[600px] overflow-y-auto">
+                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto max-h-[600px] overflow-y-auto shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead class="sticky top-0 z-10 bg-slate-950">
                             <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400">
-                                <th class="px-4 py-3">Muda (Timestamp)</th>
-                                <th class="px-4 py-3">Kitendo (Action)</th>
-                                <th class="px-4 py-3">Mtekelezaji (Actor)</th>
-                                <th class="px-4 py-3">Mlengo (Target)</th>
-                                <th class="px-4 py-3">Ufafanuzi (Details)</th>
+                                <th class="px-4 py-3.5">Muda (Timestamp)</th>
+                                <th class="px-4 py-3.5">Kitendo (Action)</th>
+                                <th class="px-4 py-3.5">Mtekelezaji (Actor)</th>
+                                <th class="px-4 py-3.5">Mlengo (Target)</th>
+                                <th class="px-4 py-3.5">Ufafanuzi (Details)</th>
                             </tr>
                         </thead>
                         <tbody id="audit-logs-tbody" class="divide-y divide-slate-800/40">
@@ -279,14 +437,14 @@
                 </div>
             </div>
 
-            <!-- TAB PANE 6: DATABASE & SUPABASE CONNECTION -->
+            <!-- TAB PANE 8: DATABASE & COMPLIANCE BACKUP -->
             <div id="tab-pane-database" class="admin-tab-pane hidden space-y-6">
                 <div class="sg-glass p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
                     <div class="flex items-center justify-between pb-4 border-b border-slate-800">
                         <div>
-                            <h2 class="text-xl font-bold text-white">Mipangilio ya Database (Supabase PostgreSQL)</h2>
+                            <h2 class="text-xl font-bold text-white">Database & Tanzania PDPA 2022 Compliance Backup</h2>
                             <p class="text-xs text-slate-400 mt-1">
-                                Unganisha tovuti yako na Supabase bure ili data za wanachama zihifadhiwe kwenye wingu na zionekane kwenye simu na vifaa vyote.
+                                Pakua nakala kamili ya data ya jumuiya kwa ajili ya usalama au unganisha moja kwa moja na Supabase PostgreSQL.
                             </p>
                         </div>
                         <div id="db-status-badge">
@@ -294,51 +452,192 @@
                         </div>
                     </div>
 
-                    <form onsubmit="saveDatabaseCredentials(event)" class="space-y-4 max-w-xl">
+                    <!-- Compliance Export Button -->
+                    <div class="p-6 rounded-2xl bg-cyan-950/20 border border-cyan-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="supabase-url-input">
-                                Supabase Project URL
-                            </label>
-                            <input 
-                                type="url" 
-                                id="supabase-url-input" 
-                                placeholder="https://xyzcompany.supabase.co" 
-                                class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
-                                required
-                            >
+                            <h3 class="text-sm font-bold text-white mb-1">Pakua Data Yote ya Mfumo (Complete Community Backup)</h3>
+                            <p class="text-xs text-slate-400">
+                                Faili la JSON lenye wanachama wote, kumbukumbu za audit logs, mahudhurio na leja ya fedha kwa kufuata Tanzania Personal Data Protection Act, 2022 (Article 15).
+                            </p>
                         </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="supabase-key-input">
-                                Supabase Public Anon Key
-                            </label>
-                            <input 
-                                type="text" 
-                                id="supabase-key-input" 
-                                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
-                                class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
-                                required
-                            >
-                        </div>
-
                         <button 
-                            type="submit" 
-                            class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-500/20"
+                            onclick="exportCommunityDataJSON()" 
+                            class="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition shadow-lg shadow-cyan-500/20 flex items-center gap-2 whitespace-nowrap"
                         >
-                            Hifadhi na Unganisha Supabase
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            <span>Download Full Backup (JSON)</span>
                         </button>
-                    </form>
-
-                    <div class="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-xs text-slate-400 space-y-2">
-                        <strong class="text-white block font-mono-sg">Faili la Database Schema (`schema.sql`):</strong>
-                        Faili kamili la PostgreSQL schema tayari liko kwenye repository yako. Unachotakiwa kufanya ni ku-copy maudhui ya faili la <strong>schema.sql</strong> na ku-paste kwenye SQL Editor ya Supabase na kubonyeza RUN!
                     </div>
+
+                    <!-- Supabase Connection Form -->
+                    <div class="pt-4 border-t border-slate-800">
+                        <h3 class="text-base font-bold text-white mb-3">Supabase PostgreSQL Connection</h3>
+                        <form onsubmit="saveDatabaseCredentials(event)" class="space-y-4 max-w-xl">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="supabase-url-input">
+                                    Supabase Project URL
+                                </label>
+                                <input 
+                                    type="url" 
+                                    id="supabase-url-input" 
+                                    placeholder="https://xyzcompany.supabase.co" 
+                                    class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                                    required
+                                >
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1" for="supabase-key-input">
+                                    Supabase Public Anon Key
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="supabase-key-input" 
+                                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+                                    class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                                    required
+                                >
+                            </div>
+
+                            <button 
+                                type="submit" 
+                                class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-500/20"
+                            >
+                                Hifadhi na Unganisha Supabase
+                            </button>
+                        </form>
+                    </div>
+
                 </div>
             </div>
 
         </div>
 
     </main>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: MEMBER DOSSIER & RBAC INSPECTOR                         -->
+    <!-- ============================================================== -->
+    <div id="modal-member-dossier" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-purple-500/50 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative shadow-2xl">
+            
+            <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center font-mono-sg font-bold text-white">
+                        ID
+                    </div>
+                    <div>
+                        <h3 id="dossier-name" class="text-lg font-bold text-white">...</h3>
+                        <span id="dossier-username" class="text-xs font-mono-sg text-cyan-400">@...</span>
+                    </div>
+                </div>
+                <button onclick="closeMemberDossier()" class="text-slate-400 hover:text-white p-2 text-lg">✕</button>
+            </div>
+
+            <!-- Member Read-Only Information -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-xs font-mono-sg mb-6">
+                <div>
+                    <span class="text-slate-500 block">Barua Pepe:</span>
+                    <span id="dossier-email" class="text-slate-200">...</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 block">WhatsApp Phone:</span>
+                    <div class="flex items-center gap-2">
+                        <span id="dossier-phone" class="text-slate-200 font-bold">...</span>
+                        <a id="dossier-whatsapp-link" href="#" target="_blank" class="text-emerald-400 hover:underline inline-flex items-center gap-0.5">
+                            <span>Chat</span> &rarr;
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-slate-500 block">Kitengo (Track):</span>
+                    <span id="dossier-track" class="text-cyan-400 font-bold">...</span>
+                </div>
+                <div>
+                    <span class="text-slate-500 block">Uzoefu:</span>
+                    <span id="dossier-experience" class="text-slate-300">...</span>
+                </div>
+                <div class="sm:col-span-2">
+                    <span class="text-slate-500 block">Tarehe ya Kujiunga:</span>
+                    <span id="dossier-joined" class="text-slate-400">...</span>
+                </div>
+                <div class="sm:col-span-2 pt-1 border-t border-slate-800">
+                    <span class="text-slate-500 block">Nia ya Kujiunga (Motivation):</span>
+                    <p id="dossier-motivation" class="text-slate-300 italic font-sans leading-relaxed mt-0.5">...</p>
+                </div>
+            </div>
+
+            <!-- Super Admin Modification Form -->
+            <form id="form-dossier-update" onsubmit="saveDossierChanges(event)" class="space-y-4">
+                <span class="text-xs font-mono-sg font-bold text-purple-400 uppercase tracking-wider block pb-1 border-b border-slate-800">
+                    MAMLAKA YA SUPER ADMINISTRATOR (RBAC & STATUS)
+                </span>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="dossier-member-id-input">
+                            Member ID
+                        </label>
+                        <input type="text" id="dossier-member-id-input" class="w-full sg-input px-3 py-2 rounded-xl text-xs font-mono-sg font-bold text-cyan-400" placeholder="SG-000001">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="dossier-role-select">
+                            Jukumu / Cheo (RBAC)
+                        </label>
+                        <select id="dossier-role-select" class="w-full sg-input px-3 py-2 rounded-xl text-xs">
+                            <option value="Applicant">Applicant (Mwombaji)</option>
+                            <option value="Member">Member (Mwanachama)</option>
+                            <option value="Instructor">Instructor (Mkufunzi)</option>
+                            <option value="Project Lead">Project Lead (Kiongozi wa Mradi)</option>
+                            <option value="Community Moderator">Community Moderator</option>
+                            <option value="Education Administrator">Education Administrator</option>
+                            <option value="Finance Administrator">Finance Administrator</option>
+                            <option value="Administrator">Administrator</option>
+                            <option value="Super Administrator">Super Administrator</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="dossier-status-select">
+                            Hali ya Uanachama (Status)
+                        </label>
+                        <select id="dossier-status-select" class="w-full sg-input px-3 py-2 rounded-xl text-xs">
+                            <option value="PENDING">PENDING (Inasubiri Idhini)</option>
+                            <option value="ACTIVE">ACTIVE (Mwanachama Kamili)</option>
+                            <option value="ON_HOLD">ON_HOLD (Kwenye Mapitio)</option>
+                            <option value="SUSPENDED">SUSPENDED (Amesimamishwa)</option>
+                            <option value="INACTIVE">INACTIVE (Hajishughulishi)</option>
+                            <option value="TERMINATED">TERMINATED (Uanachama Umekoma)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="dossier-audit-reason">
+                        Sababu ya Mabadiliko (Inarekodiwa kwenye Audit Logs) <span class="text-red-400">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="dossier-audit-reason" 
+                        class="w-full sg-input px-3.5 py-2 rounded-xl text-xs" 
+                        placeholder="mf. Amekamilisha majukumu ya ukufunzi / Ukiukaji wa maadili"
+                        required
+                    >
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeMemberDossier()" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">
+                        Ghairi
+                    </button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-500/20">
+                        Hifadhi Mabadiliko (Save Changes)
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
 
     <!-- Scripts -->
     <!-- Supabase JS Client (Free CDN) -->

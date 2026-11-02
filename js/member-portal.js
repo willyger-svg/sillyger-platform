@@ -18,6 +18,22 @@ function initMemberPortal() {
         if (dashboardView) dashboardView.classList.add("hidden");
         setupLoginForm();
     } else {
+        // Show Admin Panel shortcut only if authenticated user has admin privileges
+        const isAdmin = (
+            session.role === "Super Administrator" || 
+            session.role === "Administrator" || 
+            session.username === "willyger" || 
+            session.email === "wshavu@gmail.com"
+        );
+        const adminSlot = document.getElementById("admin-link-slot");
+        if (adminSlot) {
+            adminSlot.innerHTML = isAdmin ? `
+                <a href="admin-portal.html" class="px-3 py-1.5 rounded-lg bg-purple-950/70 border border-purple-500/50 text-purple-300 hover:text-white text-xs font-bold font-mono-sg flex items-center gap-1.5 transition">
+                    <span>🛠️ Jopo la Uongozi</span>
+                </a>
+            ` : '';
+        }
+
         if (loginView) loginView.classList.add("hidden");
         if (dashboardView) dashboardView.classList.remove("hidden");
         renderMemberDashboard(session);
@@ -60,6 +76,20 @@ function setupLoginForm() {
 
                 // Set session
                 SGStore.setCurrentSession(member);
+
+                // Automatic smart routing: If admin logs in, route directly to Admin Dashboard!
+                const isAdmin = (
+                    member.role === "Super Administrator" || 
+                    member.role === "Administrator" || 
+                    member.username === "willyger" || 
+                    member.email === "wshavu@gmail.com"
+                );
+
+                if (isAdmin) {
+                    window.location.href = "admin-portal.html";
+                    return;
+                }
+
                 initMemberPortal();
 
             } catch (err) {

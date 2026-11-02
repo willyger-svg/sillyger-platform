@@ -12,7 +12,6 @@ let currentActiveTab = "queue";
 
 function initAdminPortal() {
     const session = SGStore.getCurrentSession();
-    const loginView = document.getElementById("admin-login-view");
     const dashboardView = document.getElementById("admin-dashboard-view");
 
     // Check if logged in user has administrative privileges (Article 7.4)
@@ -20,74 +19,24 @@ function initAdminPortal() {
         session.role === "Super Administrator" || 
         session.role === "Administrator" || 
         session.role === "Membership Administrator" ||
+        session.email === "wshavu@gmail.com" ||
         session.email === "admin@sillyger.org" ||
         session.username === "willyger"
     );
 
     if (!isAdmin) {
-        if (loginView) loginView.classList.remove("hidden");
-        if (dashboardView) dashboardView.classList.add("hidden");
-        setupAdminLoginForm();
-    } else {
-        if (loginView) loginView.classList.add("hidden");
-        if (dashboardView) dashboardView.classList.remove("hidden");
-        renderAdminDashboard(session);
+        // Restrict & hide Admin Portal completely from non-admin visitors
+        window.location.href = "member-portal.html";
+        return;
     }
-}
 
-// -------------------------------------------------------------
-// ADMIN LOGIN SETUP
-// -------------------------------------------------------------
-function setupAdminLoginForm() {
-    const form = document.getElementById("admin-login-form");
-    const errorAlert = document.getElementById("admin-login-error");
-
-    if (form) {
-        form.onsubmit = (e) => {
-            e.preventDefault();
-            errorAlert.classList.add("hidden");
-
-            const credential = document.getElementById("admin-credential").value.trim();
-            const password = document.getElementById("admin-password").value;
-
-            try {
-                const member = SGStore.findMemberByCredential(credential);
-                if (!member) {
-                    throw new Error("Akaunti ya msimamizi haikupatikana.");
-                }
-
-                // Check admin password
-                if (member.password_hash && password !== member.password_hash) {
-                    throw new Error("Nenosiri si sahihi.");
-                }
-
-                // Check administrative role (Article 7.4)
-                if (member.role !== "Super Administrator" && member.role !== "Administrator" && member.username !== "willyger") {
-                    throw new Error("Akaunti hii haina mamlaka ya kiutawala (Administrative Privileges).");
-                }
-
-                // Log audit
-                SGStore.addAuditLog({
-                    action: "ADMIN_LOGIN",
-                    actor: member.username,
-                    target: "Administration Portal",
-                    details: `Administrator session started for ${member.full_name} (${member.role}).`
-                });
-
-                SGStore.setCurrentSession(member);
-                initAdminPortal();
-
-            } catch (err) {
-                errorAlert.textContent = err.message || "Hitilafu imetokea.";
-                errorAlert.classList.remove("hidden");
-            }
-        };
-    }
+    if (dashboardView) dashboardView.classList.remove("hidden");
+    renderAdminDashboard(session);
 }
 
 window.handleAdminLogout = function() {
     SGStore.logout();
-    initAdminPortal();
+    window.location.href = "member-portal.html";
 };
 
 // -------------------------------------------------------------

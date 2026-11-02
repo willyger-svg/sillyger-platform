@@ -208,11 +208,11 @@ INSERT INTO public.members (
     full_name, username, email, phone, password_hash, track, role, status, member_id, approved_at, approved_by
 )
 VALUES (
-    'Willyger Admin',
+    'William Gerishom William',
     'willyger',
-    'admin@sillyger.org',
-    '+255712345678',
-    'Admin@123456', -- In prod Supabase Auth handles bcrypt hashing
+    'wshavu@gmail.com',
+    '+255750449373',
+    'admin123',
     'SILLYGER Systems & Architecture',
     'Super Administrator',
     'ACTIVE',

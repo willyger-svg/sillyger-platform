@@ -60,74 +60,8 @@
     <!-- MAIN ADMIN CONTAINER -->
     <main class="flex-grow py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
         
-        <!-- ============================================================== -->
-        <!-- VIEW 1: ADMIN LOGIN VIEW (Shown when unauthenticated)          -->
-        <!-- ============================================================== -->
-        <div id="admin-login-view" class="hidden max-w-md mx-auto py-12">
-            <div class="sg-glass p-8 sm:p-10 rounded-3xl border border-purple-500/30 shadow-2xl relative">
-                
-                <div class="text-center mb-8">
-                    <div class="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/40 text-purple-400 mx-auto flex items-center justify-center mb-4">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                    </div>
-                    <span class="font-mono-sg text-xs font-bold text-purple-400 uppercase tracking-widest px-2.5 py-0.5 rounded bg-purple-950/70 border border-purple-800 inline-block mb-2">
-                        AUTHENTICATION & RBAC (ART. 7)
-                    </span>
-                    <h1 class="text-2xl font-extrabold text-white">Administration Portal</h1>
-                    <p class="text-xs text-slate-400 mt-1">
-                        Sehemu hii inaruhusiwa tu kwa viongozi na wasimamizi walioidhinishwa.
-                    </p>
-                </div>
-
-                <div id="admin-login-error" class="hidden mb-6 p-3.5 rounded-xl bg-red-950/40 border border-red-500/50 text-red-200 text-xs font-medium"></div>
-
-                <form id="admin-login-form" class="space-y-5">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="admin-credential">
-                            Barua Pepe / Username ya Admin
-                        </label>
-                        <input 
-                            type="text" 
-                            id="admin-credential" 
-                            class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono-sg" 
-                            placeholder="admin@sillyger.org au willyger"
-                            required
-                        >
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="admin-password">
-                            Nenosiri la Admin (Password)
-                        </label>
-                        <input 
-                            type="password" 
-                            id="admin-password" 
-                            class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm" 
-                            placeholder="Weka password"
-                            required
-                        >
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        class="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-sm transition shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
-                    >
-                        <span>Ingia Kwenye Administration Portal</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                    </button>
-                </form>
-
-                <div class="mt-6 pt-6 border-t border-slate-800 text-center text-xs text-slate-500 font-mono-sg">
-                    Default System Founder Account: <span class="text-purple-400">admin@sillyger.org / admin123</span>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ============================================================== -->
-        <!-- VIEW 2: ADMIN DASHBOARD VIEW (Shown when authenticated)       -->
-        <!-- ============================================================== -->
-        <div id="admin-dashboard-view" class="hidden space-y-8">
+        <!-- ADMIN DASHBOARD VIEW (Only accessed via authenticated admin session) -->
+        <div id="admin-dashboard-view" class="space-y-8">
             
             <!-- Top Admin Status & Stats Banner -->
             <div class="sg-glass p-6 md:p-8 rounded-3xl border border-purple-900/50 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">

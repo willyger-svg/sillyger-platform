@@ -32,8 +32,20 @@ function renderHeaderSession() {
     const currentSession = SGStore.getCurrentSession();
     if (currentSession) {
         const isApproved = currentSession.status === "ACTIVE";
+        const isAdmin = (
+            currentSession.role === "Super Administrator" || 
+            currentSession.role === "Administrator" || 
+            currentSession.username === "willyger" || 
+            currentSession.email === "wshavu@gmail.com"
+        );
+
         sessionSlot.innerHTML = `
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+                ${isAdmin ? `
+                    <a href="admin-portal.html" class="px-2.5 py-1 rounded-lg bg-purple-950/70 border border-purple-500/50 text-purple-300 hover:text-white text-xs font-bold font-mono-sg flex items-center gap-1 transition">
+                        <span>🛠️ Admin</span>
+                    </a>
+                ` : ''}
                 <a href="member-portal.html" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/60 transition text-sm">
                     <span class="w-2 h-2 rounded-full ${isApproved ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}"></span>
                     <span class="font-mono-sg text-xs text-cyan-300 font-semibold">${currentSession.member_id || currentSession.username}</span>

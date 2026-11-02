@@ -33,15 +33,15 @@ const SGStore = {
                 {
                     id: "usr_admin_001",
                     member_id: "SG-000001",
-                    full_name: "Willyger Admin",
+                    full_name: "William Gerishom William",
                     username: "willyger",
-                    email: "admin@sillyger.org",
-                    phone: "+255712345678",
+                    email: "wshavu@gmail.com",
+                    phone: "+255750449373",
                     password_hash: "admin123",
-                    track: "Computer Systems & OS",
+                    track: "SILLYGER Systems & Architecture",
                     experience: "Advanced",
                     role: "Super Administrator",
-                    status: "ACTIVE", // Super Administrator
+                    status: "ACTIVE",
                     agreed_constitution: true,
                     agreed_ethics: true,
                     agreed_pdpa: true,
@@ -51,6 +51,22 @@ const SGStore = {
                 }
             ];
             _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(initialMembers));
+        } else {
+            // Self-healing migration for existing localStorage
+            try {
+                const members = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) || [];
+                const adminIdx = members.findIndex(m => m.username === "willyger" || m.email === "admin@sillyger.org");
+                if (adminIdx !== -1) {
+                    members[adminIdx].full_name = "William Gerishom William";
+                    members[adminIdx].username = "willyger";
+                    members[adminIdx].email = "wshavu@gmail.com";
+                    members[adminIdx].phone = "+255750449373";
+                    members[adminIdx].role = "Super Administrator";
+                    members[adminIdx].status = "ACTIVE";
+                    members[adminIdx].member_id = "SG-000001";
+                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
+                }
+            } catch (e) {}
         }
 
         if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) {
@@ -106,13 +122,16 @@ const SGStore = {
         _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
     },
 
-    // Find member by email or username
+    // Find member by email, username or phone (with auto-normalization)
     findMemberByCredential(credential) {
         const members = this.getMembers();
         const search = (credential || "").trim().toLowerCase();
+        const normalizedPhone = this.normalizePhone(search);
+
         return members.find(m => 
             (m.email && m.email.toLowerCase() === search) || 
             (m.username && m.username.toLowerCase() === search) ||
+            (m.phone && m.phone === normalizedPhone) ||
             (m.phone && m.phone.replace(/[\s\-\+]/g, '') === search.replace(/[\s\-\+]/g, ''))
         );
     },

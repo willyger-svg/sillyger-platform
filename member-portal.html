@@ -3,57 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SILLYGER Member Portal — Coming in Phase 2</title>
+    <title>SILLYGER Member Portal — Digital Governance & Dashboard</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sgbg: '#070b13',
+                        sgcard: '#0d1424',
+                        sgcyan: '#06b6d4',
+                        sgdark: '#020617'
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="css/custom.css">
 </head>
-<body class="bg-[#070b13] text-slate-100 min-h-screen bg-cyber-grid flex flex-col justify-between">
+<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-cyan-500 selection:text-slate-950">
 
-    <header class="p-6 border-b border-slate-800 flex justify-between items-center max-w-7xl mx-auto w-full">
-        <a href="index.html" class="flex items-center gap-2">
-            <div class="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center font-mono-sg font-bold text-slate-950">SG</div>
-            <span class="font-extrabold text-white text-lg tracking-wider">SILLYGER MEMBER PORTAL</span>
-        </a>
-        <a href="index.html" class="text-xs text-slate-400 hover:text-cyan-400">Rudi Mwanzo</a>
-    </header>
-
-    <main class="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div class="sg-glass p-10 rounded-3xl border border-cyan-500/30">
-            <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mx-auto flex items-center justify-center mb-6">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-            </div>
+    <!-- Top Header Navigation -->
+    <header class="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             
-            <span class="text-xs font-mono-sg text-cyan-400 uppercase tracking-widest px-3 py-1 rounded bg-cyan-950/80 border border-cyan-800 mb-4 inline-block">
-                PHASE 2 ROADMAP TARGET
-            </span>
-            <h1 class="text-3xl font-extrabold text-white mb-3">
-                Member Portal Dashboard
-            </h1>
-            <p class="text-sm text-slate-300 leading-relaxed mb-6">
-                Sehemu hii inajengwa katika <strong>PHASE 2</strong> kulingana na mpango wetu wa hatua kwa hatua. Itajumuisha:
-            </p>
-            <div class="text-xs text-left max-w-md mx-auto space-y-2 mb-8 text-slate-300 font-mono-sg bg-slate-950/70 p-4 rounded-xl border border-slate-800">
-                <div class="flex items-center gap-2">✓ Member ID & Status Badge (<span class="text-amber-400">PENDING</span> vs <span class="text-emerald-400">ACTIVE</span>)</div>
-                <div class="flex items-center gap-2">✓ WhatsApp Group Gate (Locked for Pending, Unlocked for Active)</div>
-                <div class="flex items-center gap-2">✓ Mfumo wa Mahudhurio (Planned vs Verified Attendance - Art. 6.6 & 9)</div>
-                <div class="flex items-center gap-2">✓ Maendeleo ya Masomo (10 Curriculum Tracks - Art. 8)</div>
-                <div class="flex items-center gap-2">✓ Rekodi za Michango & SG Community Fund (Art. 6.10 & 13)</div>
-            </div>
+            <a href="index.html" class="flex items-center gap-2 group">
+                <div class="w-9 h-9 rounded-xl bg-cyan-500 flex items-center justify-center font-mono-sg font-bold text-slate-950 text-base group-hover:scale-105 transition">
+                    SG
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="font-extrabold text-white text-lg tracking-wider">SILLYGER</span>
+                    <span class="text-xs font-mono-sg text-cyan-400 hidden sm:inline">// MEMBER PORTAL</span>
+                </div>
+            </a>
 
-            <div class="flex items-center justify-center gap-4">
-                <a href="register.html" class="px-6 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition">
-                    Jaribu Kujisajili (Phase 1)
+            <div class="flex items-center gap-4">
+                <a href="constitution.html" class="text-xs text-slate-300 hover:text-cyan-400 transition hidden md:inline">
+                    Katiba v1.4
                 </a>
-                <a href="constitution.html" class="px-6 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs hover:bg-slate-800 transition">
-                    Soma Katiba v1.4
+                <a href="admin-portal.html" class="text-xs font-mono-sg text-slate-500 hover:text-slate-300 transition hidden md:inline">
+                    Admin Portal
                 </a>
+                <button 
+                    onclick="handleMemberLogout()" 
+                    id="btn-logout-header"
+                    class="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-red-500/50 hover:bg-red-950/30 text-slate-400 hover:text-red-400 transition flex items-center gap-1.5"
+                >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span>Ondoka</span>
+                </button>
             </div>
         </div>
+    </header>
+
+    <!-- MAIN PORTAL CONTAINER -->
+    <main class="flex-grow py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        
+        <!-- ============================================================== -->
+        <!-- VIEW 1: LOGIN VIEW (Shown when user is not authenticated)      -->
+        <!-- ============================================================== -->
+        <div id="login-view" class="hidden max-w-md mx-auto py-8">
+            <div class="sg-glass p-8 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl relative">
+                
+                <div class="text-center mb-8">
+                    <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 mx-auto flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                    </div>
+                    <span class="font-mono-sg text-xs font-bold text-cyan-400 uppercase tracking-widest px-2.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-800 inline-block mb-2">
+                        SILLYGER MEMBER PORTAL (ART. 6)
+                    </span>
+                    <h1 class="text-2xl font-extrabold text-white">Ingia Kwenye Akaunti Yako</h1>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Tumia barua pepe, username au namba yako ya simu ya WhatsApp.
+                    </p>
+                </div>
+
+                <!-- Error Container -->
+                <div id="login-error" class="hidden mb-6 p-3.5 rounded-xl bg-red-950/40 border border-red-500/50 text-red-200 text-xs font-medium"></div>
+
+                <form id="member-login-form" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="login-credential">
+                            Barua Pepe / Username / Namba ya Simu
+                        </label>
+                        <input 
+                            type="text" 
+                            id="login-credential" 
+                            class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono-sg" 
+                            placeholder="mf. baraka@example.com au juma_dev"
+                            required
+                        >
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-semibold text-slate-300" for="login-password">
+                                Nenosiri (Password)
+                            </label>
+                            <a href="#" onclick="alert('Password Recovery: Wasiliana na msimamizi au jaribu akaunti za majaribio hapa chini.')" class="text-[11px] text-cyan-400 hover:underline">
+                                Umesahau password?
+                            </a>
+                        </div>
+                        <input 
+                            type="password" 
+                            id="login-password" 
+                            class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm" 
+                            placeholder="Weka nenosiri lako"
+                            required
+                        >
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm transition shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2"
+                    >
+                        <span>Ingia Kwenye Dashboard</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-6 border-t border-slate-800 text-center text-xs text-slate-400">
+                    Bado hujaomba uanachama? 
+                    <a href="register.html" class="text-cyan-400 font-bold hover:underline ml-1">
+                        Tuma Maombi Hapa &rarr;
+                    </a>
+                </div>
+
+                <!-- QUICK DEMO TEST SWITCHER -->
+                <div class="mt-8 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-left">
+                    <span class="text-[10px] font-mono-sg font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                        ⚡ JARIBU HARAKA KWA AKAUNTI ZA SAMPLE (1-CLICK TEST):
+                    </span>
+                    <div class="space-y-2">
+                        <button 
+                            type="button" 
+                            onclick="quickLoginAs('baraka@example.com')" 
+                            class="w-full text-left p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 hover:bg-emerald-950/40 transition flex items-center justify-between text-xs group"
+                        >
+                            <div>
+                                <span class="font-bold text-white block group-hover:text-emerald-300">Baraka Juma (Active Member)</span>
+                                <span class="text-[10px] text-slate-400 font-mono-sg">ID: SG-000002 • WhatsApp Unlocked</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded badge-active uppercase">ACTIVE</span>
+                        </button>
+
+                        <button 
+                            type="button" 
+                            onclick="quickLoginAs('amina@example.com')" 
+                            class="w-full text-left p-2.5 rounded-xl border border-amber-500/30 bg-amber-950/20 hover:bg-amber-950/40 transition flex items-center justify-between text-xs group"
+                        >
+                            <div>
+                                <span class="font-bold text-white block group-hover:text-amber-300">Amina Salum (Pending Applicant)</span>
+                                <span class="text-[10px] text-slate-400 font-mono-sg">ID: NULL • WhatsApp Locked</span>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded badge-pending uppercase">PENDING</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 2: MEMBER DASHBOARD (Shown when user is authenticated)   -->
+        <!-- ============================================================== -->
+        <div id="dashboard-view" class="hidden space-y-8">
+            
+            <!-- 1. IDENTITY & PROFILE HEADER BAR -->
+            <div class="sg-glass p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-mono-sg text-2xl font-black text-slate-950 shadow-lg shadow-cyan-500/20">
+                        SG
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 id="dash-full-name" class="text-2xl md:text-3xl font-extrabold text-white">...</h1>
+                            <div id="dash-status-badge"></div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1 font-mono-sg">
+                            <span id="dash-username" class="text-cyan-400 font-semibold">@...</span>
+                            <span>•</span>
+                            <span>Jukumu: <strong id="dash-role" class="text-slate-200">Member</strong></span>
+                            <span>•</span>
+                            <span>Alijiunga: <span id="dash-joined" class="text-slate-300">...</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Unique Member ID Badge (Appendix A1) -->
+                <div class="flex flex-col md:items-end">
+                    <span class="text-[10px] font-mono-sg text-slate-400 uppercase tracking-wider mb-1">
+                        UNIQUE MEMBER ID (APPENDIX A1)
+                    </span>
+                    <div id="dash-member-id" class="font-mono-sg text-base md:text-lg font-bold text-cyan-400 bg-cyan-950/70 border border-cyan-800/80 px-3 py-1 rounded-xl shadow-inner">
+                        ...
+                    </div>
+                    <span class="text-[10px] text-slate-500 font-mono-sg mt-1">Kitengo: <strong id="dash-track" class="text-slate-300">...</strong></span>
+                </div>
+            </div>
+
+            <!-- 2. CORE WORKFLOW: WHATSAPP ACCESS GATE CARD (ARTICLE 6.8 & 11.3) -->
+            <div id="whatsapp-gate-card">
+                <!-- Dynamically injected based on status (ACTIVE = unlocked, PENDING = locked) -->
+            </div>
+
+            <!-- 3. MAIN DASHBOARD CONTENT GRID -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                <!-- LEFT COLUMN: LEARNING & ATTENDANCE (8 Cols) -->
+                <div class="lg:col-span-8 space-y-8">
+                    
+                    <!-- A. LEARNING MANAGEMENT (Articles 6.5 & 8) -->
+                    <div class="sg-glass p-6 md:p-8 rounded-3xl border border-slate-800">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-slate-800/80 gap-2">
+                            <div>
+                                <span class="font-mono-sg text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1">
+                                    ARTICLE 8: ELIMU NA MTAALA WA HATUA 10
+                                </span>
+                                <h2 class="text-xl font-bold text-white">Maendeleo Yako ya Masomo</h2>
+                            </div>
+                            <div class="text-right">
+                                <span id="curriculum-progress-text" class="text-xs font-mono-sg text-cyan-400 font-bold block">
+                                    ...
+                                </span>
+                                <div class="w-36 h-2 rounded-full bg-slate-800 mt-1.5 overflow-hidden">
+                                    <div id="curriculum-progress-bar" class="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500" style="width: 10%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 10 Curriculum Levels Checklist -->
+                        <div id="curriculum-checklist" class="space-y-3">
+                            <!-- Populated dynamically via member-portal.js -->
+                        </div>
+                    </div>
+
+                    <!-- B. ATTENDANCE & LEAVE MANAGEMENT (Articles 6.6, 9 & 10) -->
+                    <div class="sg-glass p-6 md:p-8 rounded-3xl border border-slate-800">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-slate-800/80 gap-3">
+                            <div>
+                                <span class="font-mono-sg text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1">
+                                    ARTICLE 6.6 & 9: USIMAMIZI WA MAHUDHURIO
+                                </span>
+                                <h2 class="text-xl font-bold text-white">Mahudhurio na Ushiriki Wako</h2>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button 
+                                    id="btn-checkin-attendance"
+                                    class="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition flex items-center gap-1.5 shadow-md shadow-cyan-500/20"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                    <span>Panga Kuhudhuria (Check-in)</span>
+                                </button>
+                                <button 
+                                    onclick="openModal('modal-leave')"
+                                    class="px-3.5 py-2 rounded-xl border border-slate-700 hover:border-slate-500 bg-slate-900 text-slate-300 text-xs font-semibold transition"
+                                >
+                                    Omba Ruhusa
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Counters Row -->
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+                                <span class="text-xs text-slate-400 block mb-1">Planned Attendance:</span>
+                                <span id="count-planned-att" class="text-2xl font-extrabold text-amber-400 font-mono-sg">0</span>
+                                <span class="text-[10px] text-slate-500 font-mono-sg block mt-1">Ulipopanga kushiriki (Art. 9.2)</span>
+                            </div>
+                            <div class="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+                                <span class="text-xs text-slate-400 block mb-1">Verified Attendance:</span>
+                                <span id="count-verified-att" class="text-2xl font-extrabold text-emerald-400 font-mono-sg">0</span>
+                                <span class="text-[10px] text-slate-500 font-mono-sg block mt-1">Imethibitishwa na Mkufunzi (Art. 9.4)</span>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Feed -->
+                        <div class="space-y-2">
+                            <span class="text-xs font-mono-sg text-slate-400 block mb-2 uppercase tracking-wider">
+                                Kumbukumbu ya Hivi Karibuni:
+                            </span>
+                            <div id="attendance-history-list" class="space-y-2">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT COLUMN: FINANCIALS, COMMUNITY FUND & SUPPORT (4 Cols) -->
+                <div class="lg:col-span-4 space-y-8">
+                    
+                    <!-- C. SG COMMUNITY FUND & CONTRIBUTIONS (Articles 6.10 & 13) -->
+                    <div class="sg-glass p-6 rounded-3xl border border-slate-800 space-y-4">
+                        <div class="pb-3 border-b border-slate-800">
+                            <span class="font-mono-sg text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1">
+                                ARTICLE 13: MFUKO WA PAMOJA
+                            </span>
+                            <h3 class="text-lg font-bold text-white">SG Community Fund</h3>
+                        </div>
+
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Katiba inatenganisha wazi michango binafsi ya gharama na mapato ya mfuko wa pamoja unaotumika kujenga miundombinu (AI servers, data centers, labs).
+                        </p>
+
+                        <div class="space-y-3 pt-2">
+                            <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                                <span class="text-[11px] text-slate-400 block">Michango Yako Binafsi:</span>
+                                <span id="stat-personal-contrib" class="text-base font-bold text-slate-100 font-mono-sg">TZS 0.00</span>
+                                <span class="text-[10px] text-cyan-500 font-mono-sg block mt-0.5">Elimu ya msingi ni bure (Art. 12.5)</span>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                                <span class="text-[11px] text-slate-400 block">Salio la SG Community Fund:</span>
+                                <span id="stat-community-fund-balance" class="text-base font-bold text-emerald-400 font-mono-sg">TZS 1,450,000</span>
+                                <span class="text-[10px] text-slate-500 font-mono-sg block mt-0.5">Kwa ajili ya Servers & Labs (Art. 13.4)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- D. SUPPORT & HELP DESK (Article 6.12) -->
+                    <div class="sg-glass p-6 rounded-3xl border border-slate-800 space-y-4">
+                        <div class="pb-3 border-b border-slate-800">
+                            <span class="font-mono-sg text-xs font-bold text-cyan-400 uppercase tracking-wider block mb-1">
+                                ARTICLE 6.12: HELP & SUPPORT
+                            </span>
+                            <h3 class="text-lg font-bold text-white">Msaada na Mawasiliano</h3>
+                        </div>
+
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            Una tatizo la akaunti, urekebishaji wa taarifa, au mgogoro wa mahudhurio? Fungua tiketi rasmi ya msaada.
+                        </p>
+
+                        <button 
+                            onclick="openModal('modal-ticket')" 
+                            class="w-full py-3 rounded-xl sg-glass hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 font-bold text-xs transition flex items-center justify-center gap-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                            <span>Fungua Tiketi ya Msaada</span>
+                        </button>
+                    </div>
+
+                    <!-- E. QUICK CONSTITUTION SHORTCUT -->
+                    <div class="p-5 rounded-2xl bg-cyan-950/20 border border-cyan-800/40 text-xs text-slate-300 space-y-2">
+                        <div class="font-bold text-cyan-400 flex items-center gap-1.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span>Utawala Bora & Faragha:</span>
+                        </div>
+                        <p class="text-[11px] leading-relaxed text-slate-400">
+                            Taarifa zako zinalindwa kwa mujibu wa Tanzania PDPA 2022 (Article 15). Hakuna password inayohifadhiwa wazi au kuonekana kwa admins.
+                        </p>
+                        <a href="constitution.html" class="inline-block text-cyan-400 hover:underline font-mono-sg text-[11px]">
+                            Soma Katiba v1.4 Kamili &rarr;
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </main>
 
-    <footer class="p-6 text-center text-xs text-slate-600">
-        SILLYGER (SG) Digital Platform v1.4
-    </footer>
+    <!-- ============================================================== -->
+    <!-- MODAL 1: LEAVE / PERMISSION REQUEST (ARTICLE 10)               -->
+    <!-- ============================================================== -->
+    <div id="modal-leave" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-slate-700 max-w-lg w-full relative">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                <h3 class="text-lg font-bold text-white">Ombi la Ruhusa (Article 10)</h3>
+                <button onclick="closeModal('modal-leave')" class="text-slate-400 hover:text-white p-1">✕</button>
+            </div>
+            <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                Katiba ya SILLYGER (Article 10.4) inatambua kuwa dharura kama ugonjwa, kazi, masomo, familia au changamoto za vifaa/mtandao si sababu ya kuondolewa moja kwa moja.
+            </p>
+            <form id="form-leave-request" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-category">Aina ya Sababu</label>
+                    <select id="leave-category" class="w-full sg-input px-3 py-2 rounded-xl text-xs">
+                        <option value="Academic">Masomo / Mitihani (School/Exams)</option>
+                        <option value="Work">Kazi / Majukumu ya Kiofisi (Work/Job)</option>
+                        <option value="Health">Ugonjwa au Afya (Medical/Health)</option>
+                        <option value="Technical">Changamoto ya Vifaa / Mtandao (Hardware/Internet)</option>
+                        <option value="Family">Dharura ya Kifamilia (Family Emergency)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-duration">Muda Unaotarajia Kutokuwepo</label>
+                    <input type="text" id="leave-duration" class="w-full sg-input px-3 py-2 rounded-xl text-xs" placeholder="mf. Siku 3, Wiki 1, au Tarehe 10 hadi 17" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-reason">Maelezo Mafupi</label>
+                    <textarea id="leave-reason" rows="3" class="w-full sg-input px-3 py-2 rounded-xl text-xs" placeholder="Eleza kwa ufupi hali yako..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeModal('modal-leave')" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">Ghairi</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs">Wasilisha Ombi</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
+    <!-- ============================================================== -->
+    <!-- MODAL 2: SUPPORT TICKET (ARTICLE 6.12)                         -->
+    <!-- ============================================================== -->
+    <div id="modal-ticket" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-slate-700 max-w-lg w-full relative">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                <h3 class="text-lg font-bold text-white">Fungua Tiketi ya Msaada (Article 6.12)</h3>
+                <button onclick="closeModal('modal-ticket')" class="text-slate-400 hover:text-white p-1">✕</button>
+            </div>
+            <form id="form-support-ticket" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="ticket-category">Kitengo cha Tatizo</label>
+                    <select id="ticket-category" class="w-full sg-input px-3 py-2 rounded-xl text-xs">
+                        <option value="Attendance Dispute">Mgogoro wa Rekodi ya Mahudhurio</option>
+                        <option value="Account Settings">Marekebisho ya Taarifa za Akaunti</option>
+                        <option value="Course Access">Upatikanaji wa Nyenzo za Masomo</option>
+                        <option value="Technical Problem">Hitilafu ya Mfumo (Bug/Error)</option>
+                        <option value="Suggestion">Pendekezo la Uboreshaji</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="ticket-subject">Mada ya Tatizo</label>
+                    <input type="text" id="ticket-subject" class="w-full sg-input px-3 py-2 rounded-xl text-xs" placeholder="mf. Kurekebisha rekodi ya mahudhurio ya Week 4" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="ticket-message">Ufafanuzi Kamili</label>
+                    <textarea id="ticket-message" rows="4" class="w-full sg-input px-3 py-2 rounded-xl text-xs" placeholder="Eleza tatizo lako kwa undani..." required></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-3">
+                    <button type="button" onclick="closeModal('modal-ticket')" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">Ghairi</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs">Tuma Tiketi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/member-portal.js"></script>
 </body>
 </html>

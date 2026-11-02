@@ -22,7 +22,9 @@ const SG_CONFIG = {
         ACTIVE_SESSION: "sg_session_v1_4",
         SETTINGS: "sg_settings_v1_4",
         AUDIT_LOGS: "sg_audit_logs_v1_4",
-        ATTENDANCE: "sg_attendance_v1_4"
+        ATTENDANCE: "sg_attendance_v1_4",
+        LEAVE_REQUESTS: "sg_leaves_v1_4",
+        SUPPORT_TICKETS: "sg_tickets_v1_4"
     },
 
     // Supabase Configuration (Populated in Phase 4)

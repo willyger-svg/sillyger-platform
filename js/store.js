@@ -346,6 +346,144 @@ const SGStore = {
         return /^\+255[67]\d{8}$/.test(norm);
     },
 
+    // Attendance Records (Article 6.6 & 9)
+    getAttendanceRecords(memberId = null) {
+        this.init();
+        try {
+            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE)) || [
+                {
+                    id: "att_001",
+                    member_id: "SG-000001",
+                    session_title: "Week 4: Logic Gates & ALU Construction",
+                    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+                    is_planned: true,
+                    is_verified: true,
+                    verified_by: "SYSTEM"
+                },
+                {
+                    id: "att_002",
+                    member_id: "SG-000002",
+                    session_title: "Week 4: Logic Gates & ALU Construction",
+                    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+                    is_planned: true,
+                    is_verified: true,
+                    verified_by: "willyger (SG-000001)"
+                },
+                {
+                    id: "att_003",
+                    member_id: "SG-000002",
+                    session_title: "Week 5: Operating System Syscalls & Linux Shell",
+                    date: new Date(Date.now() - 1 * 86400000).toISOString().split('T')[0],
+                    is_planned: true,
+                    is_verified: false, // Planned but pending instructor verification
+                    verified_by: null
+                }
+            ];
+            if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE)) {
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
+            }
+            if (memberId) {
+                return list.filter(a => a.member_id === memberId);
+            }
+            return list;
+        } catch (e) {
+            return [];
+        }
+    },
+
+    recordPlannedAttendance(memberId, sessionTitle) {
+        const list = this.getAttendanceRecords();
+        const record = {
+            id: "att_" + Date.now().toString(36),
+            member_id: memberId,
+            session_title: sessionTitle || "Upcoming Sillygerian Tech Session",
+            date: new Date().toISOString().split('T')[0],
+            is_planned: true,
+            is_verified: false, // Article 9.3: Planned attendance != Verified attendance
+            verified_by: null,
+            created_at: new Date().toISOString()
+        };
+        list.unshift(record);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
+
+        this.addAuditLog({
+            action: "ATTENDANCE_CHECKIN",
+            actor: memberId,
+            target: record.session_title,
+            details: `Member checked-in (Planned attendance recorded for ${record.date}).`
+        });
+
+        return record;
+    },
+
+    // Leave & Permission Requests (Article 10)
+    getLeaveRequests(memberId = null) {
+        try {
+            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS)) || [];
+            return memberId ? list.filter(l => l.member_id === memberId) : list;
+        } catch (e) {
+            return [];
+        }
+    },
+
+    submitLeaveRequest(memberId, { reason, category, duration }) {
+        const list = this.getLeaveRequests();
+        const request = {
+            id: "leave_" + Date.now().toString(36),
+            member_id: memberId,
+            category: category || "Personal",
+            duration: duration || "1-3 siku",
+            reason,
+            status: "PENDING_REVIEW",
+            submitted_at: new Date().toISOString()
+        };
+        list.unshift(request);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(list));
+
+        this.addAuditLog({
+            action: "LEAVE_REQUESTED",
+            actor: memberId,
+            target: request.category,
+            details: `Permission requested: ${reason.substring(0, 50)}...`
+        });
+
+        return request;
+    },
+
+    // Support Requests (Article 6.12)
+    getSupportTickets(memberId = null) {
+        try {
+            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS)) || [];
+            return memberId ? list.filter(t => t.member_id === memberId) : list;
+        } catch (e) {
+            return [];
+        }
+    },
+
+    submitSupportTicket(memberId, { subject, category, message }) {
+        const list = this.getSupportTickets();
+        const ticket = {
+            id: "ticket_" + Date.now().toString(36),
+            member_id: memberId,
+            subject,
+            category: category || "Account Support",
+            message,
+            status: "OPEN",
+            created_at: new Date().toISOString()
+        };
+        list.unshift(ticket);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(list));
+
+        this.addAuditLog({
+            action: "SUPPORT_TICKET_CREATED",
+            actor: memberId,
+            target: ticket.subject,
+            details: `Support ticket opened: ${ticket.category}.`
+        });
+
+        return ticket;
+    },
+
     // Platform statistics
     getStats() {
         const members = this.getMembers();

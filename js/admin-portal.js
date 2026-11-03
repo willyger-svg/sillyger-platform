@@ -19,13 +19,7 @@ function initAdminPortal() {
     const session = SGStore.getCurrentSession();
     const dashboardView = document.getElementById("admin-dashboard-view");
 
-    const isAdmin = session && (
-        session.role === "Super Administrator" ||
-        session.role === "Administrator" ||
-        session.role === "Membership Administrator" ||
-        session.email === "wshavu@gmail.com" ||
-        session.username === "willyger"
-    );
+    const isAdmin = SGStore.isAdminUser(session);
 
     if (!isAdmin) {
         if (session) {
@@ -161,6 +155,27 @@ window.switchAdminTab = function (tabName) {
 // TAB 1: PENDING APPLICATION REVIEW QUEUE
 // -------------------------------------------------------------
 function renderPendingQueue() {
+    const modeBanner = document.getElementById("queue-cloud-mode-banner");
+    if (modeBanner) {
+        if (SG_CONFIG.SUPABASE.isConfigured) {
+            modeBanner.classList.add("hidden");
+            modeBanner.innerHTML = "";
+        } else {
+            modeBanner.classList.remove("hidden");
+            modeBanner.innerHTML = `
+                <div class="p-4 rounded-2xl border border-amber-500/40 bg-amber-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                    <div class="text-slate-300 leading-relaxed">
+                        <strong class="text-amber-400 font-mono-sg uppercase block mb-0.5">⚡ LOCAL MODE (Kifaa Hiki Pekee)</strong>
+                        Kwa sasa maombi yanayotumwa kwenye kivinjari hiki pekee ndiyo yanaonekana hapa. Ili kupokea maombi kutoka kwenye <strong>simu za watu wote mtandaoni</strong>, unganisha <strong>Supabase (Bure 100%)</strong>.
+                    </div>
+                    <button onclick="switchAdminTab('database')" class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition whitespace-nowrap">
+                        Unganisha Supabase Sasa &rarr;
+                    </button>
+                </div>
+            `;
+        }
+    }
+
     const container = document.getElementById("pending-queue-tbody");
     if (!container) return;
 
@@ -237,7 +252,7 @@ function renderPendingQueue() {
     }).join("");
 }
 
-window.approveApplicant = function (applicantId) {
+window.approveApplicant = async function (applicantId) {
     const target = SGStore.findMemberById(applicantId);
     if (!target) return;
 
@@ -249,7 +264,9 @@ window.approveApplicant = function (applicantId) {
     if (confirm(confirmMsg)) {
         try {
             const approved = SGStore.approveMember(applicantId, adminActor);
-            alert(`✓ ${approved.full_name} ameidhinishwa rasmi!\nUnique Member ID: ${approved.member_id}`);
+            await SGStore.flushPendingWrites();
+            const freshApproved = SGStore.findMemberById(applicantId) || approved;
+            alert(`✓ ${freshApproved.full_name} ameidhinishwa rasmi!\nUnique Member ID: ${freshApproved.member_id}`);
             refreshAdminTelemetry();
             renderPendingQueue();
             renderMembersDirectory();
@@ -259,7 +276,7 @@ window.approveApplicant = function (applicantId) {
     }
 };
 
-window.rejectApplicant = function (applicantId) {
+window.rejectApplicant = async function (applicantId) {
     const target = SGStore.findMemberById(applicantId);
     if (!target) return;
 
@@ -268,6 +285,7 @@ window.rejectApplicant = function (applicantId) {
             const adminUser = SGStore.getCurrentSession();
             const adminActor = adminUser ? adminUser.username : "willyger";
             SGStore.deleteMember(applicantId, adminActor);
+            await SGStore.flushPendingWrites();
             alert(`✓ Maombi ya ${target.full_name} yameondolewa.`);
             refreshAdminTelemetry();
             renderPendingQueue();
@@ -279,10 +297,30 @@ window.rejectApplicant = function (applicantId) {
 };
 
 window.manualRefreshQueue = async function () {
-    await SGStore.syncWithSupabase(true);
-    refreshAdminTelemetry();
-    renderPendingQueue();
-    renderMembersDirectory();
+    const btn = document.getElementById("btn-manual-refresh-queue");
+    const origHtml = btn ? btn.innerHTML : "";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>Inasawazisha...</span>`;
+    }
+    try {
+        await SGStore.syncWithSupabase(true);
+        refreshAdminTelemetry();
+        renderPendingQueue();
+        renderMembersDirectory();
+        if (btn) {
+            btn.innerHTML = `<span class="text-emerald-300">✓ Imesawazishwa</span>`;
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }, 1200);
+        }
+    } catch (e) {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
 };
 
 // -------------------------------------------------------------
@@ -880,6 +918,24 @@ window.exportCommunityDataJSON = function () {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+};
+
+window.copySqlSchemaToClipboard = async function (btn) {
+    const orig = btn ? btn.innerHTML : "";
+    try {
+        const res = await fetch("schema.sql", { cache: "no-store" });
+        if (!res.ok) throw new Error("Imeshindikana kusoma faili la schema.sql");
+        const sqlText = await res.text();
+        await navigator.clipboard.writeText(sqlText);
+        if (btn) {
+            btn.innerHTML = `<span>✓ SQL Imenakiliwa (Paste kwenye Supabase SQL Editor!)</span>`;
+            setTimeout(() => { btn.innerHTML = orig; }, 3000);
+        } else {
+            alert("✓ schema.sql imenakiliwa! Sasa ipaste kwenye Supabase SQL Editor na ubofye Run.");
+        }
+    } catch (err) {
+        alert("Fungua faili la schema.sql moja kwa moja kwenye mradi wako kisha nakili maandishi yake yote (" + err.message + ").");
+    }
 };
 
 window.saveDatabaseCredentials = async function (e) {

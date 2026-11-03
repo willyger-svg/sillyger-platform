@@ -114,6 +114,20 @@ let _supabaseCacheKey = "";
 let _isInitialized = false;
 let _syncInFlight = null;
 let _lastSyncAt = 0;
+const _pendingWrites = new Set();
+
+function _trackWrite(promiseLike) {
+    if (!promiseLike || typeof promiseLike.then !== "function") return Promise.resolve();
+    const tracked = Promise.resolve(promiseLike)
+        .catch(err => {
+            console.warn("Supabase write notice:", err);
+        })
+        .finally(() => {
+            _pendingWrites.delete(tracked);
+        });
+    _pendingWrites.add(tracked);
+    return tracked;
+}
 
 function getSupabaseClient() {
     if (typeof supabase !== "undefined" && typeof SG_CONFIG !== "undefined" && SG_CONFIG.SUPABASE && SG_CONFIG.SUPABASE.isConfigured) {
@@ -179,6 +193,28 @@ const SGStore = {
             (member.username && member.username.toLowerCase() === "willyger") ||
             (member.email && member.email.toLowerCase() === "wshavu@gmail.com")
         );
+    },
+
+    isSuperAdmin(member) {
+        if (!member) return false;
+        return this.isFounderMember(member) || member.role === "Super Administrator";
+    },
+
+    isAdminUser(member) {
+        if (!member) return false;
+        if (this.isSuperAdmin(member)) return true;
+        const adminRoles = [
+            "Administrator",
+            "Membership Administrator",
+            "Education Administrator",
+            "Finance Administrator"
+        ];
+        return adminRoles.includes(member.role);
+    },
+
+    async flushPendingWrites() {
+        if (_pendingWrites.size === 0) return;
+        await Promise.allSettled(Array.from(_pendingWrites));
     },
 
     // Initialize clean store & upgrade any legacy plaintext hashes
@@ -305,6 +341,9 @@ const SGStore = {
         _lastSyncAt = now;
         _syncInFlight = (async () => {
             try {
+                // Ensure any in-flight writes commit to Supabase before pulling
+                await this.flushPendingWrites();
+
                 const [mRes, aRes, fRes, attRes, lRes, tRes, logRes, sRes] = await Promise.all([
                     client.from("members").select("*").order("created_at", { ascending: true }),
                     client.from("announcements").select("*").order("created_at", { ascending: false }),
@@ -317,12 +356,28 @@ const SGStore = {
                 ]);
 
                 if (!mRes.error && Array.isArray(mRes.data) && mRes.data.length > 0) {
+                    const localBefore = this.getMembers();
                     const normalizedMembers = mRes.data.map(m => ({
                         ...m,
                         password_hash: this.isHashedPassword(m.password_hash)
                             ? m.password_hash
                             : (m.password_hash ? this.hashPassword(m.password_hash) : _FOUNDER_INITIAL_HASH)
                     }));
+
+                    // Push & merge any local-only applicants registered before Supabase was connected
+                    const cloudUsernames = new Set(normalizedMembers.map(m => (m.username || "").toLowerCase()));
+                    const cloudEmails = new Set(normalizedMembers.map(m => (m.email || "").toLowerCase()));
+                    const unsyncedLocals = localBefore.filter(
+                        lm => lm && lm._unsynced_cloud && !cloudUsernames.has((lm.username || "").toLowerCase()) && !cloudEmails.has((lm.email || "").toLowerCase())
+                    );
+
+                    for (const lm of unsyncedLocals) {
+                        const cleanRecord = { ...lm };
+                        delete cleanRecord._unsynced_cloud;
+                        normalizedMembers.push(cleanRecord);
+                        _trackWrite(client.from("members").insert([cleanRecord]));
+                    }
+
                     this.saveMembers(normalizedMembers);
 
                     // Keep current logged-in session status fresh (e.g. PENDING -> ACTIVE)
@@ -416,9 +471,11 @@ const SGStore = {
                 updated_by: adminActor,
                 updated_at: new Date().toISOString()
             }));
-            client.from("platform_settings").upsert(rows, { onConflict: "key" }).then(({ error }) => {
-                if (error) console.warn("Supabase settings upsert notice:", error);
-            });
+            _trackWrite(
+                client.from("platform_settings").upsert(rows, { onConflict: "key" }).then(({ error }) => {
+                    if (error) console.warn("Supabase settings upsert notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -508,9 +565,11 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update({ password_hash: newHash }).eq("username", member.username).then(({ error }) => {
-                if (error) console.warn("Supabase password update notice:", error);
-            });
+            _trackWrite(
+                client.from("members").update({ password_hash: newHash }).eq("username", member.username).then(({ error }) => {
+                    if (error) console.warn("Supabase password update notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -538,7 +597,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update({ password_hash: newHash }).eq("username", members[idx].username).then(() => {});
+            _trackWrite(client.from("members").update({ password_hash: newHash }).eq("username", members[idx].username));
         }
 
         this.addAuditLog({
@@ -610,31 +669,45 @@ const SGStore = {
             approved_by: null
         };
 
+        const client = getSupabaseClient();
+        if (!client) {
+            newApplicant._unsynced_cloud = true;
+        }
+
         members.push(newApplicant);
         this.saveMembers(members);
 
-        const client = getSupabaseClient();
         if (client) {
-            client.from("members").insert([{
-                id: newApplicant.id,
-                full_name: newApplicant.full_name,
-                username: newApplicant.username,
-                email: newApplicant.email,
-                phone: newApplicant.phone,
-                password_hash: newApplicant.password_hash,
-                track: newApplicant.track,
-                experience: newApplicant.experience,
-                motivation: newApplicant.motivation,
-                role: "Applicant",
-                status: "PENDING",
-                member_id: null,
-                agreed_constitution: newApplicant.agreed_constitution,
-                agreed_ethics: newApplicant.agreed_ethics,
-                agreed_pdpa: newApplicant.agreed_pdpa,
-                created_at: newApplicant.created_at
-            }]).then(({ error }) => {
-                if (error) console.error("Supabase insert error:", error);
-            });
+            _trackWrite(
+                client.from("members").insert([{
+                    id: newApplicant.id,
+                    full_name: newApplicant.full_name,
+                    username: newApplicant.username,
+                    email: newApplicant.email,
+                    phone: newApplicant.phone,
+                    password_hash: newApplicant.password_hash,
+                    track: newApplicant.track,
+                    experience: newApplicant.experience,
+                    motivation: newApplicant.motivation,
+                    role: "Applicant",
+                    status: "PENDING",
+                    member_id: null,
+                    agreed_constitution: newApplicant.agreed_constitution,
+                    agreed_ethics: newApplicant.agreed_ethics,
+                    agreed_pdpa: newApplicant.agreed_pdpa,
+                    created_at: newApplicant.created_at
+                }]).then(({ error }) => {
+                    if (error) {
+                        console.error("Supabase insert error:", error);
+                        const curMembers = this.getMembers();
+                        const mIdx = curMembers.findIndex(x => x.id === newApplicant.id);
+                        if (mIdx !== -1) {
+                            curMembers[mIdx]._unsynced_cloud = true;
+                            this.saveMembers(curMembers);
+                        }
+                    }
+                })
+            );
         }
 
         this.addAuditLog({
@@ -689,15 +762,29 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update({
-                member_id: member.member_id,
-                status: "ACTIVE",
-                role: member.role,
-                approved_at: member.approved_at,
-                approved_by: member.approved_by
-            }).eq("username", member.username).then(({ error }) => {
-                if (error) console.error("Supabase approve error:", error);
-            });
+            _trackWrite(
+                client.rpc("approve_member_and_assign_id", {
+                    target_user_id: member.id,
+                    admin_identifier: adminActor
+                }).then(({ data, error }) => {
+                    if (!error && data && data.member_id) {
+                        const latest = this.getMembers();
+                        const lIdx = latest.findIndex(x => x.id === member.id);
+                        if (lIdx !== -1 && latest[lIdx].member_id !== data.member_id) {
+                            latest[lIdx].member_id = data.member_id;
+                            this.saveMembers(latest);
+                        }
+                        return;
+                    }
+                    return client.from("members").update({
+                        member_id: member.member_id,
+                        status: "ACTIVE",
+                        role: member.role,
+                        approved_at: member.approved_at,
+                        approved_by: member.approved_by
+                    }).eq("username", member.username);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -743,13 +830,15 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update({
-                status: member.status,
-                member_id: member.member_id,
-                role: member.role,
-                approved_at: member.approved_at,
-                approved_by: member.approved_by
-            }).eq("username", member.username).then(() => {});
+            _trackWrite(
+                client.from("members").update({
+                    status: member.status,
+                    member_id: member.member_id,
+                    role: member.role,
+                    approved_at: member.approved_at,
+                    approved_by: member.approved_by
+                }).eq("username", member.username)
+            );
         }
 
         this.addAuditLog({
@@ -797,7 +886,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update({ role: newRole }).eq("username", member.username).then(() => {});
+            _trackWrite(client.from("members").update({ role: newRole }).eq("username", member.username));
         }
 
         this.addAuditLog({
@@ -832,7 +921,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update(safeUpdates).eq("username", member.username).then(() => {});
+            _trackWrite(client.from("members").update(safeUpdates).eq("username", member.username));
         }
 
         this.addAuditLog({
@@ -870,7 +959,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").update({ member_id: formattedId }).eq("username", member.username).then(() => {});
+            _trackWrite(client.from("members").update({ member_id: formattedId }).eq("username", member.username));
         }
 
         this.addAuditLog({
@@ -899,7 +988,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("members").delete().eq("username", member.username).then(() => {});
+            _trackWrite(client.from("members").delete().eq("username", member.username));
         }
 
         this.addAuditLog({
@@ -960,9 +1049,11 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("announcements").insert([anc]).then(({ error }) => {
-                if (error) console.warn("Supabase announcement insert notice:", error);
-            });
+            _trackWrite(
+                client.from("announcements").insert([anc]).then(({ error }) => {
+                    if (error) console.warn("Supabase announcement insert notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -986,7 +1077,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("announcements").delete().eq("id", ancId).then(() => {});
+            _trackWrite(client.from("announcements").delete().eq("id", ancId));
         }
 
         this.addAuditLog({
@@ -1033,17 +1124,19 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("fund_ledger").insert([{
-                id: tx.id,
-                type: tx.type,
-                amount: tx.amount,
-                category: tx.category,
-                description: tx.description,
-                actor: tx.actor,
-                tx_date: txDate
-            }]).then(({ error }) => {
-                if (error) console.warn("Supabase fund insert notice:", error);
-            });
+            _trackWrite(
+                client.from("fund_ledger").insert([{
+                    id: tx.id,
+                    type: tx.type,
+                    amount: tx.amount,
+                    category: tx.category,
+                    description: tx.description,
+                    actor: tx.actor,
+                    tx_date: txDate
+                }]).then(({ error }) => {
+                    if (error) console.warn("Supabase fund insert notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -1090,9 +1183,11 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("audit_logs").insert([entry]).then(({ error }) => {
-                if (error) console.warn("Supabase audit insert notice:", error);
-            });
+            _trackWrite(
+                client.from("audit_logs").insert([entry]).then(({ error }) => {
+                    if (error) console.warn("Supabase audit insert notice:", error);
+                })
+            );
         }
 
         return entry;
@@ -1106,6 +1201,7 @@ const SGStore = {
         }
         const safeSession = { ...user };
         delete safeSession.password_hash;
+        delete safeSession._unsynced_cloud;
         _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION, JSON.stringify(safeSession));
     },
 
@@ -1201,17 +1297,19 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("attendance").insert([{
-                id: record.id,
-                member_id: record.member_id,
-                session_title: record.session_title,
-                session_date: today,
-                is_planned: true,
-                is_verified: false,
-                created_at: record.created_at
-            }]).then(({ error }) => {
-                if (error) console.warn("Supabase attendance insert notice:", error);
-            });
+            _trackWrite(
+                client.from("attendance").insert([{
+                    id: record.id,
+                    member_id: record.member_id,
+                    session_title: record.session_title,
+                    session_date: today,
+                    is_planned: true,
+                    is_verified: false,
+                    created_at: record.created_at
+                }]).then(({ error }) => {
+                    if (error) console.warn("Supabase attendance insert notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -1236,7 +1334,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("attendance").update({ is_verified: true, verified_by: verifier }).eq("id", recordId).then(() => {});
+            _trackWrite(client.from("attendance").update({ is_verified: true, verified_by: verifier }).eq("id", recordId));
         }
 
         this.addAuditLog({
@@ -1265,7 +1363,7 @@ const SGStore = {
             _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
             const client = getSupabaseClient();
             if (client) {
-                client.from("attendance").update({ is_verified: true, verified_by: verifier }).in("id", unverifiedIds).then(() => {});
+                _trackWrite(client.from("attendance").update({ is_verified: true, verified_by: verifier }).in("id", unverifiedIds));
             }
             this.addAuditLog({
                 action: "MASS_ATTENDANCE_VERIFIED",
@@ -1311,17 +1409,19 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("leave_requests").insert([{
-                id: request.id,
-                member_id: request.member_id,
-                category: request.category,
-                duration: request.duration,
-                reason: request.reason,
-                status: request.status,
-                created_at: nowIso
-            }]).then(({ error }) => {
-                if (error) console.warn("Supabase leave insert notice:", error);
-            });
+            _trackWrite(
+                client.from("leave_requests").insert([{
+                    id: request.id,
+                    member_id: request.member_id,
+                    category: request.category,
+                    duration: request.duration,
+                    reason: request.reason,
+                    status: request.status,
+                    created_at: nowIso
+                }]).then(({ error }) => {
+                    if (error) console.warn("Supabase leave insert notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -1349,7 +1449,7 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("leave_requests").update({ status: decision, reviewed_by: reviewer }).eq("id", leaveId).then(() => {});
+            _trackWrite(client.from("leave_requests").update({ status: decision, reviewed_by: reviewer }).eq("id", leaveId));
         }
 
         this.addAuditLog({
@@ -1397,9 +1497,11 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("support_tickets").insert([ticket]).then(({ error }) => {
-                if (error) console.warn("Supabase ticket insert notice:", error);
-            });
+            _trackWrite(
+                client.from("support_tickets").insert([ticket]).then(({ error }) => {
+                    if (error) console.warn("Supabase ticket insert notice:", error);
+                })
+            );
         }
 
         this.addAuditLog({
@@ -1425,11 +1527,13 @@ const SGStore = {
 
         const client = getSupabaseClient();
         if (client) {
-            client.from("support_tickets").update({
-                status: "RESOLVED",
-                response: list[idx].response,
-                responded_by: responder
-            }).eq("id", ticketId).then(() => {});
+            _trackWrite(
+                client.from("support_tickets").update({
+                    status: "RESOLVED",
+                    response: list[idx].response,
+                    responded_by: responder
+                }).eq("id", ticketId)
+            );
         }
 
         this.addAuditLog({
@@ -1448,6 +1552,7 @@ const SGStore = {
         const safeMembers = this.getMembers().map(m => {
             const copy = { ...m };
             delete copy.password_hash;
+            delete copy._unsynced_cloud;
             return copy;
         });
 

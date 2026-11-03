@@ -33,6 +33,13 @@ document.addEventListener("DOMContentLoaded", () => {
             };
         }
     } catch (e) {}
+
+    // Auto-sync every 8s when logged in so PENDING -> ACTIVE unlocks WhatsApp live
+    setInterval(() => {
+        if (SGStore.getCurrentSession()) {
+            SGStore.syncWithSupabase();
+        }
+    }, 8000);
 });
 
 function handleUrlAlertBanner() {
@@ -104,13 +111,7 @@ function initMemberPortal() {
 }
 
 function isAdminUser(u) {
-    return !!(u && (
-        u.role === "Super Administrator" ||
-        u.role === "Administrator" ||
-        u.role === "Membership Administrator" ||
-        u.username === "willyger" ||
-        u.email === "wshavu@gmail.com"
-    ));
+    return SGStore.isAdminUser(u);
 }
 
 window.showForgotPasswordNotice = function () {
@@ -145,6 +146,12 @@ function setupLoginForm() {
 
         const credential = document.getElementById("login-credential").value.trim();
         const password = document.getElementById("login-password").value;
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const origHtml = submitBtn ? submitBtn.innerHTML : "";
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span>Inahakiki akaunti...</span>`;
+        }
 
         try {
             await SGStore.syncWithSupabase(true);
@@ -157,6 +164,7 @@ function setupLoginForm() {
                 details: `Login kwenye Member Portal. Status: ${member.status}.`
             });
 
+            await SGStore.flushPendingWrites();
             SGStore.setCurrentSession(member);
 
             if (isAdminUser(member)) {
@@ -168,6 +176,11 @@ function setupLoginForm() {
         } catch (err) {
             errorAlert.textContent = err.message || "Hitilafu imetokea.";
             errorAlert.classList.remove("hidden");
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origHtml;
+            }
         }
     };
 }

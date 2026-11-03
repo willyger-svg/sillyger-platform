@@ -78,6 +78,13 @@ document.addEventListener("DOMContentLoaded", () => {
             formError.classList.add("hidden");
             formError.textContent = "";
 
+            const submitBtn = regForm.querySelector('button[type="submit"]');
+            const origBtnHtml = submitBtn ? submitBtn.innerHTML : "";
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span>Inahifadhi na kusawazisha maombi...</span>`;
+            }
+
             try {
                 // Pull latest cloud members if Supabase is connected before checking duplicates
                 await SGStore.syncWithSupabase(true);
@@ -143,14 +150,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     agreed_pdpa: agreePdpa
                 });
 
+                await SGStore.flushPendingWrites();
+
                 const currentSession = SGStore.getCurrentSession();
-                const isAdmin = currentSession && (
-                    currentSession.role === "Super Administrator" ||
-                    currentSession.role === "Administrator" ||
-                    currentSession.role === "Membership Administrator" ||
-                    currentSession.username === "willyger" ||
-                    currentSession.email === "wshavu@gmail.com"
-                );
+                const isAdmin = SGStore.isAdminUser(currentSession);
 
                 if (!isAdmin) {
                     SGStore.setCurrentSession(newApplicant);
@@ -162,6 +165,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 formError.textContent = err.message || "Hitilafu imetokea. Jaribu tena.";
                 formError.classList.remove("hidden");
                 formError.scrollIntoView({ behavior: "smooth", block: "center" });
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = origBtnHtml;
+                }
             }
         });
     }

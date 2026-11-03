@@ -3,12 +3,17 @@
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Mobile Menu Toggle
+    // 1. Mobile Menu Toggle & Auto-Close on Anchor Click
     const mobileBtn = document.getElementById("mobile-menu-btn");
     const mobileMenu = document.getElementById("mobile-menu");
     if (mobileBtn && mobileMenu) {
         mobileBtn.addEventListener("click", () => {
             mobileMenu.classList.toggle("hidden");
+        });
+        mobileMenu.querySelectorAll("a").forEach(link => {
+            link.addEventListener("click", () => {
+                mobileMenu.classList.add("hidden");
+            });
         });
     }
 
@@ -39,13 +44,7 @@ function renderHeaderSession() {
     const currentSession = SGStore.getCurrentSession();
     if (currentSession) {
         const isApproved = currentSession.status === "ACTIVE";
-        const isAdmin = (
-            currentSession.role === "Super Administrator" ||
-            currentSession.role === "Administrator" ||
-            currentSession.role === "Membership Administrator" ||
-            currentSession.username === "willyger" ||
-            currentSession.email === "wshavu@gmail.com"
-        );
+        const isAdmin = SGStore.isAdminUser(currentSession);
         const label = esc(currentSession.member_id || currentSession.username);
         const statusLabel = esc(currentSession.status);
 

@@ -1,5 +1,5 @@
 /**
- * SILLYGER (SG) Registration Logic & Gate Enforcement (Phase 1)
+ * SILLYGER (SG) Registration Logic & Gate Enforcement (v1.4)
  */
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -10,24 +10,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const formError = document.getElementById("form-error");
     const regSuccessCard = document.getElementById("reg-success-card");
     const formCard = document.getElementById("reg-form-card");
+    const esc = (v) => (typeof SGUtils !== "undefined" ? SGUtils.escapeHtml(v) : String(v || ""));
 
     // Populate track dropdown from config
     if (trackSelect) {
         trackSelect.innerHTML = `
             <option value="" disabled selected>-- Chagua Kitengo au Mtaala wa Awali --</option>
             <optgroup label="Vitengo 11 vya Utafiti (Article 3)">
-                ${SG_CONFIG.DIVISIONS.map(d => `<option value="${d.name}">${d.name} (${d.tagline})</option>`).join('')}
+                ${SG_CONFIG.DIVISIONS.map(d => `<option value="${esc(d.name)}">${esc(d.name)} (${esc(d.tagline)})</option>`).join("")}
             </optgroup>
             <optgroup label="Ngazi za Mtaala (Article 8)">
-                ${SG_CONFIG.CURRICULUM.map(c => `<option value="Level ${c.level}: ${c.title}">Level ${c.level}: ${c.title}</option>`).join('')}
+                ${SG_CONFIG.CURRICULUM.map(c => `<option value="Level ${esc(c.level)}: ${esc(c.title)}">Level ${esc(c.level)}: ${esc(c.title)}</option>`).join("")}
             </optgroup>
         `;
 
-        // Check URL parameters for pre-selected track
         const urlParams = new URLSearchParams(window.location.search);
         const preselectedTrack = urlParams.get("track");
         if (preselectedTrack) {
-            for (let option of trackSelect.options) {
+            for (const option of trackSelect.options) {
                 if (option.value.toLowerCase().includes(preselectedTrack.toLowerCase())) {
                     option.selected = true;
                     break;
@@ -59,8 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Password Toggle Visibility
-    window.togglePassword = function(fieldId, btn) {
+    window.togglePassword = function (fieldId, btn) {
         const input = document.getElementById(fieldId);
+        if (!input) return;
         if (input.type === "password") {
             input.type = "text";
             btn.innerHTML = `<svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path></svg>`;
@@ -72,12 +73,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Form Submission Handler
     if (regForm) {
-        regForm.addEventListener("submit", (e) => {
+        regForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             formError.classList.add("hidden");
             formError.textContent = "";
 
             try {
+                // Pull latest cloud members if Supabase is connected before checking duplicates
+                await SGStore.syncWithSupabase(true);
+
                 const fullName = document.getElementById("reg-name").value.trim();
                 const username = document.getElementById("reg-username").value.trim();
                 const email = document.getElementById("reg-email").value.trim();
@@ -92,7 +96,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const agreeEthics = document.getElementById("agree-ethics").checked;
                 const agreePdpa = document.getElementById("agree-pdpa").checked;
 
-                // Validation
                 if (!agreeConst || !agreeEthics || !agreePdpa) {
                     throw new Error("Ni lazima ukubali masharti yote matatu (Katiba, Maadili ya Cybersecurity, na Sheria ya PDPA 2022) ili kuendelea.");
                 }
@@ -126,7 +129,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     throw new Error("Tafadhali chagua kitengo au mtaala wa kuanzia.");
                 }
 
-                // Register applicant via store
                 const newApplicant = SGStore.registerApplicant({
                     full_name: fullName,
                     username,
@@ -141,7 +143,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     agreed_pdpa: agreePdpa
                 });
 
-                // Check if current active session belongs to Super Administrator / Admin
                 const currentSession = SGStore.getCurrentSession();
                 const isAdmin = currentSession && (
                     currentSession.role === "Super Administrator" ||
@@ -152,19 +153,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 );
 
                 if (!isAdmin) {
-                    // Normal applicant: Set session so they can inspect their PENDING dashboard immediately
                     SGStore.setCurrentSession(newApplicant);
                 }
 
-                // Cross-tab broadcast notification
-                try {
-                    if (typeof BroadcastChannel !== 'undefined') {
-                        const bc = new BroadcastChannel('sg_platform_sync');
-                        bc.postMessage({ type: 'APPLICANT_REGISTERED', applicant: newApplicant });
-                    }
-                } catch (e) {}
-
-                // Display success confirmation card
                 displaySuccessScreen(newApplicant, isAdmin, currentSession);
 
             } catch (err) {
@@ -181,8 +172,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
         regSuccessCard.classList.remove("hidden");
 
+        const safeName = esc(applicant.full_name);
+        const safeUsername = esc(applicant.username);
+        const safePhone = esc(applicant.phone);
+        const safeTrack = esc(applicant.track);
+        const safeAdminName = esc(adminSession ? adminSession.full_name : "William Gerishom");
+
         if (isAdmin) {
-            // ADMIN TESTING VIEW: Keep William logged in and give direct link to approve
             regSuccessCard.innerHTML = `
                 <div class="sg-glass p-8 md:p-12 rounded-3xl border border-purple-500/50 text-center relative overflow-hidden bg-gradient-to-b from-purple-950/30 to-slate-950">
                     <div class="w-16 h-16 rounded-2xl bg-purple-500/10 border border-purple-500/40 text-purple-400 mx-auto flex items-center justify-center mb-6">
@@ -194,26 +190,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
 
                     <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-3">
-                        ${applicant.full_name} amesajiliwa!
+                        ${safeName} amesajiliwa!
                     </h2>
-                    
+
                     <p class="text-sm md:text-base text-slate-300 max-w-xl mx-auto leading-relaxed mb-6">
-                        Akaunti mpya imepokelewa kwenye mfumo. Kwa kuwa wewe ni <strong class="text-purple-400">Super Administrator (${adminSession ? adminSession.full_name : 'William Gerishom'})</strong>, kikao chako cha utawala hakijavurugwa.
+                        Akaunti mpya imepokelewa kwenye mfumo. Kwa kuwa wewe ni <strong class="text-purple-400">Super Administrator (${safeAdminName})</strong>, kikao chako cha utawala hakijavurugwa.
                     </p>
 
-                    <!-- Applicant Summary Box -->
                     <div class="max-w-md mx-auto p-5 rounded-2xl bg-slate-950/80 border border-slate-800 text-left text-xs font-mono-sg space-y-2 mb-8">
                         <div class="flex justify-between border-b border-slate-800/80 pb-2">
                             <span class="text-slate-500">Username:</span>
-                            <span class="text-white font-bold">@${applicant.username}</span>
+                            <span class="text-white font-bold">@${safeUsername}</span>
                         </div>
                         <div class="flex justify-between border-b border-slate-800/80 pb-2">
                             <span class="text-slate-500">WhatsApp:</span>
-                            <span class="text-cyan-400 font-bold">${applicant.phone}</span>
+                            <span class="text-cyan-400 font-bold">${safePhone}</span>
                         </div>
                         <div class="flex justify-between border-b border-slate-800/80 pb-2">
                             <span class="text-slate-500">Kitengo (Track):</span>
-                            <span class="text-slate-300 truncate max-w-[200px]">${applicant.track}</span>
+                            <span class="text-slate-300 truncate max-w-[200px]">${safeTrack}</span>
                         </div>
                         <div class="flex justify-between border-b border-slate-800/80 pb-2">
                             <span class="text-slate-500">Hadhi (Status):</span>
@@ -240,7 +235,6 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        // REGULAR APPLICANT VIEW
         regSuccessCard.innerHTML = `
             <div class="sg-glass p-8 md:p-12 rounded-3xl border border-cyan-500/40 text-center relative overflow-hidden">
                 <div class="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 mx-auto flex items-center justify-center mb-6">
@@ -252,26 +246,25 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
 
                 <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-3">
-                    Hongera, ${applicant.full_name}!
+                    Hongera, ${safeName}!
                 </h2>
-                
+
                 <p class="text-sm md:text-base text-slate-300 max-w-xl mx-auto leading-relaxed mb-6">
                     Maombi yako ya kujiunga na <strong class="text-cyan-400">SILLYGER (SG)</strong> yamepokelewa kikamilifu kwenye mfumo rasmi.
                 </p>
 
-                <!-- Applicant Summary Box -->
                 <div class="max-w-md mx-auto p-5 rounded-2xl bg-slate-950/80 border border-slate-800 text-left text-xs font-mono-sg space-y-2 mb-8">
                     <div class="flex justify-between border-b border-slate-800/80 pb-2">
                         <span class="text-slate-500">Username:</span>
-                        <span class="text-white font-bold">${applicant.username}</span>
+                        <span class="text-white font-bold">${safeUsername}</span>
                     </div>
                     <div class="flex justify-between border-b border-slate-800/80 pb-2">
                         <span class="text-slate-500">WhatsApp:</span>
-                        <span class="text-cyan-400">${applicant.phone}</span>
+                        <span class="text-cyan-400">${safePhone}</span>
                     </div>
                     <div class="flex justify-between border-b border-slate-800/80 pb-2">
                         <span class="text-slate-500">Track:</span>
-                        <span class="text-slate-300 truncate max-w-[200px]">${applicant.track}</span>
+                        <span class="text-slate-300 truncate max-w-[200px]">${safeTrack}</span>
                     </div>
                     <div class="flex justify-between border-b border-slate-800/80 pb-2">
                         <span class="text-slate-500">Unique Member ID:</span>
@@ -286,10 +279,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
 
-                <!-- Guidance notice -->
                 <div class="p-4 rounded-xl bg-amber-950/20 border border-amber-800/40 text-amber-200 text-xs text-left max-w-lg mx-auto mb-8">
                     <strong class="font-bold block mb-1">Nini Kinafuata (Appendix A5):</strong>
-                    Msimamizi wa Uanachama (Membership Admin) atapitia maombi yako. Mara yakikaguliwa na kuwa <strong>ACTIVE</strong>, utapewa namba yako ya kipekee ya mwanachama (kama <strong>SG-000001</strong>), na kiungo rasmi cha kujiunga na WhatsApp Group kitaonekana moja kwa moja ndani ya <strong>Member Portal Dashboard</strong> yako.
+                    Msimamizi wa Uanachama (Membership Admin) atapitia maombi yako. Mara yakikaguliwa na kuwa <strong>ACTIVE</strong>, utapewa namba yako ya kipekee ya mwanachama (kama <strong>SG-000002</strong>), na kiungo rasmi cha kujiunga na WhatsApp Group kitaonekana moja kwa moja ndani ya <strong>Member Portal Dashboard</strong> yako.
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4">

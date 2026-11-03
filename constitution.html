@@ -172,7 +172,7 @@
                 if (matchedSections.length === 0) {
                     container.innerHTML = `
                         <div class="sg-glass p-12 text-center rounded-2xl border border-slate-800">
-                            <p class="text-slate-400 text-sm">Hakuna kifungu kilichopatikana kwa utafutaji wa: <span class="text-cyan-400 font-mono-sg">"${filter}"</span></p>
+                            <p class="text-slate-400 text-sm">Hakuna kifungu kilichopatikana kwa utafutaji wa: <span class="text-cyan-400 font-mono-sg">"${SGUtils.escapeHtml(filter)}"</span></p>
                             <button onclick="document.getElementById('constitution-search').value=''; renderSections('');" class="mt-4 px-4 py-2 rounded-lg bg-slate-800 text-xs text-cyan-400 hover:bg-slate-700">
                                 Ondoa kichujio (Show all)
                             </button>

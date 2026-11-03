@@ -1,7 +1,52 @@
 /**
  * SILLYGER (SG) Digital Membership & Governance Platform v1.4
- * Global Configuration & Constants
+ * Global Configuration, Constants & Security Utilities
  */
+
+// ============================================================================
+// CLOUD DATABASE CONFIGURATION (SUPABASE FREE TIER)
+// Ukishapata Project URL na Anon Key kutoka Supabase, ziweke hapa chini
+// ili simu na kompyuta za wanachama wote ziunganishwe moja kwa moja:
+// ============================================================================
+const DEFAULT_SUPABASE_URL = "";
+const DEFAULT_SUPABASE_ANON_KEY = "";
+
+// Encoded official community invite fallback (can be rotated anytime via Admin Portal)
+const _OFFICIAL_WA_ENCODED = "aHR0cHM6Ly9jaGF0LndoYXRzYXBwLmNvbS9LUnh5YVNvVmNVQ0dMcTBQZE95NkpiP3M9Y2wmcD1hJmlhbT0y";
+
+function _decodeBase64(b64) {
+    try {
+        if (typeof atob === "function") return atob(b64);
+        if (typeof Buffer !== "undefined") return Buffer.from(b64, "base64").toString("utf8");
+    } catch (e) {}
+    return "";
+}
+
+/**
+ * Security & Formatting Utilities (XSS Prevention)
+ */
+const SGUtils = {
+    escapeHtml(value) {
+        if (value === null || value === undefined) return "";
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    },
+
+    formatDateSw(isoStr, includeTime = false) {
+        if (!isoStr) return "—";
+        try {
+            const d = new Date(isoStr);
+            if (isNaN(d.getTime())) return String(isoStr);
+            return includeTime ? d.toLocaleString("sw-TZ") : d.toLocaleDateString("sw-TZ");
+        } catch (e) {
+            return String(isoStr);
+        }
+    }
+};
 
 const SG_CONFIG = {
     appName: "SILLYGER",
@@ -12,12 +57,25 @@ const SG_CONFIG = {
     memberSingular: "Sillygerian",
     memberPlural: "Sillygerians",
     communityFundName: "SG Community Fund",
-    
-    // WhatsApp Private Community URL (Only revealed to ACTIVE members)
-    privateWhatsAppInvite: "https://chat.whatsapp.com/KRxyaSoVcUCGLq0PdOy6Jb?s=cl&p=a&iam=2",
-    
-    // Storage keys for local-first testing / fallback mode
-    STORAGE_KEYS: {
+
+    // Dynamic getter for WhatsApp Invite (supports live rotation via Admin Portal / Supabase)
+    get privateWhatsAppInvite() {
+        try {
+            if (typeof localStorage !== "undefined") {
+                const rawSettings = localStorage.getItem("sg_settings_v1_4");
+                if (rawSettings) {
+                    const parsed = JSON.parse(rawSettings);
+                    if (parsed && parsed.whatsapp_invite_url) {
+                        return parsed.whatsapp_invite_url;
+                    }
+                }
+            }
+        } catch (e) {}
+        return _decodeBase64(_OFFICIAL_WA_ENCODED);
+    },
+
+    // Storage keys for local-first / hybrid persistence
+    STORAGE_KEYS: Object.freeze({
         APPLICANTS: "sg_applicants_v1_4",
         ACTIVE_SESSION: "sg_session_v1_4",
         SETTINGS: "sg_settings_v1_4",
@@ -27,19 +85,35 @@ const SG_CONFIG = {
         SUPPORT_TICKETS: "sg_tickets_v1_4",
         ANNOUNCEMENTS: "sg_announcements_v1_4",
         FUND_LEDGER: "sg_fund_ledger_v1_4"
-    },
+    }),
 
-    // Supabase Configuration (Populated via Admin UI or directly here)
+    // Supabase Configuration (Reads from Admin localStorage override OR file constants above)
     SUPABASE: {
-        url: (typeof localStorage !== 'undefined' && localStorage.getItem("sg_supabase_url")) || "",
-        anonKey: (typeof localStorage !== 'undefined' && localStorage.getItem("sg_supabase_key")) || "",
+        get url() {
+            return (typeof localStorage !== "undefined" && localStorage.getItem("sg_supabase_url")) || DEFAULT_SUPABASE_URL;
+        },
+        set url(val) {
+            if (typeof localStorage !== "undefined") {
+                if (val) localStorage.setItem("sg_supabase_url", String(val).trim());
+                else localStorage.removeItem("sg_supabase_url");
+            }
+        },
+        get anonKey() {
+            return (typeof localStorage !== "undefined" && localStorage.getItem("sg_supabase_key")) || DEFAULT_SUPABASE_ANON_KEY;
+        },
+        set anonKey(val) {
+            if (typeof localStorage !== "undefined") {
+                if (val) localStorage.setItem("sg_supabase_key", String(val).trim());
+                else localStorage.removeItem("sg_supabase_key");
+            }
+        },
         get isConfigured() {
             return !!(this.url && this.anonKey);
         }
     },
 
     // 11 Research & Development Divisions (Article 3)
-    DIVISIONS: [
+    DIVISIONS: Object.freeze([
         {
             id: "tech",
             number: "3.1",
@@ -139,10 +213,10 @@ const SG_CONFIG = {
             badge: "Production",
             icon: "rocket"
         }
-    ],
+    ]),
 
     // 10 Core Curriculum Levels (Article 8)
-    CURRICULUM: [
+    CURRICULUM: Object.freeze([
         { level: 1, title: "Computer Fundamentals & Electronics", desc: "Misingi ya tarakilishi, vipengele vya hardware, umeme msingi, na binary logic." },
         { level: 2, title: "Digital Logic & Computer Architecture", desc: "Logic gates, flip-flops, ALUs, CPU structure, memory na instruction sets." },
         { level: 3, title: "Programming & Software Engineering", desc: "Data structures, algorithms, modular programming, memory management na clean architecture." },
@@ -153,15 +227,16 @@ const SG_CONFIG = {
         { level: 8, title: "Databases, Backend & Cloud", desc: "Relational/NoSQL databases, distributed systems, API architecture, servers na cloud deployment." },
         { level: 9, title: "Advanced Cybersecurity & Research", desc: "Malware analysis, binary exploitation, digital forensics, AI security na academic papers." },
         { level: 10, title: "Innovation & Real-world Projects", desc: "Ubunifu wa bidhaa kamili, hardware prototypes, open-source tooling na uongozi wa miradi." }
-    ]
+    ])
 };
 
-// Freeze to prevent accidental mutations
 Object.freeze(SG_CONFIG);
+Object.freeze(SGUtils);
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
     window.SG_CONFIG = SG_CONFIG;
+    window.SGUtils = SGUtils;
 }
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = SG_CONFIG;
+if (typeof module !== "undefined" && module.exports) {
+    module.exports = { SG_CONFIG, SGUtils };
 }

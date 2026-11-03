@@ -4,6 +4,7 @@
 *.token
 *token*
 *.local
+.supabase-project.json
 
 # Dependencies
 node_modules/

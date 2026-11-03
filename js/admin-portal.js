@@ -196,11 +196,12 @@ function renderPendingQueue() {
     container.innerHTML = pending.map(p => {
         const safeId = _escAdmin(p.id);
         const waDigits = String(p.phone || "").replace(/[^0-9]/g, "");
+        const noteText = p.learning_interest || p.motivation || "";
         return `
             <tr class="border-b border-slate-800/60 hover:bg-slate-900/40 transition">
                 <td class="px-4 py-4">
                     <span class="font-bold text-white block">${_escAdmin(p.full_name)}</span>
-                    <span class="text-xs font-mono-sg text-cyan-400">@${_escAdmin(p.username)}</span>
+                    <span class="text-xs font-mono-sg text-blue-400">@${_escAdmin(p.username)}</span>
                 </td>
                 <td class="px-4 py-4 text-xs font-mono-sg text-slate-300">
                     <a href="https://wa.me/${waDigits}" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline flex items-center gap-1 font-bold">
@@ -210,13 +211,12 @@ function renderPendingQueue() {
                     <span class="text-[11px] text-slate-500">${_escAdmin(p.email)}</span>
                 </td>
                 <td class="px-4 py-4 text-xs text-slate-300">
-                    <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono-sg block mb-1">
-                        ${_escAdmin(p.track)}
+                    <span class="px-2.5 py-0.5 rounded-md badge-future text-[11px] font-mono-sg inline-block">
+                        ${_escAdmin(p.track || "SG Student Community")}
                     </span>
-                    <span class="text-[10px] text-slate-500">Uzoefu: ${_escAdmin(p.experience || "Beginner")}</span>
                 </td>
-                <td class="px-4 py-4 text-xs text-slate-400 max-w-xs truncate" title="${_escAdmin(p.motivation || "")}">
-                    ${p.motivation ? _escAdmin(p.motivation) : '<em class="text-slate-600">Bila maelezo</em>'}
+                <td class="px-4 py-4 text-xs text-slate-300 max-w-xs truncate" title="${_escAdmin(noteText)}">
+                    ${noteText ? _escAdmin(noteText) : '<em class="text-slate-500">Mwanafunzi mpya (bila ujumbe wa ziada)</em>'}
                 </td>
                 <td class="px-4 py-4 text-xs font-mono-sg text-slate-400">
                     ${_escAdmin(SGUtils.formatDateSw(p.created_at))}
@@ -404,9 +404,9 @@ window.openMemberDossier = function (memberId) {
     document.getElementById("dossier-email").textContent = member.email;
     document.getElementById("dossier-phone").textContent = member.phone;
     document.getElementById("dossier-whatsapp-link").href = `https://wa.me/${String(member.phone || "").replace(/[^0-9]/g, "")}`;
-    document.getElementById("dossier-track").textContent = member.track;
-    document.getElementById("dossier-experience").textContent = member.experience || "Beginner";
-    document.getElementById("dossier-motivation").textContent = member.motivation || "Bila maelezo ya ziada";
+    document.getElementById("dossier-track").textContent = member.track || "SG Student Community";
+    document.getElementById("dossier-experience").textContent = member.experience || "Student";
+    document.getElementById("dossier-motivation").textContent = member.learning_interest || member.motivation || "Mwanafunzi wa SILLYGER (bila maelezo ya ziada)";
     document.getElementById("dossier-joined").textContent = SGUtils.formatDateSw(member.created_at, true);
 
     document.getElementById("dossier-member-id-input").value = member.member_id || "";

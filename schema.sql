@@ -57,8 +57,9 @@ CREATE TABLE IF NOT EXISTS public.members (
     email TEXT UNIQUE NOT NULL,
     phone TEXT UNIQUE NOT NULL, -- Normalized Tanzania format +255...
     password_hash TEXT NOT NULL, -- Salted SHA-256 hash (sha256$<salt>$<digest>)
-    track TEXT NOT NULL,
-    experience TEXT DEFAULT 'Beginner',
+    track TEXT DEFAULT 'SG Student Community',
+    learning_interest TEXT DEFAULT '',
+    experience TEXT DEFAULT 'Student',
     motivation TEXT DEFAULT '',
     role TEXT NOT NULL DEFAULT 'Applicant', -- Applicant, Member, Instructor, Project Lead, Moderator, Admin, Super Administrator
     status TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, ACTIVE, ON_HOLD, SUSPENDED, INACTIVE, TERMINATED

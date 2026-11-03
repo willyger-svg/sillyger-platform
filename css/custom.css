@@ -1,101 +1,157 @@
-/* SILLYGER (SG) Custom Styling & Cyber Accents */
+/* SILLYGER (SG) Student Community & Governance Design System (v2.0)
+ * Palette: Deep Academic Slate (#0B1120) + Royal Indigo-Blue (#3B82F6 / #4F46E5) + Crisp Emerald (#10B981)
+ */
 
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --sg-bg-dark: #070b13;
-    --sg-panel: #0d1424;
-    --sg-panel-border: rgba(30, 41, 59, 0.8);
-    --sg-cyan: #06b6d4;
-    --sg-cyan-glow: rgba(6, 182, 212, 0.25);
+    --sg-bg-dark: #0b1120;
+    --sg-bg-elevated: #111a2e;
+    --sg-panel: rgba(17, 26, 46, 0.86);
+    --sg-panel-border: rgba(148, 163, 184, 0.14);
+    --sg-primary: #3b82f6;
+    --sg-indigo: #4f46e5;
     --sg-emerald: #10b981;
     --sg-amber: #f59e0b;
-    --sg-purple: #8b5cf6;
 }
 
 body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--sg-bg-dark);
-    color: #e2e8f0;
+    color: #f1f5f9;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 .font-mono-sg {
     font-family: 'Fira Code', monospace;
 }
 
-/* Cyber Grid Background */
+/* Calm, Strong Academic Ambient Background */
 .bg-cyber-grid {
-    background-image: 
-        radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.12) 0%, transparent 65%),
-        radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    background-color: var(--sg-bg-dark);
+    background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(59, 130, 246, 0.16), transparent),
+        radial-gradient(ellipse 60% 45% at 95% 100%, rgba(16, 185, 129, 0.08), transparent),
+        linear-gradient(to right, rgba(148, 163, 184, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(148, 163, 184, 0.025) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 48px 48px, 48px 48px;
 }
 
-/* Glassmorphism Card */
+/* Crisp Elevated Surface Card */
 .sg-glass {
-    background: rgba(13, 20, 36, 0.75);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: var(--sg-panel);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--sg-panel-border);
+    box-shadow: 0 8px 30px rgba(2, 6, 23, 0.35);
 }
 
 .sg-glass-hover {
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, background-color 0.22s ease;
 }
 
 .sg-glass-hover:hover {
-    background: rgba(17, 26, 48, 0.9);
-    border-color: rgba(6, 182, 212, 0.35);
+    background: rgba(22, 33, 58, 0.95);
+    border-color: rgba(59, 130, 246, 0.42);
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.1);
+    box-shadow: 0 14px 32px -6px rgba(37, 99, 235, 0.18);
+}
+
+/* Unified Action Buttons */
+.btn-sg-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+    color: #ffffff;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 24px -6px rgba(37, 99, 235, 0.45);
+}
+
+.btn-sg-primary:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px -6px rgba(59, 130, 246, 0.55);
+}
+
+.btn-sg-emerald {
+    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    color: #022c22;
+    font-weight: 800;
+    transition: all 0.2s ease;
+    box-shadow: 0 10px 24px -6px rgba(16, 185, 129, 0.4);
+}
+
+.btn-sg-emerald:hover {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+    transform: translateY(-1px);
 }
 
 /* Status Badges */
 .badge-active {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(16, 185, 129, 0.14);
     color: #34d399;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .badge-pending {
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(245, 158, 11, 0.14);
     color: #fbbf24;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
 .badge-hold {
-    background: rgba(139, 92, 246, 0.15);
-    color: #c084fc;
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: rgba(99, 102, 241, 0.16);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.38);
 }
 
 .badge-suspended {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(239, 68, 68, 0.14);
     color: #f87171;
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(239, 68, 68, 0.35);
 }
 
-/* Glow Pulses */
-@keyframes pulse-cyan {
-    0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
-    50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.7); }
+.badge-future {
+    background: rgba(59, 130, 246, 0.14);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.32);
 }
 
-.glow-cyan {
-    animation: pulse-cyan 3s infinite ease-in-out;
+/* Typography Gradients */
+.text-gradient-cyan,
+.text-gradient-brand {
+    background: linear-gradient(135deg, #ffffff 15%, #93c5fd 55%, #6ee7b7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
-/* Sleek Scrollbar */
+/* Form Inputs */
+.sg-input {
+    background: rgba(11, 17, 32, 0.85);
+    border: 1px solid rgba(100, 116, 139, 0.4);
+    color: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.sg-input::placeholder {
+    color: #64748b;
+}
+
+.sg-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+    background: rgba(11, 17, 32, 0.98);
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
     width: 7px;
     height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #080c16;
+    background: #080d1a;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -104,52 +160,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #06b6d4;
-}
-
-/* Typography Enhancements */
-.text-gradient-cyan {
-    background: linear-gradient(135deg, #ffffff 20%, #22d3ee 80%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-gold {
-    background: linear-gradient(135deg, #fef08a 0%, #f59e0b 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-/* Input Focus Glow */
-.sg-input {
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid #334155;
-    color: #f8fafc;
-    transition: all 0.2s ease;
-}
-
-.sg-input:focus {
-    outline: none;
-    border-color: #06b6d4;
-    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
-    background: rgba(15, 23, 42, 1);
-}
-
-/* Progress bar cyber animation */
-@keyframes cyber-scan {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-
-.cyber-scan-line {
-    position: relative;
-    overflow: hidden;
-}
-
-.cyber-scan-line::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.5), transparent);
-    animation: cyber-scan 2.5s infinite;
+    background: #3b82f6;
 }

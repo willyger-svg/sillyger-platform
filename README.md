@@ -21,22 +21,27 @@ Mfumo rasmi wa kidijitali wa uanachama, mtaala na utawala wa jumuiya ya **SILLYG
 
 ```text
 sillyger-platform/
-├── index.html              # Tovuti kuu ya umma (Hero, Dhamira, Vitengo 11, Mtaala 10, Live Stats)
+├── index.html              # Tovuti kuu ya wanafunzi (3-Step Onboarding, Live Stats, Updates za Karibu)
+├── courses.html            # Ukurasa maalum wa Possible Courses (Mada 10 tunazoweza kusoma pamoja)
+├── future-divisions.html   # Ukurasa wa Future Roadmap (Dira ya vitengo 11 vya baadaye)
 ├── constitution.html       # Msomaji wa Katiba v1.4 (Preamble, Art. 1–20, App. A & B, Live Search)
-├── register.html           # Fomu ya Maombi ya Uanachama yenye Katiba, Ethics & PDPA 2022 Gate
-├── member-portal.html      # Member Portal (Login, WhatsApp Gate, Mahudhurio, Ruhusa, Tiketi, Masomo)
+├── register.html           # Usajili rahisi wa mwanafunzi (bila kuchagua taasisi/kitengo) + PDPA Gate
+├── member-portal.html      # Student Portal (WhatsApp Group Gateway, Updates za Karibu, Check-in & Ruhusa)
 ├── admin-portal.html       # Executive Command Center (Queue, RBAC, Matangazo, Fund, Audit, Settings)
 ├── schema.sql              # PostgreSQL Schema & RLS Policies kwa ajili ya Supabase (Idempotent)
-├── netlify.toml            # Usanidi wa ulinzi (Security Headers) na Clean URLs (/katiba, /jiunge, /portal, /admin)
+├── migrations/             # SQL Migrations zinazopandishwa kiotomatiki kwenye Supabase
+├── scripts/
+│   └── db-auto.js          # Injini ya kuunda na kuhariri majedwali ya Supabase kiotomatiki
+├── netlify.toml            # Usanidi wa ulinzi (Security Headers) na Clean URLs
 ├── css/
-│   └── custom.css          # Cyber theme, glassmorphism, animations na monospace typography
+│   └── custom.css          # Academic Slate + Royal Blue/Indigo + Emerald Design System (v2.0)
 ├── js/
-│   ├── config.js           # Mipangilio mikuu, Supabase config, Vitengo 11, Mtaala 10 & SGUtils (XSS protection)
+│   ├── config.js           # Mipangilio mikuu, Supabase config, Possible Courses, Future Vision & SGUtils
 │   ├── store.js            # Injini ya Hifadhi (LocalStorage + Supabase Sync + Salted SHA-256 Hashing)
 │   ├── constitution-data.js# Nakala kamili ya Katiba v1.4 kwa ajili ya utafutaji wa papo hapo
-│   ├── main.js             # UI scripts za tovuti kuu na live platform telemetry
-│   ├── register.js         # Uthibitishaji wa usajili (+255) na ulinzi wa kikao cha Admin
-│   ├── member-portal.js    # Logic ya Member Dashboard, WhatsApp Gate, Mahudhurio, Ruhusa & Tiketi
+│   ├── main.js             # UI controller ya index.html, courses.html na future-divisions.html
+│   ├── register.js         # Usajili wa mwanafunzi (+255 WhatsApp validation) na ulinzi wa kikao cha Admin
+│   ├── member-portal.js    # Logic ya Student Dashboard, WhatsApp Gate, Updates, Mahudhurio & Ruhusa
 │   └── admin-portal.js     # Logic ya Super Admin Command Center, RBAC, Fund Ledger & Backups
 └── README.md               # Mwongozo kamili wa mradi, Database na Hosting
 ```

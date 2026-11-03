@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SILLYGER (SG) — Digital Membership & Governance Platform</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306b6d4'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='28' fill='%23020617'%3ESG%3C/text%3E%3C/svg%3E">
-    <!-- Tailwind CSS CDN -->
+    <title>SILLYGER (SG) — Jumuiya ya Wanafunzi wa Teknolojia</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='28' fill='%23ffffff'%3ESG%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,10 +12,10 @@
             theme: {
                 extend: {
                     colors: {
-                        sgbg: '#070b13',
-                        sgcard: '#0d1424',
-                        sgcyan: '#06b6d4',
-                        sgdark: '#020617'
+                        sgbg: '#0b1120',
+                        sgcard: '#111a2e',
+                        sgblue: '#3b82f6',
+                        sgdark: '#060a14'
                     }
                 }
             }
@@ -24,349 +23,282 @@
     </script>
     <link rel="stylesheet" href="css/custom.css">
 </head>
-<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
-    <!-- Top Announcement Bar -->
-    <div class="border-b border-cyan-900/40 bg-cyan-950/20 px-4 py-2 text-center text-xs text-cyan-300/90 font-mono-sg flex items-center justify-center gap-2">
-        <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-        <span>SILLYGER Constitution Version 1.4 & Digital Governance Portal Active</span>
-        <span class="hidden md:inline text-slate-500">|</span>
-        <a href="constitution.html" class="underline hover:text-white transition hidden md:inline">Soma Katiba Rasmi &rarr;</a>
-    </div>
-
-    <!-- Main Navigation Bar -->
+    <!-- Unified Top Navigation -->
     <header class="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            
-            <!-- Brand Logo -->
+
             <a href="index.html" class="flex items-center gap-3 group">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-mono-sg font-extrabold text-slate-950 text-xl shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-extrabold text-white text-lg shadow-lg shadow-blue-600/25 group-hover:scale-105 transition-transform">
                     SG
                 </div>
                 <div>
-                    <span class="text-xl font-extrabold tracking-wider text-white block leading-none">SILLYGER</span>
-                    <span class="text-[10px] font-mono-sg text-cyan-400 block tracking-widest uppercase">Learn. Build. Own.</span>
+                    <span class="text-lg sm:text-xl font-extrabold tracking-wide text-white block leading-none">SILLYGER</span>
+                    <span class="text-[10px] font-mono-sg text-blue-400 block tracking-widest uppercase mt-0.5">Student Tech Community</span>
                 </div>
             </a>
 
-            <!-- Desktop Nav Links -->
             <nav class="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
-                <a href="#vision" class="hover:text-cyan-400 transition">Dhamira</a>
-                <a href="#divisions" class="hover:text-cyan-400 transition">Vitengo (11)</a>
-                <a href="#curriculum" class="hover:text-cyan-400 transition">Mtaala (10)</a>
-                <a href="constitution.html" class="hover:text-cyan-400 transition flex items-center gap-1 text-cyan-300">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                    Katiba v1.4
-                </a>
+                <a href="index.html" class="text-white font-semibold">Nyumbani</a>
+                <a href="courses.html" class="hover:text-blue-400 transition">Possible Courses</a>
+                <a href="future-divisions.html" class="hover:text-blue-400 transition">Future Vision</a>
+                <a href="constitution.html" class="hover:text-blue-400 transition">Katiba</a>
             </nav>
 
-            <!-- Dynamic Header Session Slot -->
-            <div id="header-session-slot" class="flex items-center gap-3">
-                <!-- Injected via main.js -->
+            <div class="flex items-center gap-2">
+                <div id="header-session-slot" class="hidden sm:flex items-center gap-2.5"></div>
+                <button id="mobile-menu-btn" class="md:hidden text-slate-300 hover:text-white p-2" aria-label="Fungua menyu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
             </div>
-
-            <!-- Mobile Hamburger Button -->
-            <button id="mobile-menu-btn" class="md:hidden text-slate-400 hover:text-white p-2">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-            </button>
         </div>
 
-        <!-- Mobile Drawer -->
-        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800 bg-sgcard/95 px-4 pt-3 pb-5 space-y-3">
-            <a href="#vision" class="block text-slate-300 hover:text-cyan-400 py-1">Dhamira & Vision</a>
-            <a href="#divisions" class="block text-slate-300 hover:text-cyan-400 py-1">Vitengo vya Utafiti (11)</a>
-            <a href="#curriculum" class="block text-slate-300 hover:text-cyan-400 py-1">Mtaala wa Mafunzo (10)</a>
-            <a href="constitution.html" class="block text-cyan-400 font-semibold py-1">Soma Katiba v1.4</a>
-            <a href="member-portal.html" class="block text-slate-300 hover:text-cyan-400 py-1">Member Portal Login</a>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800 bg-sgcard/95 px-4 pt-3 pb-5 space-y-2.5 text-sm">
+            <a href="index.html" class="block text-white font-semibold py-1.5">Nyumbani</a>
+            <a href="courses.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Possible Courses</a>
+            <a href="future-divisions.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Future Vision (Vitengo vya Baadaye)</a>
+            <a href="constitution.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Katiba v1.4</a>
+            <a href="member-portal.html" class="block text-blue-400 font-semibold py-1.5">Ingia Student Portal</a>
             <div class="pt-2">
-                <a href="register.html" class="block text-center w-full py-2.5 rounded-lg bg-cyan-500 text-slate-950 font-bold">
-                    Jiunge na SILLYGER
+                <a href="register.html" class="block text-center w-full py-2.5 rounded-xl btn-sg-primary text-sm">
+                    Jiunge Kupata WhatsApp Access
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- HERO SECTION -->
     <main class="flex-grow">
-        <section class="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-                
-                <!-- Tag badge -->
-                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-950/40 text-cyan-300 text-xs font-mono-sg mb-6 shadow-sm">
-                    <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-                    <span>SILLYGER COMMUNITY CHARTER // VERSION 1.4</span>
+
+        <!-- ============================================================== -->
+        <!-- 1. HERO: STUDENT-FIRST UNIFIED COMMUNITY & WHATSAPP GATEWAY    -->
+        <!-- ============================================================== -->
+        <section class="relative pt-14 pb-16 md:pt-20 md:pb-24">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+                <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full badge-future text-xs font-mono-sg font-semibold mb-6">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>JUMUIYA MOJA YA WANAFUNZI · TUNAJIFUNZA KWA PAMOJA</span>
                 </div>
 
-                <!-- Main Headline -->
-                <h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
-                    Hatupo Hapa Kutumia Teknolojia Tu.<br class="hidden sm:inline">
-                    <span class="text-gradient-cyan">Tupo Hapa Kuitengeneza na Kuimiliki.</span>
+                <h1 class="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight mb-6">
+                    Karibu <span class="text-gradient-brand">SILLYGER</span> — Mfumo Rasmi wa Kujiunga na Kujifunza Pamoja.
                 </h1>
 
-                <!-- Official Motto -->
-                <div class="max-w-3xl mx-auto mb-8">
-                    <p class="font-mono-sg text-base sm:text-lg md:text-xl text-cyan-400 font-semibold mb-3">
-                        "Learn Together. Build Together. Own the Future Together."
-                    </p>
-                    <p class="text-base sm:text-lg text-slate-400 leading-relaxed">
-                        SILLYGER ni taasisi ya kiteknolojia inayolenga kujenga jamii yenye uwezo wa kuelewa misingi ya teknolojia kutoka chini (low-level logic na chips), kufanya tafiti, kubuni mifumo ya kiprogramu, na kumiliki mali za kidijitali kwa ushirika wa wanachama.
-                    </p>
-                </div>
+                <p class="text-base sm:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed mb-4">
+                    Kwa sasa sote ni wanafunzi tunaosoma na kujenga misingi ya teknolojia kwa pamoja bila kugawanywa kwenye taasisi au vitengo. Jiunge hapa ili upate <strong>SG Member ID</strong>, ufunguliwe <strong>WhatsApp Group Rasmi</strong>, na upokee ratiba na updates za karibu.
+                </p>
 
-                <!-- Call to Actions -->
+                <p class="font-mono-sg text-xs sm:text-sm text-blue-400 font-semibold mb-10">
+                    "Learn Together. Build Together. Own the Future Together."
+                </p>
+
+                <!-- Primary Actions -->
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
-                    <a href="register.html" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-base transition transform hover:-translate-y-0.5 shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2">
-                        <span>Tuma Maombi ya Uanachama</span>
+                    <a href="register.html" class="w-full sm:w-auto px-8 py-4 rounded-2xl btn-sg-primary text-sm sm:text-base flex items-center justify-center gap-2.5">
+                        <span>Jiunge Sasa (Omba WhatsApp Access)</span>
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </a>
-                    <a href="constitution.html" class="w-full sm:w-auto px-7 py-3.5 rounded-xl sg-glass hover:bg-slate-800 text-slate-200 font-semibold text-base transition border border-slate-700 flex items-center justify-center gap-2">
-                        <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        <span>Soma Katiba v1.4</span>
-                    </a>
-                    <a href="member-portal.html" class="w-full sm:w-auto px-7 py-3.5 rounded-xl sg-glass hover:bg-slate-800 text-cyan-400 font-semibold text-base transition border border-cyan-800/60 flex items-center justify-center gap-2 font-mono-sg">
-                        <span>Member Portal &rarr;</span>
+                    <a href="member-portal.html" class="w-full sm:w-auto px-7 py-4 rounded-2xl sg-glass hover:border-blue-500/50 text-slate-100 font-semibold text-sm sm:text-base transition flex items-center justify-center gap-2">
+                        <span>Ingia Student Portal</span>
                     </a>
                 </div>
 
-                <!-- Live Platform Statistics -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-6 border-t border-slate-800/80">
-                    <div class="p-4 rounded-xl sg-glass border border-slate-800 text-center">
-                        <div id="stat-total-registered" class="text-2xl md:text-3xl font-extrabold text-white font-mono-sg">...</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-1">Wanachama & Waombaji</div>
+                <!-- Clean 3-Metric Live Telemetry -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto pt-8 border-t border-slate-800/80">
+                    <div class="p-4 rounded-2xl sg-glass text-center">
+                        <div id="stat-total-registered" class="text-2xl sm:text-3xl font-extrabold text-white font-mono-sg">...</div>
+                        <div class="text-xs text-slate-400 font-medium mt-1">Wanafunzi Waliojisajili</div>
                     </div>
-                    <div class="p-4 rounded-xl sg-glass border border-slate-800 text-center">
-                        <div id="stat-active-members" class="text-2xl md:text-3xl font-extrabold text-emerald-400 font-mono-sg">...</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-1">Sillygerians Walioidhinishwa</div>
+                    <div class="p-4 rounded-2xl sg-glass text-center">
+                        <div id="stat-active-members" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono-sg">...</div>
+                        <div class="text-xs text-slate-400 font-medium mt-1">Walioidhinishwa (Active)</div>
                     </div>
-                    <div class="p-4 rounded-xl sg-glass border border-slate-800 text-center">
-                        <div id="stat-pending-review" class="text-2xl md:text-3xl font-extrabold text-amber-400 font-mono-sg">...</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-1">Maombi Yanayosubiri Review</div>
-                    </div>
-                    <div class="p-4 rounded-xl sg-glass border border-slate-800 text-center">
-                        <div id="stat-divisions" class="text-2xl md:text-3xl font-extrabold text-cyan-400 font-mono-sg">11</div>
-                        <div class="text-xs text-slate-400 uppercase tracking-wider font-medium mt-1">Vitengo vya Maendeleo</div>
+                    <div class="p-4 rounded-2xl sg-glass text-center">
+                        <div id="stat-pending-review" class="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono-sg">...</div>
+                        <div class="text-xs text-slate-400 font-medium mt-1">Wanaosubiri Uthibitisho</div>
                     </div>
                 </div>
 
             </div>
         </section>
 
-        <!-- VISION & CORE PILLARS SECTION -->
-        <section id="vision" class="py-16 bg-slate-950/60 border-y border-slate-800/80">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
-                <div class="text-center max-w-3xl mx-auto mb-14">
-                    <span class="text-xs font-mono-sg text-cyan-400 uppercase tracking-widest block mb-2">ARTICLE 2 & 4</span>
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-4">
-                        Misingi Yetu na Falsafa ya Umiliki
-                    </h2>
-                    <p class="text-slate-400 text-sm md:text-base">
-                        SILLYGER inajengwa kwa kanuni kwamba maendeleo halisi ya teknolojia yanahitaji uelewa wa kina na umiliki wa pamoja badala ya ubinafsi.
-                    </p>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <!-- Pillar 1 -->
-                    <div class="sg-glass p-8 rounded-2xl border border-slate-800 relative overflow-hidden group">
-                        <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-6">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2">Elimu ya Kina ya Misingi</h3>
-                        <p class="text-sm text-slate-400 leading-relaxed mb-4">
-                            Hatufundishi kukariri commands au syntax pekee. Tunajenga uelewa wa kuanzia digital circuits, computer architecture, Linux kernels, mitandao na algorithms.
-                        </p>
-                        <span class="text-xs font-mono-sg text-cyan-500">Katiba Art. 2.3 & 8.2</span>
-                    </div>
-
-                    <!-- Pillar 2 -->
-                    <div class="sg-glass p-8 rounded-2xl border border-slate-800 relative overflow-hidden group">
-                        <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 mb-6">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2">Hakuna Mmiliki Binafsi</h3>
-                        <p class="text-sm text-slate-400 leading-relaxed mb-4">
-                            Uongozi ni dhamana ya kuratibu na kulinda jumuiya, si mamlaka ya kumiliki mawazo au kazi za wanachama. Jumuiya ni ya wanachama wote kwa pamoja.
-                        </p>
-                        <span class="text-xs font-mono-sg text-purple-400">Katiba Preamble & Art. 4.4</span>
-                    </div>
-
-                    <!-- Pillar 3 -->
-                    <div class="sg-glass p-8 rounded-2xl border border-slate-800 relative overflow-hidden group">
-                        <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-6">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2">SG Community Fund</h3>
-                        <p class="text-sm text-slate-400 leading-relaxed mb-4">
-                            Mapato ya miradi ya pamoja yanawekezwa kwenye mfuko wa rasilimali: kununua servers, kujenga AI infrastructure, robotics labs na vituo vya data.
-                        </p>
-                        <span class="text-xs font-mono-sg text-emerald-400">Katiba Art. 13 & 13.4</span>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- 11 RESEARCH & DEVELOPMENT DIVISIONS (ARTICLE 3) -->
-        <section id="divisions" class="py-20">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
-                <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
-                    <div>
-                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded bg-cyan-950/60 border border-cyan-800/40 text-cyan-400 text-xs font-mono-sg mb-3">
-                            <span>ARTICLE 3: VITENGO NA MAENEO YA MAENDELEO</span>
-                        </div>
-                        <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-                            Vitengo 11 vya Utafiti na Uhandisi
-                        </h2>
-                        <p class="text-slate-400 text-sm md:text-base mt-2 max-w-2xl">
-                            Maeneo maalum ya kisekta ambapo wanachama hufanya tafiti, majaribio na ujenzi wa mifumo halisi.
-                        </p>
-                    </div>
-                    <div class="mt-4 md:mt-0">
-                        <a href="register.html" class="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold text-sm">
-                            <span>Chagua kitengo unachotaka kujiunga nacho</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Divisions Grid (Populated dynamically via main.js) -->
-                <div id="divisions-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Populated by JS -->
-                </div>
-
-            </div>
-        </section>
-
-        <!-- 10 CURRICULUM LEVELS (ARTICLE 8) -->
-        <section id="curriculum" class="py-20 bg-slate-950/70 border-t border-slate-800">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                    <span class="text-xs font-mono-sg text-cyan-400 uppercase tracking-widest block mb-2">ARTICLE 8: ELIMU NA MTAALA</span>
-                    <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-4">
-                        Mtaala wa Hatua 10 (From Silicon to Innovation)
-                    </h2>
-                    <p class="text-slate-400 text-sm md:text-base">
-                        Mtaala uliopangiliwa kimantiki ili kumwezesha Sillygerian yeyote kuelewa teknolojia kwa kina, kuanzia umeme na logic gates hadi mifumo mikubwa ya AI na usalama.
-                    </p>
-                </div>
-
-                <div class="max-w-4xl mx-auto">
-                    <!-- Timeline Container -->
-                    <div id="curriculum-timeline" class="space-y-2">
-                        <!-- Populated by JS -->
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
-        <!-- CONSTITUTION CALLOUT & GOVERNANCE GATE -->
-        <section class="py-16 bg-gradient-to-b from-slate-950 to-sgbg border-t border-slate-800">
+        <!-- ============================================================== -->
+        <!-- 2. HOW IT WORKS: 3 CLEAN STEPS TO JOIN WHATSAPP GROUP          -->
+        <!-- ============================================================== -->
+        <section id="namna-ya-kujiunga" class="py-16 bg-slate-950/50 border-y border-slate-800/70">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="sg-glass p-8 md:p-12 rounded-3xl border border-cyan-500/30 relative overflow-hidden">
-                    <div class="absolute -right-10 -bottom-10 w-72 h-72 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-                        <div class="md:col-span-2">
-                            <span class="font-mono-sg text-xs text-cyan-400 font-semibold px-2.5 py-1 rounded bg-cyan-950/80 border border-cyan-800 mb-4 inline-block">
-                                DIGITAL GOVERNANCE & PRIVACY
-                            </span>
-                            <h3 class="text-2xl md:text-3xl font-bold text-white mb-3">
-                                Utawala Bora, Maadili na Sheria ya Tanzania (PDPA 2022)
-                            </h3>
-                            <p class="text-slate-300 text-sm md:text-base leading-relaxed mb-4">
-                                Katiba ya SILLYGER (v1.4) inasisitiza kwamba maarifa ya kiteknolojia lazima yatumike kujenga na kulinda (Article 14). Taarifa za wanachama zinalindwa kwa mujibu wa Sheria ya Ulinzi wa Taarifa Binafsi ya Tanzania (PDPA 2022, Article 15).
-                            </p>
-                            <div class="flex flex-wrap gap-3 text-xs font-mono-sg text-slate-400">
-                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-700">✓ PDPA 2022 Compliant</span>
-                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-700">✓ Hakuna Biometrics za Lazima</span>
-                                <span class="px-2.5 py-1 rounded bg-slate-900 border border-slate-700">✓ RBAC & Immutable Audit Logs</span>
-                            </div>
-                        </div>
+                <div class="text-center max-w-2xl mx-auto mb-12">
+                    <span class="text-xs font-mono-sg text-blue-400 uppercase tracking-widest font-bold block mb-2">MPANGILIO WA MFUMO</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white">
+                        Hatua 3 Rahisi za Kuingia Kwenye Jumuiya
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-2">
+                        Mfumo umeboreshwa uwe rahisi na wenye utaratibu mzuri ili kila mwanafunzi anayejiunga atambulike rasmi.
+                    </p>
+                </div>
 
-                        <div class="text-center md:text-right space-y-3">
-                            <a href="constitution.html" class="w-full inline-block px-6 py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold transition text-sm">
-                                Soma Katiba Kamili v1.4 &rarr;
-                            </a>
-                            <a href="register.html" class="w-full inline-block px-6 py-3 rounded-xl border border-slate-700 hover:border-cyan-500 text-slate-300 font-semibold transition text-sm">
-                                Jiunge na Jumuiya
-                            </a>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Step 1 -->
+                    <div class="sg-glass p-7 rounded-2xl space-y-3 relative">
+                        <div class="w-11 h-11 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-400 font-mono-sg font-bold text-base flex items-center justify-center">
+                            01
                         </div>
+                        <h3 class="text-lg font-bold text-white">Jisajili Kama Mwanafunzi</h3>
+                        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            Jaza jina lako kamili, username na namba yako ya WhatsApp bila kulazimika kuchagua kitengo wala taasisi yoyote.
+                        </p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="sg-glass p-7 rounded-2xl space-y-3 relative">
+                        <div class="w-11 h-11 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 font-mono-sg font-bold text-base flex items-center justify-center">
+                            02
+                        </div>
+                        <h3 class="text-lg font-bold text-white">Uidhinishwe & Upewe SG-ID</h3>
+                        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            Uongozi unahakiki ombi lako kwa haraka na kukupa namba yako rasmi ya mwanachama (mfano <span class="font-mono-sg text-blue-300">SG-000002</span>).
+                        </p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="sg-glass p-7 rounded-2xl space-y-3 relative border-emerald-500/30">
+                        <div class="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-mono-sg font-bold text-base flex items-center justify-center">
+                            03
+                        </div>
+                        <h3 class="text-lg font-bold text-white">Ingia WhatsApp Group & Updates</h3>
+                        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                            Ndani ya Student Portal yako utaona kitufe cha kijani cha kujiunga moja kwa moja na <strong>WhatsApp Group</strong> pamoja na matangazo mapya.
+                        </p>
                     </div>
                 </div>
+
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- 3. UPDATES ZA KARIBU (LIVE ANNOUNCEMENTS PREVIEW)              -->
+        <!-- ============================================================== -->
+        <section id="community-updates" class="py-16">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                    <div>
+                        <span class="text-xs font-mono-sg text-emerald-400 uppercase tracking-widest font-bold block mb-1">UPDATES ZA KARIBU</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Matangazo na Taarifa za Jumuiya</h2>
+                        <p class="text-xs sm:text-sm text-slate-400 mt-1">Taarifa rasmi zinazowekwa na uongozi kuhusu masomo ya pamoja na ratiba.</p>
+                    </div>
+                    <a href="member-portal.html" class="text-xs sm:text-sm font-semibold text-blue-400 hover:text-blue-300 transition shrink-0">
+                        Fungua Student Portal &rarr;
+                    </a>
+                </div>
+
+                <div id="home-announcements-feed" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Populated dynamically by js/main.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- 4. EXPLORE PAGES (CLEAN LINKS — NO DUPLICATED LISTS)           -->
+        <!-- ============================================================== -->
+        <section class="py-16 bg-slate-950/60 border-t border-slate-800/80">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+
+                <div class="text-center max-w-2xl mx-auto mb-10">
+                    <span class="text-xs font-mono-sg text-blue-400 uppercase tracking-widest font-bold block mb-2">KURASA MAALUM ZA MFUMO</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Soma Zaidi Kuhusu Mwelekeo Wetu</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Link 1: Possible Courses -->
+                    <a href="courses.html" class="sg-glass sg-glass-hover p-7 rounded-2xl flex flex-col justify-between gap-5 group">
+                        <div class="space-y-2.5">
+                            <span class="px-2.5 py-1 rounded-lg badge-active font-mono-sg text-[10px] font-bold uppercase inline-block">
+                                Masomo ya Pamoja
+                            </span>
+                            <h3 class="text-xl font-bold text-white group-hover:text-blue-300 transition">
+                                Possible Courses (10)
+                            </h3>
+                            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                                Angalia orodha ya mada zinazowezekana tunazoweza kujifunza pamoja kama wanafunzi — kuanzia misingi ya kompyuta, Linux, mitandao hadi cybersecurity.
+                            </p>
+                        </div>
+                        <span class="text-xs font-semibold text-blue-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                            Fungua Possible Courses &rarr;
+                        </span>
+                    </a>
+
+                    <!-- Link 2: Future Divisions -->
+                    <a href="future-divisions.html" class="sg-glass sg-glass-hover p-7 rounded-2xl flex flex-col justify-between gap-5 group">
+                        <div class="space-y-2.5">
+                            <span class="px-2.5 py-1 rounded-lg badge-future font-mono-sg text-[10px] font-bold uppercase inline-block">
+                                Future Roadmap
+                            </span>
+                            <h3 class="text-xl font-bold text-white group-hover:text-blue-300 transition">
+                                Vitengo vya Baadaye (11)
+                            </h3>
+                            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                                Kwa sasa hakuna vitengo vilivyogawanywa. Soma hapa dira yetu ya muda mrefu ya maabara na vitengo vya utafiti tutakavyojenga hapo baadaye.
+                            </p>
+                        </div>
+                        <span class="text-xs font-semibold text-blue-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                            Soma Future Vision &rarr;
+                        </span>
+                    </a>
+
+                    <!-- Link 3: Katiba -->
+                    <a href="constitution.html" class="sg-glass sg-glass-hover p-7 rounded-2xl flex flex-col justify-between gap-5 group">
+                        <div class="space-y-2.5">
+                            <span class="px-2.5 py-1 rounded-lg badge-hold font-mono-sg text-[10px] font-bold uppercase inline-block">
+                                Kanuni & PDPA 2022
+                            </span>
+                            <h3 class="text-xl font-bold text-white group-hover:text-blue-300 transition">
+                                Katiba ya SILLYGER v1.4
+                            </h3>
+                            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                                Mwongozo wa nidhamu, ushirikiano wa wanafunzi, maadili ya cybersecurity na ulinzi wa taarifa binafsi kwa mujibu wa sheria za Tanzania.
+                            </p>
+                        </div>
+                        <span class="text-xs font-semibold text-blue-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                            Soma Katiba Rasmi &rarr;
+                        </span>
+                    </a>
+                </div>
+
             </div>
         </section>
 
     </main>
 
-    <!-- FOOTER -->
-    <footer class="border-t border-slate-800/80 bg-slate-950/90 text-slate-400 text-xs py-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                
-                <div class="space-y-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center font-mono-sg font-black text-slate-950">
-                            SG
-                        </div>
-                        <span class="text-base font-extrabold text-white tracking-wider">SILLYGER</span>
-                    </div>
-                    <p class="text-xs text-slate-400 leading-relaxed">
-                        Taasisi ya kiteknolojia na jumuiya inayojenga wataalamu na wamiliki wa teknolojia.
-                    </p>
-                    <p class="font-mono-sg text-[11px] text-cyan-400 font-semibold">
-                        Learn Together. Build Together. Own the Future Together.
-                    </p>
+    <!-- Clean Unified Footer -->
+    <footer class="border-t border-slate-800/80 bg-slate-950/90 text-slate-400 text-xs py-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white">
+                    SG
                 </div>
-
                 <div>
-                    <h4 class="font-semibold text-white mb-3 uppercase tracking-wider text-[11px]">Mifumo & Portals</h4>
-                    <ul class="space-y-2">
-                        <li><a href="index.html" class="hover:text-cyan-400 transition">Tovuti Rasmi</a></li>
-                        <li><a href="member-portal.html" class="hover:text-cyan-400 transition">SILLYGER Member Portal</a></li>
-                        <li><a href="register.html" class="hover:text-cyan-400 transition">Usajili wa Uanachama</a></li>
-                    </ul>
+                    <span class="text-sm font-extrabold text-white tracking-wide block">SILLYGER Student Community</span>
+                    <span class="text-[11px] text-slate-500">Learn Together. Build Together. Own the Future Together.</span>
                 </div>
-
-                <div>
-                    <h4 class="font-semibold text-white mb-3 uppercase tracking-wider text-[11px]">Nyaraka Rasmi</h4>
-                    <ul class="space-y-2">
-                        <li><a href="constitution.html#preamble" class="hover:text-cyan-400 transition">Katiba: Preamble</a></li>
-                        <li><a href="constitution.html#article-3" class="hover:text-cyan-400 transition">Vitengo 11 vya Utafiti</a></li>
-                        <li><a href="constitution.html#article-8" class="hover:text-cyan-400 transition">Mtaala wa Ngazi 10</a></li>
-                        <li><a href="constitution.html#article-14" class="hover:text-cyan-400 transition">Maadili ya Cybersecurity</a></li>
-                        <li><a href="constitution.html#article-15" class="hover:text-cyan-400 transition">Faragha & PDPA 2022</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-semibold text-white mb-3 uppercase tracking-wider text-[11px]">Uzingatiaji wa Sheria</h4>
-                    <p class="text-slate-400 leading-relaxed mb-3">
-                        SILLYGER inazingatia Sheria ya Tanzania ya Ulinzi wa Taarifa Binafsi (Personal Data Protection Act, 2022).
-                    </p>
-                    <div class="font-mono-sg text-[10px] text-slate-500">
-                        System Version: 1.4 Production<br>
-                        SHA-256 &amp; Supabase Cloud-Ready
-                    </div>
-                </div>
-
             </div>
 
-            <div class="border-t border-slate-900 pt-6 flex flex-col sm:flex-row items-center justify-between text-slate-500 gap-2">
-                <div>
-                    &copy; 2026 SILLYGER (SG). Haki zote zimehifadhiwa kwa mujibu wa Katiba v1.4.
-                </div>
-                <div class="flex items-center gap-4 text-xs font-mono-sg">
-                    <span class="text-cyan-400/80">SG Community Platform</span>
-                </div>
+            <div class="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400">
+                <a href="register.html" class="hover:text-white transition">Jiunge</a>
+                <a href="member-portal.html" class="hover:text-white transition">Student Portal</a>
+                <a href="courses.html" class="hover:text-white transition">Possible Courses</a>
+                <a href="future-divisions.html" class="hover:text-white transition">Future Vision</a>
+                <a href="constitution.html" class="hover:text-white transition">Katiba v1.4</a>
+            </div>
+
+            <div class="text-[11px] text-slate-500 font-mono-sg">
+                &copy; 2026 SILLYGER (SG) · PDPA 2022
             </div>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <!-- Supabase JS Client (Free CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/store.js"></script>

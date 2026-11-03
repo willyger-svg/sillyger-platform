@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usajili wa Uanachama (Membership Application) — SILLYGER (SG)</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306b6d4'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='28' fill='%23020617'%3ESG%3C/text%3E%3C/svg%3E">
-    <!-- Tailwind CSS CDN -->
+    <title>Jiunge na SILLYGER — Usajili wa Mwanafunzi & WhatsApp Access</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='28' fill='%23ffffff'%3ESG%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,10 +12,10 @@
             theme: {
                 extend: {
                     colors: {
-                        sgbg: '#070b13',
-                        sgcard: '#0d1424',
-                        sgcyan: '#06b6d4',
-                        sgdark: '#020617'
+                        sgbg: '#0b1120',
+                        sgcard: '#111a2e',
+                        sgblue: '#3b82f6',
+                        sgdark: '#060a14'
                     }
                 }
             }
@@ -24,248 +23,226 @@
     </script>
     <link rel="stylesheet" href="css/custom.css">
 </head>
-<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
-    <!-- Header Navigation -->
+    <!-- Unified Top Navigation -->
     <header class="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-2 group">
-                <div class="w-9 h-9 rounded-xl bg-cyan-500 flex items-center justify-center font-mono-sg font-bold text-slate-950 text-base group-hover:scale-105 transition">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-extrabold text-white text-base shadow-lg shadow-blue-600/25 group-hover:scale-105 transition">
                     SG
                 </div>
-                <div class="flex items-baseline gap-2">
-                    <span class="font-extrabold text-white text-lg tracking-wider">SILLYGER</span>
-                    <span class="text-xs font-mono-sg text-cyan-400 hidden sm:inline">// REGISTRATION GATE</span>
+                <div>
+                    <span class="font-extrabold text-white text-lg tracking-wide block leading-none">SILLYGER</span>
+                    <span class="text-[10px] font-mono-sg text-blue-400 hidden sm:block uppercase tracking-widest mt-0.5">Usajili wa Mwanafunzi</span>
                 </div>
             </a>
 
-            <div class="flex items-center gap-3">
-                <a href="constitution.html" class="text-xs text-slate-300 hover:text-cyan-400 transition flex items-center gap-1">
-                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                    <span>Soma Katiba v1.4</span>
+            <div class="flex items-center gap-4 text-xs sm:text-sm">
+                <a href="courses.html" class="text-slate-300 hover:text-blue-400 transition hidden sm:inline">Possible Courses</a>
+                <a href="constitution.html" class="text-slate-300 hover:text-blue-400 transition">Katiba</a>
+                <a href="member-portal.html" class="px-3.5 py-1.5 rounded-xl border border-blue-500/40 bg-blue-950/30 text-blue-300 hover:text-white font-semibold transition">
+                    Ingia Portal
                 </a>
-                <span class="text-slate-600">|</span>
-                <a href="member-portal.html" class="text-xs font-semibold text-cyan-400 hover:underline">Ingia Portal</a>
             </div>
         </div>
     </header>
 
-    <main class="flex-grow py-12 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-3xl mx-auto">
-            
-            <!-- Success Card (Hidden by default, shown by register.js on successful submission) -->
+    <main class="flex-grow py-10 sm:py-14 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto">
+
+            <!-- Success Card (Shown by register.js after submission) -->
             <div id="reg-success-card" class="hidden"></div>
 
             <!-- Registration Form Card -->
-            <div id="reg-form-card" class="sg-glass p-6 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl relative">
-                
-                <div class="text-center mb-8">
-                    <span class="font-mono-sg text-xs font-bold text-cyan-400 uppercase tracking-widest px-3 py-1 rounded bg-cyan-950/70 border border-cyan-800 inline-block mb-3">
-                        KATIBA ARTICLE 5 & 15: MAOMBI YA UANACHAMA
+            <div id="reg-form-card" class="sg-glass p-6 sm:p-10 rounded-3xl shadow-2xl">
+
+                <div class="text-center mb-8 space-y-2.5">
+                    <span class="inline-block font-mono-sg text-[11px] font-bold badge-future uppercase tracking-wider px-3 py-1 rounded-full">
+                        JUMUIYA MOJA YA WANAFUNZI · HAKUNA KUCHAGUA TAASISI
                     </span>
                     <h1 class="text-2xl sm:text-3xl font-extrabold text-white">
-                        Jiunge na SG Community
+                        Jiunge na SILLYGER Student Community
                     </h1>
-                    <p class="text-xs sm:text-sm text-slate-400 mt-2 max-w-lg mx-auto">
-                        Jaza fomu hii kwa uadilifu. Baada ya maombi yako kuidhinishwa na utawala, utapewa <strong>Unique Member ID (SG-xxxxxx)</strong> na kiungo cha siri cha WhatsApp Group kitafunguliwa.
+                    <p class="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed">
+                        Tunajifunza teknolojia wote kwa pamoja. Jaza taarifa zako hapa ili uidhinishwe, upewe <strong>SG-ID</strong> na ufunguliwe kiungo cha <strong>WhatsApp Group Rasmi</strong>.
                     </p>
                 </div>
 
                 <!-- Error Container -->
-                <div id="form-error" class="hidden mb-6 p-4 rounded-xl bg-red-950/40 border border-red-500/50 text-red-200 text-xs md:text-sm font-medium flex items-center gap-3">
-                    <!-- Injected by JS -->
-                </div>
+                <div id="form-error" class="hidden mb-6 p-4 rounded-xl bg-red-950/40 border border-red-500/50 text-red-200 text-xs sm:text-sm font-medium"></div>
 
                 <form id="sg-register-form" class="space-y-6">
-                    
-                    <!-- GATE SECTION: CONSTITUTION & PDPA 2022 AGREEMENT -->
-                    <div class="p-5 rounded-2xl bg-slate-950/80 border border-cyan-500/30 space-y-4">
-                        <div class="flex items-center gap-2 pb-2 border-b border-slate-800">
-                            <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                            <span class="text-xs font-mono-sg font-bold uppercase tracking-wider text-cyan-300">
-                                Masharti ya Lazima (Registration Gate)
-                            </span>
-                        </div>
 
-                        <!-- Checkbox 1: Constitution v1.4 -->
-                        <label class="flex items-start gap-3 cursor-pointer group">
-                            <input type="checkbox" id="agree-constitution" class="mt-1 rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-cyan-500 h-4 w-4" required>
-                            <span class="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
-                                <strong class="text-white">Nimesoma na kukubali Katiba ya SILLYGER v1.4</strong> (Articles 1-20), ikieleza kuwa taasisi inajengwa kwa ushirika, hakuna mmiliki binafsi, na nitashiriki kwa nia safi ya kujifunza na kujenga.
-                            </span>
-                        </label>
+                    <!-- 1. TAARIFA ZA MWANAFUNZI -->
+                    <div class="space-y-4">
+                        <h2 class="text-xs font-mono-sg font-bold uppercase tracking-wider text-blue-400 pb-1.5 border-b border-slate-800">
+                            1. Taarifa za Mwanafunzi
+                        </h2>
 
-                        <!-- Checkbox 2: Cybersecurity Ethics (Article 14) -->
-                        <label class="flex items-start gap-3 cursor-pointer group">
-                            <input type="checkbox" id="agree-ethics" class="mt-1 rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-cyan-500 h-4 w-4" required>
-                            <span class="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
-                                <strong class="text-white">Maadili ya Cybersecurity (Article 14):</strong> Ninaahidi kutofanya shambulio lolote haramu (hacking, malware, data theft, au credential hijacking). Mafunzo yote ya cybersecurity yatafanyika kwenye mazingira yaliyoidhinishwa tu (authorized labs/CTFs).
-                            </span>
-                        </label>
-
-                        <!-- Checkbox 3: Tanzania PDPA 2022 Privacy Rules (Article 15) -->
-                        <label class="flex items-start gap-3 cursor-pointer group">
-                            <input type="checkbox" id="agree-pdpa" class="mt-1 rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-cyan-500 h-4 w-4" required>
-                            <span class="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
-                                <strong class="text-white">Faragha & Tanzania PDPA 2022 (Article 15):</strong> Ninaridhia taasisi kuchakata taarifa zangu kwa madhumuni ya uanachama. Nafahamu haki yangu ya kuomba marekebisho, kulindwa kwa data zangu, na kwamba passwords zangu zinalindwa bila kuonekana kwa admins.
-                            </span>
-                        </label>
-                    </div>
-
-                    <!-- STEP 2: PERSONAL IDENTITY -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-name">
-                                Jina Kamili (Full Name) <span class="text-red-400">*</span>
-                            </label>
-                            <input 
-                                type="text" 
-                                id="reg-name" 
-                                class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
-                                placeholder="mf. Jina Lako Kamili"
-                                required
-                            >
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-username">
-                                Jina la Mtumiaji (Username) <span class="text-red-400">*</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-2.5 text-xs text-slate-500 font-mono-sg">@</span>
-                                <input 
-                                    type="text" 
-                                    id="reg-username" 
-                                    class="w-full sg-input pl-8 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono-sg"
-                                    placeholder="jina_la_mtumiaji"
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-name">
+                                    Jina Kamili (Full Name) <span class="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="reg-name"
+                                    class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
+                                    placeholder="mf. Jina Lako Kamili"
                                     required
                                 >
                             </div>
-                        </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-email">
-                                Barua Pepe (Email Address) <span class="text-red-400">*</span>
-                            </label>
-                            <input 
-                                type="email" 
-                                id="reg-email" 
-                                class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
-                                placeholder="barua-pepe-yako@gmail.com"
-                                required
-                            >
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-phone">
-                                Namba ya WhatsApp (Tanzania) <span class="text-red-400">*</span>
-                            </label>
-                            <input 
-                                type="text" 
-                                id="reg-phone" 
-                                class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono-sg"
-                                placeholder="07XXXXXXXX au +255..."
-                                required
-                            >
-                            <div id="phone-preview" class="text-[11px] font-mono-sg text-slate-500 mt-1">
-                                Format: +255XXXXXXXXX
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-username">
+                                    Username <span class="text-red-400">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-xs text-slate-500 font-mono-sg">@</span>
+                                    <input
+                                        type="text"
+                                        id="reg-username"
+                                        class="w-full sg-input pl-8 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono-sg"
+                                        placeholder="jina_lako"
+                                        required
+                                    >
+                                </div>
                             </div>
-                        </div>
 
-                    </div>
-
-                    <!-- STEP 3: SECURITY CREDENTIALS -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-password">
-                                Nenosiri (Password) <span class="text-red-400">*</span>
-                            </label>
-                            <div class="relative">
-                                <input 
-                                    type="password" 
-                                    id="reg-password" 
-                                    class="w-full sg-input pr-10 pl-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
-                                    placeholder="Angalau herufi 6"
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-email">
+                                    Barua Pepe (Email) <span class="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="reg-email"
+                                    class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
+                                    placeholder="mfano@gmail.com"
                                     required
                                 >
-                                <button type="button" onclick="togglePassword('reg-password', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-white">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                </button>
                             </div>
-                        </div>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-confirm-password">
-                                Rudia Nenosiri (Confirm) <span class="text-red-400">*</span>
-                            </label>
-                            <div class="relative">
-                                <input 
-                                    type="password" 
-                                    id="reg-confirm-password" 
-                                    class="w-full sg-input pr-10 pl-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
-                                    placeholder="Thibitisha nenosiri"
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-phone">
+                                    Namba ya WhatsApp (Tanzania) <span class="text-red-400">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="reg-phone"
+                                    class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-mono-sg"
+                                    placeholder="07XXXXXXXX au +255..."
                                     required
                                 >
-                                <button type="button" onclick="togglePassword('reg-confirm-password', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-white">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                </button>
+                                <div id="phone-preview" class="text-[11px] font-mono-sg text-slate-500 mt-1">
+                                    Format: +255XXXXXXXXX
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- STEP 4: TRACK & ASPIRATION -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-track">
-                                Kitengo au Mtaala wa Kuanzia <span class="text-red-400">*</span>
-                            </label>
-                            <select id="reg-track" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm" required>
-                                <!-- Populated dynamically by register.js -->
-                            </select>
-                        </div>
+                    <!-- 2. NENOSIRI LA AKAUNTI -->
+                    <div class="space-y-4">
+                        <h2 class="text-xs font-mono-sg font-bold uppercase tracking-wider text-blue-400 pb-1.5 border-b border-slate-800">
+                            2. Nenosiri la Kuingia Student Portal
+                        </h2>
 
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-experience">
-                                Kiwango Chako cha Uzoefu wa Awali
-                            </label>
-                            <select id="reg-experience" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm">
-                                <option value="Beginner">Beginner (Sina uzoefu, nina nia kubwa ya kujifunza)</option>
-                                <option value="Intermediate">Intermediate (Ninajua misingi ya kodi/elektroniki)</option>
-                                <option value="Advanced">Advanced (Nina uwezo wa kutengeneza mifumo kamili)</option>
-                                <option value="Researcher">Researcher / Engineer (Mtafiti au mhandisi mzoefu)</option>
-                            </select>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-password">
+                                    Nenosiri (Password) <span class="text-red-400">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input
+                                        type="password"
+                                        id="reg-password"
+                                        class="w-full sg-input pr-10 pl-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
+                                        placeholder="Angalau herufi 6"
+                                        required
+                                    >
+                                    <button type="button" onclick="togglePassword('reg-password', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-white" aria-label="Onyesha nenosiri">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-confirm-password">
+                                    Rudia Nenosiri <span class="text-red-400">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input
+                                        type="password"
+                                        id="reg-confirm-password"
+                                        class="w-full sg-input pr-10 pl-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
+                                        placeholder="Thibitisha nenosiri"
+                                        required
+                                    >
+                                    <button type="button" onclick="togglePassword('reg-confirm-password', this)" class="absolute right-3 top-2.5 text-slate-400 hover:text-white" aria-label="Onyesha nenosiri">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    <!-- 3. MAELEZO MAFUPI (HIARI) -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="reg-motivation">
-                            Nini Kinakusukuma Kujiunga na SILLYGER? (Hiari lakini inasaidia mapitio)
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="reg-motivation">
+                            Unapenda kujifunza nini zaidi au una ujumbe mfupi? <span class="text-slate-500 font-normal">(Hiari)</span>
                         </label>
-                        <textarea 
-                            id="reg-motivation" 
-                            rows="3" 
+                        <textarea
+                            id="reg-motivation"
+                            rows="2"
                             class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs sm:text-sm"
-                            placeholder="Eleza kwa ufupi nia yako, miradi unayotamani kufanya au changamoto ungependa kutatua..."
+                            placeholder="mf. Napenda kujifunza programming, Linux na mitandao pamoja na wenzangu..."
                         ></textarea>
                     </div>
 
-                    <!-- SUBMIT BUTTON -->
-                    <div class="pt-4 border-t border-slate-800">
-                        <button 
-                            type="submit" 
-                            class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm transition shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2"
-                        >
-                            <span>Wasilisha Maombi ya Uanachama (Register)</span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </button>
+                    <!-- 4. KANUNI ZA JUMUIYA & PDPA 2022 -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-slate-950/75 border border-slate-800 space-y-3.5">
+                        <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
+                            <span class="text-xs font-mono-sg font-bold uppercase tracking-wider text-blue-300">
+                                3. Kanuni za Jumuiya ya Wanafunzi
+                            </span>
+                            <a href="constitution.html" target="_blank" class="text-[11px] text-blue-400 hover:underline">Soma Katiba &rarr;</a>
+                        </div>
+
+                        <label class="flex items-start gap-3 cursor-pointer group">
+                            <input type="checkbox" id="agree-constitution" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500 h-4 w-4" required>
+                            <span class="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
+                                <strong class="text-white">Ushirikiano & Katiba v1.4:</strong> Nakubali kushiriki kwa nidhamu na heshima kama mwanafunzi mwenzangu katika jumuiya ya SILLYGER.
+                            </span>
+                        </label>
+
+                        <label class="flex items-start gap-3 cursor-pointer group">
+                            <input type="checkbox" id="agree-ethics" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500 h-4 w-4" required>
+                            <span class="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
+                                <strong class="text-white">Maadili ya Teknolojia (Art. 14):</strong> Ninaahidi kutumia ujuzi tutakaojifunza kujenga na kulinda, na si kufanya udukuzi haramu.
+                            </span>
+                        </label>
+
+                        <label class="flex items-start gap-3 cursor-pointer group">
+                            <input type="checkbox" id="agree-pdpa" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500 h-4 w-4" required>
+                            <span class="text-xs text-slate-300 leading-relaxed group-hover:text-white transition">
+                                <strong class="text-white">Faragha & Tanzania PDPA 2022 (Art. 15):</strong> Ninaridhia taarifa zangu za uanachama kuhifadhiwa kwa usalama kwa ajili ya utambuzi wa jumuiya.
+                            </span>
+                        </label>
                     </div>
 
-                    <!-- Already have account link -->
+                    <!-- SUBMIT BUTTON -->
+                    <button
+                        type="submit"
+                        class="w-full py-4 rounded-2xl btn-sg-primary text-sm flex items-center justify-center gap-2"
+                    >
+                        <span>Jiunge na SILLYGER & Omba WhatsApp Access</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+
                     <div class="text-center text-xs text-slate-400">
-                        Tayari umeshajisajili au una akaunti? 
-                        <a href="member-portal.html" class="text-cyan-400 hover:underline font-semibold ml-1">
-                            Ingia kwenye Member Portal &rarr;
+                        Tayari una akaunti?
+                        <a href="member-portal.html" class="text-blue-400 hover:underline font-semibold ml-1">
+                            Ingia kwenye Student Portal &rarr;
                         </a>
                     </div>
 
@@ -276,13 +253,10 @@
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="border-t border-slate-800/80 bg-slate-950/80 text-center py-6 text-xs text-slate-500">
-        <p>&copy; 2026 SILLYGER (SG) — Digital Membership Governance v1.4</p>
+        <p>&copy; 2026 SILLYGER (SG) Student Community · PDPA 2022</p>
     </footer>
 
-    <!-- Scripts -->
-    <!-- Supabase JS Client (Free CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config.js"></script>
     <script src="js/store.js"></script>

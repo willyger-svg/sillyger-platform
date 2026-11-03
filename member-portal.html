@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SILLYGER Member Portal — Karibu Nyumbani</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306b6d4'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='28' fill='%23020617'%3ESG%3C/text%3E%3C/svg%3E">
+    <title>SILLYGER Student Portal — WhatsApp Access & Updates</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='monospace' font-weight='900' font-size='28' fill='%23ffffff'%3ESG%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,10 +12,10 @@
             theme: {
                 extend: {
                     colors: {
-                        sgbg: '#070b13',
-                        sgcard: '#0d1424',
-                        sgcyan: '#06b6d4',
-                        sgdark: '#020617'
+                        sgbg: '#0b1120',
+                        sgcard: '#111a2e',
+                        sgblue: '#3b82f6',
+                        sgdark: '#060a14'
                     }
                 }
             }
@@ -23,27 +23,29 @@
     </script>
     <link rel="stylesheet" href="css/custom.css">
 </head>
-<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-cyan-500 selection:text-slate-950">
+<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
     <!-- Top Header -->
     <header class="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-2 group">
-                <div class="w-9 h-9 rounded-xl bg-cyan-500 flex items-center justify-center font-mono-sg font-bold text-slate-950 text-base group-hover:scale-105 transition">SG</div>
+            <a href="index.html" class="flex items-center gap-3 group">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-extrabold text-white text-base shadow-lg shadow-blue-600/25 group-hover:scale-105 transition">SG</div>
                 <div>
-                    <span class="font-extrabold text-white text-lg tracking-wider block leading-none">SILLYGER</span>
-                    <span class="text-[10px] font-mono-sg text-cyan-400 hidden sm:block uppercase tracking-widest">Member Portal v1.4</span>
+                    <span class="font-extrabold text-white text-lg tracking-wide block leading-none">SILLYGER</span>
+                    <span class="text-[10px] font-mono-sg text-blue-400 hidden sm:block uppercase tracking-widest mt-0.5">Student Portal</span>
                 </div>
             </a>
+
             <div class="flex items-center gap-2.5">
+                <a href="courses.html" class="text-xs font-medium text-slate-300 hover:text-blue-400 transition hidden md:inline mr-2">Possible Courses</a>
                 <div id="admin-link-slot"></div>
                 <button onclick="openModal('modal-change-password')" id="btn-security-header"
-                    class="hidden text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-950/30 text-slate-300 hover:text-cyan-300 transition items-center gap-1.5">
+                    class="hidden text-xs px-3 py-1.5 rounded-xl border border-slate-700 hover:border-blue-500/50 hover:bg-blue-950/30 text-slate-300 hover:text-blue-300 transition items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                     <span class="hidden sm:inline">Nenosiri</span>
                 </button>
                 <button onclick="handleMemberLogout()" id="btn-logout-header"
-                    class="hidden text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-red-500/50 hover:bg-red-950/30 text-slate-400 hover:text-red-400 transition items-center gap-1.5">
+                    class="hidden text-xs px-3 py-1.5 rounded-xl border border-slate-700 hover:border-red-500/50 hover:bg-red-950/30 text-slate-400 hover:text-red-400 transition items-center gap-1.5">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     <span>Ondoka</span>
                 </button>
@@ -51,7 +53,7 @@
         </div>
     </header>
 
-    <main class="flex-grow py-8 px-4 sm:px-6 max-w-6xl mx-auto w-full">
+    <main class="flex-grow py-8 px-4 sm:px-6 max-w-5xl mx-auto w-full">
 
         <!-- Optional Redirect Alert Banner -->
         <div id="portal-url-alert" class="hidden max-w-2xl mx-auto mb-6 p-4 rounded-2xl border border-amber-500/40 bg-amber-950/20 text-amber-200 text-xs flex items-center justify-between gap-3"></div>
@@ -60,206 +62,193 @@
         <!-- VIEW 1: LOGIN                                                   -->
         <!-- ============================================================== -->
         <div id="login-view" class="hidden max-w-md mx-auto py-8">
-            <div class="sg-glass p-8 sm:p-10 rounded-3xl border border-slate-800 shadow-2xl">
+            <div class="sg-glass p-8 sm:p-10 rounded-3xl shadow-2xl">
 
                 <div class="text-center mb-8">
-                    <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 mx-auto flex items-center justify-center mb-4">
+                    <div class="w-14 h-14 rounded-2xl bg-blue-600/15 border border-blue-500/40 text-blue-400 mx-auto flex items-center justify-center mb-4">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                     </div>
-                    <h1 class="text-2xl font-extrabold text-white">Karibu SILLYGER</h1>
-                    <p class="text-xs text-slate-400 mt-1">Ingia kupitia Email, Username, SG-ID au namba ya WhatsApp</p>
+                    <h1 class="text-2xl font-extrabold text-white">Ingia Student Portal</h1>
+                    <p class="text-xs text-slate-400 mt-1">Tumia Email, Username, SG-ID au namba yako ya WhatsApp</p>
                 </div>
 
                 <div id="login-error" class="hidden mb-5 p-4 rounded-xl bg-red-950/40 border border-red-500/50 text-red-200 text-xs leading-relaxed"></div>
 
                 <form id="member-login-form" class="space-y-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1" for="login-credential">Email / Username / Simu</label>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1.5" for="login-credential">Email / Username / WhatsApp</label>
                         <input type="text" id="login-credential"
                             class="w-full sg-input px-3.5 py-3 rounded-xl text-sm font-mono-sg"
                             placeholder="Email, Username au 07XXXXXXXX" required>
                     </div>
                     <div>
-                        <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center justify-between mb-1.5">
                             <label class="block text-xs font-semibold text-slate-300" for="login-password">Nenosiri (Password)</label>
-                            <button type="button" onclick="showForgotPasswordNotice()" class="text-[11px] text-cyan-400 hover:underline">Umesahau?</button>
+                            <button type="button" onclick="showForgotPasswordNotice()" class="text-[11px] text-blue-400 hover:underline">Umesahau?</button>
                         </div>
                         <div class="relative">
                             <input type="password" id="login-password"
                                 class="w-full sg-input pr-10 pl-3.5 py-3 rounded-xl text-sm"
                                 placeholder="Nenosiri lako" required>
-                            <button type="button" onclick="togglePortalPassword('login-password', this)" class="absolute right-3 top-3 text-slate-400 hover:text-white">
+                            <button type="button" onclick="togglePortalPassword('login-password', this)" class="absolute right-3 top-3 text-slate-400 hover:text-white" aria-label="Onyesha nenosiri">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             </button>
                         </div>
                     </div>
                     <button type="submit"
-                        class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-extrabold text-sm transition shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
-                        <span>Ingia Sasa</span>
+                        class="w-full py-3.5 rounded-2xl btn-sg-primary text-sm flex items-center justify-center gap-2">
+                        <span>Ingia Kwenye Portal</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </form>
 
-                <div id="forgot-password-box" class="hidden mt-4 p-3.5 rounded-xl bg-slate-950/80 border border-cyan-800/50 text-xs text-slate-300 leading-relaxed">
-                    Kwa usalama wa akaunti yako (Katiba Art. 6.13), manenosiri yamehifadhiwa kwa mfumo wa <strong>SHA-256 Hash</strong>. Ikiwa umesahau nenosiri lako, tafadhali wasiliana na Msimamizi wa Uanachama (Membership Admin) kwa uthibitisho na kuwekewa nenosiri jipya.
+                <div id="forgot-password-box" class="hidden mt-4 p-3.5 rounded-xl bg-slate-950/80 border border-blue-500/35 text-xs text-slate-300 leading-relaxed">
+                    Kwa usalama wa akaunti yako (SHA-256), tafadhali wasiliana na Msimamizi wa Jumuiya (Super Admin) ili kuhakikiwa na kuwekewa nenosiri jipya.
                 </div>
 
                 <div class="mt-6 pt-5 border-t border-slate-800 text-center text-xs text-slate-400">
-                    Bado hujajisajili?
-                    <a href="register.html" class="text-cyan-400 font-bold hover:underline ml-1">Jisajili Hapa &rarr;</a>
+                    Bado hujajiunga?
+                    <a href="register.html" class="text-blue-400 font-bold hover:underline ml-1">Jisajili Hapa &rarr;</a>
                 </div>
             </div>
         </div>
 
         <!-- ============================================================== -->
-        <!-- VIEW 2: MEMBER DASHBOARD                                        -->
+        <!-- VIEW 2: STUDENT DASHBOARD                                       -->
         <!-- ============================================================== -->
         <div id="dashboard-view" class="hidden space-y-6">
 
-            <!-- IDENTITY HEADER -->
-            <div class="sg-glass p-5 md:p-6 rounded-3xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <!-- 1. STUDENT IDENTITY HEADER -->
+            <div class="sg-glass p-5 md:p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="flex items-center gap-4">
-                    <div id="dash-avatar" class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-mono-sg text-xl font-black text-slate-950 shadow-lg shadow-cyan-500/20 shrink-0">SG</div>
+                    <div id="dash-avatar" class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg text-xl font-black text-white shadow-lg shadow-blue-600/25 shrink-0">SG</div>
                     <div>
                         <div class="flex flex-wrap items-center gap-2">
                             <h1 id="dash-full-name" class="text-xl md:text-2xl font-extrabold text-white">...</h1>
                             <div id="dash-status-badge"></div>
                         </div>
                         <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-1 font-mono-sg">
-                            <span id="dash-username" class="text-cyan-400">@...</span>
+                            <span id="dash-username" class="text-blue-400">@...</span>
                             <span>•</span>
-                            <span>Member ID: <strong id="dash-member-id" class="text-slate-200">Inasubiri...</strong></span>
+                            <span>ID: <strong id="dash-member-id" class="text-slate-200">Inasubiri...</strong></span>
                             <span>•</span>
-                            <span>Kitengo: <strong id="dash-track" class="text-slate-200">...</strong></span>
+                            <span class="text-emerald-400/90">SG Student Community</span>
                         </div>
                     </div>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <button onclick="openModal('modal-support-ticket')" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-300 text-xs font-semibold transition flex items-center gap-1.5">
-                        <span>💬 Msaada / Tiketi</span>
+                    <button onclick="openModal('modal-support-ticket')" class="px-3.5 py-2 rounded-xl border border-slate-700 hover:border-blue-500/50 text-slate-200 hover:text-white text-xs font-semibold transition flex items-center gap-1.5">
+                        <span>💬 Msaada / Uliza Swali</span>
                     </button>
                     <div id="admin-link-slot-dash"></div>
                 </div>
             </div>
 
-            <!-- MATANGAZO (Announcements from admin) -->
-            <div id="member-announcements-slot" class="space-y-3"></div>
-
-            <!-- ============================================================ -->
-            <!-- ⭐ WHATSAPP GATE — Kazi Kuu ya Mfumo                         -->
-            <!-- ============================================================ -->
+            <!-- 2. PRIMARY FOCUS: OFFICIAL WHATSAPP GROUP GATEWAY -->
             <div id="whatsapp-gate-card">
-                <!-- Injected dynamically by JS -->
+                <!-- Injected dynamically by js/member-portal.js -->
             </div>
 
-            <!-- ============================================================ -->
-            <!-- HUDUMA ZA MWANACHAMA KAMILI (ACTIVE SILLYGERIANS ONLY)       -->
-            <!-- Mahudhurio Check-in (Art. 9) & Maombi ya Ruhusa (Art. 10)    -->
-            <!-- ============================================================ -->
+            <!-- 3. UPDATES ZA KARIBU (OFFICIAL ANNOUNCEMENTS FEED) -->
+            <div class="sg-glass p-6 rounded-3xl space-y-4">
+                <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-800/80">
+                    <div>
+                        <span class="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block">UPDATES ZA KARIBU · TAARIFA ZA JUMUIYA</span>
+                        <h2 class="text-base sm:text-lg font-bold text-white">Matangazo na Ratiba za Masomo</h2>
+                    </div>
+                    <button onclick="refreshMemberStatusNow()" class="text-xs font-mono-sg text-slate-400 hover:text-blue-400 transition">
+                        🔄 Sasisha
+                    </button>
+                </div>
+                <div id="member-announcements-slot" class="space-y-3">
+                    <!-- Injected dynamically by js/member-portal.js -->
+                </div>
+            </div>
+
+            <!-- 4. HUDUMA ZA MWANAFUNZI KAMILI (ACTIVE STUDENTS ONLY) -->
             <div id="active-member-workspace" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                <!-- 1. MAHUDHURIO CHECK-IN (ARTICLE 9) -->
-                <div class="sg-glass p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-4">
+                <!-- Check-in ya Kipindi -->
+                <div class="sg-glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
                     <div class="space-y-4">
-                        <div class="flex items-start justify-between gap-2 pb-3 border-b border-slate-800">
+                        <div class="flex items-start justify-between gap-2 pb-3 border-b border-slate-800/80">
                             <div>
-                                <span class="font-mono-sg text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-0.5">ARTICLE 9 · MAHUDHURIO & USHIRIKI</span>
-                                <h2 class="text-base font-bold text-white">Check-in ya Kipindi cha Mafunzo</h2>
-                                <p class="text-xs text-slate-400 mt-0.5">Rekodi ushiriki wako; Admin atathibitisha (Verified Attendance).</p>
+                                <span class="font-mono-sg text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-0.5">MAHUDHURIO YA PAMOJA</span>
+                                <h2 class="text-base font-bold text-white">Check-in ya Kipindi</h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Rekodi uwepo wako tunapokuwa na kipindi cha pamoja.</p>
                             </div>
-                            <span id="member-att-summary" class="px-2.5 py-1 rounded-lg bg-emerald-950/60 border border-emerald-800/50 text-[11px] font-mono-sg text-emerald-300 font-bold shrink-0">0 Vipindi</span>
+                            <span id="member-att-summary" class="px-2.5 py-1 rounded-lg badge-active text-[11px] font-mono-sg font-bold shrink-0">0 Vipindi</span>
                         </div>
 
                         <form id="form-member-checkin" class="flex flex-col sm:flex-row gap-2">
                             <input type="text" id="checkin-session-input"
                                 class="flex-grow sg-input px-3.5 py-2.5 rounded-xl text-xs"
-                                placeholder="Jina la kipindi (mf. Level 4: Linux Kernel Basics)" required>
+                                placeholder="Mada ya kipindi (mf. Linux Basics)" required>
                             <button type="submit"
-                                class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow-md shadow-emerald-500/20 whitespace-nowrap">
-                                ✓ Check-in Sasa
+                                class="px-4 py-2.5 rounded-xl btn-sg-emerald text-xs whitespace-nowrap">
+                                ✓ Check-in
                             </button>
                         </form>
 
-                        <div id="member-attendance-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                            <!-- Populated by JS -->
-                        </div>
+                        <div id="member-attendance-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
                     </div>
                 </div>
 
-                <!-- 2. MAOMBI YA RUHUSA (ARTICLE 10) -->
-                <div class="sg-glass p-6 rounded-3xl border border-slate-800 flex flex-col justify-between space-y-4">
+                <!-- Maombi ya Ruhusa -->
+                <div class="sg-glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
                     <div class="space-y-4">
-                        <div class="flex items-start justify-between gap-2 pb-3 border-b border-slate-800">
+                        <div class="flex items-start justify-between gap-2 pb-3 border-b border-slate-800/80">
                             <div>
-                                <span class="font-mono-sg text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-0.5">ARTICLE 10 · KUTOSHIRIKI NA RUHUSA</span>
-                                <h2 class="text-base font-bold text-white">Maombi ya Ruhusa (Leave Requests)</h2>
-                                <p class="text-xs text-slate-400 mt-0.5">Toa taarifa mapema endapo una dharura ya masomo, kazi, afya au mtandao.</p>
+                                <span class="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-0.5">UDHURU & TAARIFA</span>
+                                <h2 class="text-base font-bold text-white">Maombi ya Ruhusa</h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Toa taarifa endapo una mitihani, dharura au changamoto ya mtandao.</p>
                             </div>
                             <button onclick="openModal('modal-leave-request')"
-                                class="px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-bold text-xs transition whitespace-nowrap shrink-0">
+                                class="px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold text-xs transition whitespace-nowrap shrink-0">
                                 + Omba Ruhusa
                             </button>
                         </div>
 
-                        <div id="member-leaves-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
-                            <!-- Populated by JS -->
-                        </div>
+                        <div id="member-leaves-list" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- MEMBER SUPPORT TICKETS HISTORY (Shown when user has submitted tickets) -->
-            <div id="member-tickets-section" class="hidden sg-glass p-6 rounded-3xl border border-slate-800 space-y-3">
-                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <!-- 5. SUPPORT TICKETS HISTORY -->
+            <div id="member-tickets-section" class="hidden sg-glass p-6 rounded-3xl space-y-3">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800/80">
                     <div>
-                        <span class="font-mono-sg text-[10px] font-bold text-purple-400 uppercase tracking-wider block">ARTICLE 6.12 · MSAADA NA MAoni</span>
-                        <h3 class="text-sm font-bold text-white">Tiketi Zako za Msaada (Support Tickets)</h3>
+                        <span class="font-mono-sg text-[10px] font-bold text-indigo-400 uppercase tracking-wider block">MSAADA NA MAONI</span>
+                        <h3 class="text-sm font-bold text-white">Maswali & Tiketi Zako</h3>
                     </div>
-                    <button onclick="openModal('modal-support-ticket')" class="text-xs text-cyan-400 hover:underline font-semibold">+ Tiketi Mpya</button>
+                    <button onclick="openModal('modal-support-ticket')" class="text-xs text-blue-400 hover:underline font-semibold">+ Tuma Ujumbe</button>
                 </div>
                 <div id="member-tickets-list" class="space-y-2 max-h-52 overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- ============================================================ -->
-            <!-- DIVISIONS & COURSES (Vitengo na Ngazi za Masomo)             -->
-            <!-- ============================================================ -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-                <!-- VITENGO 11 VYA UTAFITI -->
-                <div class="sg-glass p-6 rounded-3xl border border-slate-800 space-y-4">
-                    <div class="pb-3 border-b border-slate-800">
-                        <span class="font-mono-sg text-[10px] font-bold text-cyan-400 uppercase tracking-wider block mb-1">ARTICLE 3 · VITENGO 11 VYA UTAFITI (R&D)</span>
-                        <h2 class="text-base font-bold text-white">Vitengo vya Maendeleo na Utafiti</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Maeneo 11 ya kisekta ndani ya SILLYGER.</p>
+            <!-- 6. COMPACT QUICK LINKS (NO REPETITION) -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <a href="courses.html" class="sg-glass sg-glass-hover p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                    <div>
+                        <span class="font-bold text-white block">📚 Possible Courses</span>
+                        <span class="text-slate-400 text-[11px]">Mada 10 za kusoma pamoja</span>
                     </div>
-                    <div id="divisions-list" class="space-y-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin">
-                        <!-- Injected by JS -->
+                    <span class="text-blue-400 font-bold">&rarr;</span>
+                </a>
+                <a href="future-divisions.html" class="sg-glass sg-glass-hover p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                    <div>
+                        <span class="font-bold text-white block">🚀 Future Vision</span>
+                        <span class="text-slate-400 text-[11px]">Dira ya vitengo vya baadaye</span>
                     </div>
-                </div>
-
-                <!-- NGAZI 10 ZA MTAALA -->
-                <div class="sg-glass p-6 rounded-3xl border border-slate-800 space-y-4">
-                    <div class="pb-3 border-b border-slate-800">
-                        <span class="font-mono-sg text-[10px] font-bold text-purple-400 uppercase tracking-wider block mb-1">ARTICLE 8 · MTAALA WA HATUA 10 (COURSES)</span>
-                        <h2 class="text-base font-bold text-white">Ngazi za Masomo</h2>
-                        <p class="text-xs text-slate-500 mt-0.5">Mpangilio wa hatua 10, kutoka msingi hadi utafiti wa juu.</p>
+                    <span class="text-blue-400 font-bold">&rarr;</span>
+                </a>
+                <a href="constitution.html" class="sg-glass sg-glass-hover p-4 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                    <div>
+                        <span class="font-bold text-white block">📜 Katiba v1.4</span>
+                        <span class="text-slate-400 text-[11px]">Kanuni za wanachama & PDPA</span>
                     </div>
-                    <div id="curriculum-list" class="space-y-2 max-h-96 overflow-y-auto pr-1 scrollbar-thin">
-                        <!-- Injected by JS -->
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- BOTTOM: Katiba shortcut -->
-            <div class="p-5 rounded-2xl bg-cyan-950/20 border border-cyan-800/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <p class="text-xs font-bold text-cyan-400 mb-0.5">📜 Katiba ya SILLYGER v1.4</p>
-                    <p class="text-xs text-slate-400">Masharti yote ya uanachama, haki na wajibu. Taarifa zako zinalindwa na Tanzania PDPA 2022.</p>
-                </div>
-                <a href="constitution.html" class="shrink-0 px-5 py-2.5 rounded-xl border border-cyan-500/50 hover:bg-cyan-500/10 text-cyan-400 font-bold text-xs transition whitespace-nowrap">
-                    Soma Katiba &rarr;
+                    <span class="text-blue-400 font-bold">&rarr;</span>
                 </a>
             </div>
 
@@ -267,59 +256,55 @@
 
     </main>
 
-    <!-- ============================================================== -->
-    <!-- MODAL 1: OMBA RUHUSA (LEAVE REQUEST - ARTICLE 10)               -->
-    <!-- ============================================================== -->
+    <!-- MODAL 1: OMBA RUHUSA -->
     <div id="modal-leave-request" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-cyan-500/40 max-w-md w-full shadow-2xl space-y-4">
+        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/40 max-w-md w-full shadow-2xl space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
-                    <span class="text-[10px] font-mono-sg text-cyan-400 uppercase font-bold block">KATIBA ARTICLE 10</span>
+                    <span class="text-[10px] font-mono-sg text-blue-400 uppercase font-bold block">TAARIFA YA UDHURU</span>
                     <h3 class="text-lg font-bold text-white">Wasilisha Ombi la Ruhusa</h3>
                 </div>
                 <button onclick="closeModal('modal-leave-request')" class="text-slate-400 hover:text-white p-1.5">✕</button>
             </div>
             <form id="form-leave-request" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-category">Sababu Kuu (Category)</label>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-category">Sababu Kuu</label>
                     <select id="leave-category" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs">
                         <option value="Academic">Masomo / Mitihani (Academic)</option>
-                        <option value="Work">Majukumu ya Kazi (Work)</option>
-                        <option value="Health">Afya / Matibabu (Health)</option>
-                        <option value="Technical">Changamoto ya Mtandao au Kifaa (Technical)</option>
-                        <option value="Family">Masuala ya Familia / Binafsi (Family)</option>
+                        <option value="Technical">Changamoto ya Mtandao au Kifaa</option>
+                        <option value="Health">Afya / Matibabu</option>
+                        <option value="Work">Majukumu Mengine</option>
+                        <option value="Family">Dharura ya Familia / Binafsi</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-duration">Muda wa Ruhusa</label>
                     <select id="leave-duration" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs">
                         <option value="Siku 1 - 3">Siku 1 - 3</option>
-                        <option value="Siku 4 - 7">Siku 4 - 7 (Wiki 1)</option>
+                        <option value="Siku 4 - 7">Wiki 1 (Siku 4 - 7)</option>
                         <option value="Wiki 2">Wiki 2</option>
                         <option value="Zaidi ya Wiki 2">Zaidi ya Wiki 2</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1" for="leave-reason">Maelezo Mafupi</label>
-                    <textarea id="leave-reason" rows="3" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs" placeholder="Eleza kwa ufupi hali yako ili utawala ufahamu..." required></textarea>
+                    <textarea id="leave-reason" rows="3" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs" placeholder="Andika kwa ufupi sababu yako..." required></textarea>
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal('modal-leave-request')" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">Ghairi</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition">Tuma Ombi</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl btn-sg-primary text-xs">Tuma Ombi</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- MODAL 2: TIKETI YA MSAADA (SUPPORT TICKET - ARTICLE 6.12)       -->
-    <!-- ============================================================== -->
+    <!-- MODAL 2: TIKETI YA MSAADA -->
     <div id="modal-support-ticket" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-purple-500/40 max-w-md w-full shadow-2xl space-y-4">
+        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-indigo-500/40 max-w-md w-full shadow-2xl space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
-                    <span class="text-[10px] font-mono-sg text-purple-400 uppercase font-bold block">KATIBA ARTICLE 6.12</span>
-                    <h3 class="text-lg font-bold text-white">Tuma Tiketi ya Msaada / Maoni</h3>
+                    <span class="text-[10px] font-mono-sg text-indigo-400 uppercase font-bold block">MSAADA KWA MWANAFUNZI</span>
+                    <h3 class="text-lg font-bold text-white">Uliza Swali au Omba Msaada</h3>
                 </div>
                 <button onclick="closeModal('modal-support-ticket')" class="text-slate-400 hover:text-white p-1.5">✕</button>
             </div>
@@ -327,15 +312,15 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1" for="ticket-category">Aina ya Msaada</label>
                     <select id="ticket-category" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs">
-                        <option value="Account & Approval">Uanachama & Idhini (Account Support)</option>
-                        <option value="Curriculum & Learning">Masomo & Mtaala (Learning)</option>
-                        <option value="Projects & Research">Miradi & Tafiti (Projects)</option>
-                        <option value="Data & Privacy (PDPA)">Marekebisho ya Taarifa Binafsi (PDPA 2022)</option>
+                        <option value="Account & Approval">Idhini ya Kujiunga & WhatsApp Link</option>
+                        <option value="Curriculum & Learning">Masomo ya Pamoja (Courses)</option>
+                        <option value="Projects & Research">Miradi ya Wanafunzi</option>
+                        <option value="Data & Privacy (PDPA)">Marekebisho ya Taarifa Binafsi</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1" for="ticket-subject">Kichwa cha Ujumbe</label>
-                    <input type="text" id="ticket-subject" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs" placeholder="mf. Swali kuhusu mtaala wa Level 2" required>
+                    <input type="text" id="ticket-subject" class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs" placeholder="mf. Swali kuhusu kujiunga na WhatsApp Group" required>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1" for="ticket-message">Ujumbe Kamili</label>
@@ -343,21 +328,19 @@
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal('modal-support-ticket')" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">Ghairi</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-extrabold text-xs transition">Tuma Tiketi</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl btn-sg-primary text-xs">Tuma Ujumbe</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- ============================================================== -->
-    <!-- MODAL 3: BADILI NENOSIRI (ACCOUNT SECURITY - ARTICLE 6.13)      -->
-    <!-- ============================================================== -->
+    <!-- MODAL 3: BADILI NENOSIRI -->
     <div id="modal-change-password" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-cyan-500/40 max-w-md w-full shadow-2xl space-y-4">
+        <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/40 max-w-md w-full shadow-2xl space-y-4">
             <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div>
-                    <span class="text-[10px] font-mono-sg text-cyan-400 uppercase font-bold block">KATIBA ARTICLE 6.13 · SHA-256</span>
-                    <h3 class="text-lg font-bold text-white">Badili Nenosiri la Akaunti</h3>
+                    <span class="text-[10px] font-mono-sg text-blue-400 uppercase font-bold block">USALAMA WA AKAUNTI · SHA-256</span>
+                    <h3 class="text-lg font-bold text-white">Badili Nenosiri Lako</h3>
                 </div>
                 <button onclick="closeModal('modal-change-password')" class="text-slate-400 hover:text-white p-1.5">✕</button>
             </div>
@@ -376,14 +359,14 @@
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal('modal-change-password')" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">Ghairi</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold text-xs transition">Hifadhi Nenosiri</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl btn-sg-primary text-xs">Hifadhi Nenosiri</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <footer class="mt-auto py-5 text-center text-[11px] text-slate-600 font-mono-sg border-t border-slate-900">
-        SILLYGER (SG) Community Platform v1.4 · <em>"Learn Together. Build Together. Own the Future Together."</em>
+    <footer class="mt-auto py-5 text-center text-[11px] text-slate-500 font-mono-sg border-t border-slate-900">
+        SILLYGER (SG) Student Community · <em>"Learn Together. Build Together. Own the Future Together."</em>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

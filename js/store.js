@@ -647,6 +647,8 @@ const SGStore = {
         }
 
         const passwordHash = this.hashPassword(data.password);
+        const interestNote = (data.learning_interest || data.motivation || "").trim();
+        const unifiedTrack = (data.track && String(data.track).trim()) || "SG Student Community";
 
         const newApplicant = {
             id: "usr_" + Date.now().toString(36) + "_" + _randomSaltHex(6),
@@ -656,9 +658,10 @@ const SGStore = {
             email: normalizedEmail,
             phone: normalizedPhone,
             password_hash: passwordHash,
-            track: data.track || "Computer Fundamentals & Electronics",
-            experience: data.experience || "Beginner",
-            motivation: (data.motivation || "").trim(),
+            track: unifiedTrack,
+            experience: data.experience || "Student",
+            learning_interest: interestNote,
+            motivation: interestNote,
             role: "Applicant",
             status: "PENDING",
             agreed_constitution: !!data.agreed_constitution,
@@ -688,6 +691,7 @@ const SGStore = {
                     password_hash: newApplicant.password_hash,
                     track: newApplicant.track,
                     experience: newApplicant.experience,
+                    learning_interest: newApplicant.learning_interest,
                     motivation: newApplicant.motivation,
                     role: "Applicant",
                     status: "PENDING",
@@ -714,7 +718,7 @@ const SGStore = {
             action: "APPLICANT_REGISTERED",
             actor: newApplicant.username,
             target: newApplicant.full_name,
-            details: `New registration received from ${newApplicant.phone} (${newApplicant.track}). Status: PENDING review.`
+            details: `New student registration received from ${newApplicant.phone} (${newApplicant.track}). Status: PENDING review.`
         });
 
         _notifyBroadcast({ type: "APPLICANT_REGISTERED", applicant: { id: newApplicant.id, username: newApplicant.username } });
@@ -1022,11 +1026,11 @@ const SGStore = {
             return [
                 {
                     id: "anc_001",
-                    title: "Uzinduzi Rasmi wa SILLYGER Community Platform v1.4",
-                    content: "Karibuni Sillygerians! Tovuti rasmi, mfumo wa uanachama na mtaala wa hatua 10 sasa vimefunguliwa rasmi. Kila mwanachama anatakiwa kupitia Katiba v1.4.",
+                    title: "Karibu SILLYGER Student Community — Kujiunga & WhatsApp Group",
+                    content: "Karibuni wanafunzi wote! Kwa sasa tunajifunza teknolojia kwa pamoja kama jumuiya moja. Ukishajisajili na kuidhinishwa, ingia kwenye Student Portal ili kufungua kiungo cha WhatsApp Group rasmi na kufuatilia updates za vipindi.",
                     priority: "HIGH",
                     author: "William Gerishom William (Super Admin)",
-                    created_at: new Date(Date.now() - 2 * 86400000).toISOString()
+                    created_at: new Date(Date.now() - 86400000).toISOString()
                 }
             ];
         } catch (e) {

@@ -1,155 +1,222 @@
 /**
- * SILLYGER (SG) Digital Membership Platform - Main UI Script
+ * SILLYGER (SG) Student Community Platform - Public Pages UI Controller (v2.0)
+ * Powers:
+ * - index.html (Student Onboarding Flow, Live Telemetry & Community Updates)
+ * - courses.html (Possible Courses Explorer)
+ * - future-divisions.html (Future Roadmap / Vitengo vya Baadaye)
  */
 
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. Mobile Menu Toggle & Auto-Close on Anchor Click
-    const mobileBtn = document.getElementById("mobile-menu-btn");
-    const mobileMenu = document.getElementById("mobile-menu");
-    if (mobileBtn && mobileMenu) {
-        mobileBtn.addEventListener("click", () => {
-            mobileMenu.classList.toggle("hidden");
-        });
-        mobileMenu.querySelectorAll("a").forEach(link => {
-            link.addEventListener("click", () => {
-                mobileMenu.classList.add("hidden");
-            });
-        });
-    }
+    SGUtils.bindMobileMenu("mobile-menu-btn", "mobile-menu");
+    SGUtils.renderPublicSessionSlot("header-session-slot");
 
-    // 2. Render Header Session Status & Stats
-    renderHeaderSession();
     renderPlatformStats();
+    renderHomeAnnouncements();
+    initPossibleCoursesPage();
+    initFutureDivisionsPage();
 
-    // 3. Render 11 R&D Divisions (Article 3) & 10 Curriculum Levels (Article 8)
-    renderDivisions();
-    renderCurriculum();
-
-    // 4. Re-render automatically on cloud / cross-tab sync
     window.addEventListener("sg:synced", () => {
-        renderHeaderSession();
+        SGUtils.renderPublicSessionSlot("header-session-slot");
         renderPlatformStats();
+        renderHomeAnnouncements();
     });
     window.addEventListener("storage", () => {
-        renderHeaderSession();
+        SGUtils.renderPublicSessionSlot("header-session-slot");
         renderPlatformStats();
+        renderHomeAnnouncements();
     });
 });
 
-function renderHeaderSession() {
-    const sessionSlot = document.getElementById("header-session-slot");
-    const esc = (v) => (typeof SGUtils !== "undefined" ? SGUtils.escapeHtml(v) : String(v || ""));
-    if (!sessionSlot) return;
-
-    const currentSession = SGStore.getCurrentSession();
-    if (currentSession) {
-        const isApproved = currentSession.status === "ACTIVE";
-        const isAdmin = SGStore.isAdminUser(currentSession);
-        const label = esc(currentSession.member_id || currentSession.username);
-        const statusLabel = esc(currentSession.status);
-
-        sessionSlot.innerHTML = `
-            <div class="flex items-center gap-2">
-                ${isAdmin ? `
-                    <a href="admin-portal.html" class="px-2.5 py-1 rounded-lg bg-purple-950/70 border border-purple-500/50 text-purple-300 hover:text-white text-xs font-bold font-mono-sg flex items-center gap-1 transition">
-                        <span>🛠️ Admin</span>
-                    </a>
-                ` : ""}
-                <a href="member-portal.html" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/60 transition text-sm">
-                    <span class="w-2 h-2 rounded-full ${isApproved ? "bg-emerald-400 animate-ping" : "bg-amber-400"}"></span>
-                    <span class="font-mono-sg text-xs text-cyan-300 font-semibold">${label}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded ${isApproved ? "badge-active" : "badge-pending"} text-[10px] uppercase font-bold">${statusLabel}</span>
-                </a>
-                <button onclick="handleQuickLogout()" title="Ondoka kwenye akaunti" class="text-xs text-slate-400 hover:text-red-400 p-1.5 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                </button>
-            </div>
-        `;
-    } else {
-        sessionSlot.innerHTML = `
-            <a href="member-portal.html" class="text-xs md:text-sm font-semibold text-slate-300 hover:text-cyan-400 transition">Ingia Portal</a>
-            <a href="register.html" class="text-xs md:text-sm font-semibold px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold transition shadow-lg shadow-cyan-500/20">
-                Jiunge Sasa
-            </a>
-        `;
-    }
-}
-
-function handleQuickLogout() {
+window.handleQuickLogout = function () {
     SGStore.logout();
     window.location.reload();
-}
+};
 
 function renderPlatformStats() {
+    if (typeof SGStore === "undefined") return;
     const stats = SGStore.getStats();
 
     const elTotal = document.getElementById("stat-total-registered");
     const elActive = document.getElementById("stat-active-members");
     const elPending = document.getElementById("stat-pending-review");
-    const elDivisions = document.getElementById("stat-divisions");
 
     if (elTotal) elTotal.textContent = stats.totalRegistered;
     if (elActive) elActive.textContent = stats.activeMembers;
     if (elPending) elPending.textContent = stats.pendingApplicants;
-    if (elDivisions) elDivisions.textContent = stats.divisionsCount;
 }
 
-function renderDivisions() {
-    const container = document.getElementById("divisions-grid");
-    if (!container) return;
-    const esc = (v) => SGUtils.escapeHtml(v);
+function renderHomeAnnouncements() {
+    const feed = document.getElementById("home-announcements-feed");
+    if (!feed || typeof SGStore === "undefined") return;
+
+    const esc = SGUtils.escapeHtml;
+    const list = SGStore.getAnnouncements();
+
+    if (!list || list.length === 0) {
+        feed.innerHTML = `
+            <div class="sg-glass p-6 rounded-2xl text-center text-xs text-slate-400 font-mono-sg">
+                Hakuna tangazo jipya kwa sasa. Jiunge na uingie kwenye Student Portal kupata updates za WhatsApp Group.
+            </div>
+        `;
+        return;
+    }
+
+    feed.innerHTML = list.slice(0, 3).map(a => {
+        const isHigh = a.priority === "HIGH";
+        return `
+            <article class="sg-glass sg-glass-hover p-5 sm:p-6 rounded-2xl border ${isHigh ? "border-blue-500/35" : "border-slate-800/80"} flex flex-col justify-between gap-3">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase ${isHigh ? "badge-future" : "badge-active"}">
+                            ${isHigh ? "Update Muhimu" : "Taarifa ya Jumuiya"}
+                        </span>
+                        <span class="text-[11px] font-mono-sg text-slate-500">${esc(SGUtils.formatDateSw(a.created_at))}</span>
+                    </div>
+                    <h3 class="text-base sm:text-lg font-bold text-white leading-snug">${esc(a.title)}</h3>
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${esc(a.content)}</p>
+                </div>
+                <div class="pt-3 border-t border-slate-800/70 flex items-center justify-between text-[11px] font-mono-sg text-slate-500">
+                    <span>Na: <strong class="text-slate-300">${esc(a.author || "SG Admin")}</strong></span>
+                    <a href="member-portal.html" class="text-blue-400 hover:text-blue-300 font-semibold">Fungua Portal &rarr;</a>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+function initPossibleCoursesPage() {
+    const container = document.getElementById("courses-grid");
+    if (!container || typeof SG_CONFIG === "undefined") return;
+
+    const searchInput = document.getElementById("courses-search");
+    const countBadge = document.getElementById("courses-count-badge");
+    const esc = SGUtils.escapeHtml;
+    let activeCategory = "ALL";
+
+    function renderList() {
+        const query = (searchInput ? searchInput.value : "").trim().toLowerCase();
+        const filtered = SG_CONFIG.CURRICULUM.filter(c => {
+            const matchesCat = activeCategory === "ALL" || (c.category && c.category.toLowerCase() === activeCategory.toLowerCase());
+            const matchesQuery = !query ||
+                c.title.toLowerCase().includes(query) ||
+                c.desc.toLowerCase().includes(query) ||
+                (c.category && c.category.toLowerCase().includes(query));
+            return matchesCat && matchesQuery;
+        });
+
+        if (countBadge) {
+            countBadge.textContent = `${filtered.length} Possible Course${filtered.length === 1 ? "" : "s"}`;
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="md:col-span-2 sg-glass p-10 rounded-2xl text-center space-y-3">
+                    <p class="text-sm text-slate-400">Hakuna mada iliyopatikana kwa utafutaji huo.</p>
+                    <button type="button" id="reset-courses-filter" class="px-4 py-2 rounded-xl bg-slate-800 text-xs text-blue-400 hover:text-white font-semibold">
+                        Onyesha Mada Zote
+                    </button>
+                </div>
+            `;
+            const resetBtn = document.getElementById("reset-courses-filter");
+            if (resetBtn) {
+                resetBtn.onclick = () => {
+                    activeCategory = "ALL";
+                    if (searchInput) searchInput.value = "";
+                    updateFilterButtons();
+                    renderList();
+                };
+            }
+            return;
+        }
+
+        container.innerHTML = filtered.map(curr => {
+            const num = String(curr.level).padStart(2, "0");
+            return `
+                <div class="sg-glass sg-glass-hover p-6 rounded-2xl flex flex-col justify-between gap-4">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="px-2.5 py-1 rounded-lg badge-future font-mono-sg text-xs font-bold">
+                                TOPIC ${esc(num)}
+                            </span>
+                            <span class="text-[11px] font-mono-sg uppercase tracking-wider text-slate-400 px-2.5 py-0.5 rounded-md bg-slate-900/80 border border-slate-800">
+                                ${esc(curr.category || "Core")}
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold text-white leading-snug">
+                            ${esc(curr.title)}
+                        </h3>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            ${esc(curr.desc)}
+                        </p>
+                    </div>
+                    <div class="pt-3 border-t border-slate-800/70 flex items-center justify-between text-[11px] font-mono-sg text-slate-500">
+                        <span>Tunajifunza pamoja (Student Cohort)</span>
+                        <span class="text-emerald-400">Possible Course</span>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    function updateFilterButtons() {
+        document.querySelectorAll(".course-filter-btn").forEach(btn => {
+            const cat = btn.getAttribute("data-category") || "ALL";
+            if (cat === activeCategory) {
+                btn.className = "course-filter-btn px-3.5 py-1.5 rounded-xl btn-sg-primary text-xs font-semibold transition";
+            } else {
+                btn.className = "course-filter-btn px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-white text-xs font-semibold transition";
+            }
+        });
+    }
+
+    document.querySelectorAll(".course-filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            activeCategory = btn.getAttribute("data-category") || "ALL";
+            updateFilterButtons();
+            renderList();
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener("input", renderList);
+    }
+
+    updateFilterButtons();
+    renderList();
+}
+
+function initFutureDivisionsPage() {
+    const container = document.getElementById("future-divisions-grid");
+    if (!container || typeof SG_CONFIG === "undefined") return;
+
+    const esc = SGUtils.escapeHtml;
 
     container.innerHTML = SG_CONFIG.DIVISIONS.map(div => `
-        <div class="sg-glass sg-glass-hover p-6 rounded-2xl border border-slate-800/80 flex flex-col justify-between group">
-            <div>
-                <div class="flex items-center justify-between mb-4">
-                    <span class="font-mono-sg text-xs text-cyan-400 font-bold tracking-wider px-2.5 py-1 rounded-md bg-cyan-950/60 border border-cyan-800/50">
-                        SEC ${esc(div.number)}
+        <div class="sg-glass sg-glass-hover p-6 rounded-2xl flex flex-col justify-between gap-4">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="px-2.5 py-1 rounded-lg badge-future font-mono-sg text-[11px] font-bold">
+                        FUTURE · ${esc(div.number)}
                     </span>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded bg-slate-800/70">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-2.5 py-0.5 rounded-md bg-slate-900/80 border border-slate-800">
                         ${esc(div.badge)}
                     </span>
                 </div>
-                <h3 class="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors mb-1">
-                    ${esc(div.name)}
-                </h3>
-                <p class="text-xs text-cyan-500/90 font-mono-sg mb-3">
-                    // ${esc(div.tagline)}
-                </p>
-                <p class="text-sm text-slate-400 leading-relaxed mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-1">
+                        ${esc(div.name)}
+                    </h3>
+                    <p class="text-xs text-blue-400 font-mono-sg">
+                        ${esc(div.tagline)}
+                    </p>
+                </div>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
                     ${esc(div.desc)}
                 </p>
             </div>
-            <div class="pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-500">
-                <span>Katiba Art. 3.${esc(div.number.split(".")[1])}</span>
-                <a href="register.html?track=${encodeURIComponent(div.name)}" class="text-cyan-400 hover:text-cyan-300 font-semibold inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                    Chagua Track &rarr;
-                </a>
-            </div>
-        </div>
-    `).join("");
-}
-
-function renderCurriculum() {
-    const container = document.getElementById("curriculum-timeline");
-    if (!container) return;
-    const esc = (v) => SGUtils.escapeHtml(v);
-
-    container.innerHTML = SG_CONFIG.CURRICULUM.map(curr => `
-        <div class="relative pl-8 pb-8 border-l border-slate-800 last:border-0 last:pb-0">
-            <div class="absolute -left-[17px] top-0 w-8 h-8 rounded-xl bg-slate-900 border border-cyan-500/40 flex items-center justify-center font-mono-sg text-xs font-bold text-cyan-400 shadow-md">
-                ${esc(curr.level)}
-            </div>
-            <div class="sg-glass p-5 rounded-xl border border-slate-800/70 hover:border-slate-700 transition">
-                <div class="flex items-center justify-between mb-1">
-                    <h4 class="text-base font-bold text-slate-100">
-                        Level ${esc(curr.level)}: ${esc(curr.title)}
-                    </h4>
-                    <span class="text-[10px] font-mono-sg text-slate-500">Art. 8.${esc(curr.level)}</span>
-                </div>
-                <p class="text-xs md:text-sm text-slate-400 leading-relaxed">
-                    ${esc(curr.desc)}
-                </p>
+            <div class="pt-3 border-t border-slate-800/70 flex items-center justify-between text-[11px] font-mono-sg text-slate-500">
+                <span>Katiba Art. ${esc(div.number)}</span>
+                <span class="text-amber-400/90">Bado Haijaanza (Dira ya Baadaye)</span>
             </div>
         </div>
     `).join("");

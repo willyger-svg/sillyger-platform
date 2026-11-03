@@ -1,12 +1,10 @@
 /**
- * SILLYGER (SG) Digital Membership & Governance Platform v1.4
- * Global Configuration, Constants & Security Utilities
+ * SILLYGER (SG) Student Community & Governance Platform (v2.0 / Charter v1.4)
+ * Global Configuration, Constants, Shared UI Helpers & Security Utilities
  */
 
 // ============================================================================
-// CLOUD DATABASE CONFIGURATION (SUPABASE FREE TIER)
-// Ukishapata Project URL na Anon Key kutoka Supabase, ziweke hapa chini
-// ili simu na kompyuta za wanachama wote ziunganishwe moja kwa moja:
+// CLOUD DATABASE CONFIGURATION (SUPABASE POSTGRESQL)
 // ============================================================================
 const DEFAULT_SUPABASE_URL = "https://inxmxykulzaqxrnpbvwd.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueG14eWt1bHphcXhybnBidndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NDA5ODAsImV4cCI6MjEwOTMxNjk4MH0.1C_qsHrA8322rFYBXvhndhoNlU7-ekJDC-HCFi0FVZE";
@@ -23,7 +21,7 @@ function _decodeBase64(b64) {
 }
 
 /**
- * Security & Formatting Utilities (XSS Prevention)
+ * Security, Formatting & Shared Navigation Utilities (XSS Prevention)
  */
 const SGUtils = {
     escapeHtml(value) {
@@ -45,6 +43,63 @@ const SGUtils = {
         } catch (e) {
             return String(isoStr);
         }
+    },
+
+    renderPublicSessionSlot(slotId = "header-session-slot") {
+        if (typeof document === "undefined" || typeof SGStore === "undefined") return;
+        const sessionSlot = document.getElementById(slotId);
+        if (!sessionSlot) return;
+
+        const esc = this.escapeHtml;
+        const currentSession = SGStore.getCurrentSession();
+
+        if (currentSession) {
+            const isApproved = currentSession.status === "ACTIVE";
+            const isAdmin = SGStore.isAdminUser(currentSession);
+            const label = esc(currentSession.member_id || "@" + currentSession.username);
+            const statusLabel = esc(currentSession.status);
+
+            sessionSlot.innerHTML = `
+                <div class="flex items-center gap-2">
+                    ${isAdmin ? `
+                        <a href="admin-portal.html" class="px-2.5 py-1.5 rounded-lg bg-indigo-950/80 border border-indigo-500/40 text-indigo-300 hover:text-white text-xs font-bold font-mono-sg flex items-center gap-1 transition">
+                            <span>Admin</span>
+                        </a>
+                    ` : ""}
+                    <a href="member-portal.html" class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-950/40 hover:bg-blue-900/50 transition text-xs">
+                        <span class="w-2 h-2 rounded-full ${isApproved ? "bg-emerald-400" : "bg-amber-400"}"></span>
+                        <span class="font-mono-sg text-blue-200 font-semibold">${label}</span>
+                        <span class="px-1.5 py-0.5 rounded ${isApproved ? "badge-active" : "badge-pending"} text-[10px] uppercase font-bold hidden sm:inline">${statusLabel}</span>
+                    </a>
+                    <button onclick="if(window.SGStore){SGStore.logout(); window.location.reload();}" title="Ondoka kwenye akaunti" class="text-xs text-slate-400 hover:text-red-400 p-1.5 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
+            `;
+        } else {
+            sessionSlot.innerHTML = `
+                <a href="member-portal.html" class="text-xs md:text-sm font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 transition">Ingia</a>
+                <a href="register.html" class="text-xs md:text-sm px-4 py-2 rounded-xl btn-sg-primary">
+                    Jiunge Sasa
+                </a>
+            `;
+        }
+    },
+
+    bindMobileMenu(btnId = "mobile-menu-btn", menuId = "mobile-menu") {
+        if (typeof document === "undefined") return;
+        const mobileBtn = document.getElementById(btnId);
+        const mobileMenu = document.getElementById(menuId);
+        if (mobileBtn && mobileMenu) {
+            mobileBtn.addEventListener("click", () => {
+                mobileMenu.classList.toggle("hidden");
+            });
+            mobileMenu.querySelectorAll("a").forEach(link => {
+                link.addEventListener("click", () => {
+                    mobileMenu.classList.add("hidden");
+                });
+            });
+        }
     }
 };
 
@@ -52,7 +107,8 @@ const SG_CONFIG = {
     appName: "SILLYGER",
     officialAbbr: "SG",
     version: "1.4",
-    status: "Updated Draft for Member Review",
+    communityTrackLabel: "SG Student Community",
+    status: "Active Student Learning Community",
     motto: "Learn Together. Build Together. Own the Future Together.",
     memberSingular: "Sillygerian",
     memberPlural: "Sillygerians",
@@ -112,14 +168,14 @@ const SG_CONFIG = {
         }
     },
 
-    // 11 Research & Development Divisions (Article 3)
+    // Future Vision: 11 Planned Research & Development Divisions (Article 3 — Future Roadmap)
     DIVISIONS: Object.freeze([
         {
             id: "tech",
             number: "3.1",
             name: "SILLYGER Technologies",
             tagline: "Software, Hardware & Systems Engineering",
-            desc: "Uhandisi wa teknolojia, software za kisasa, mifumo imara ya hardware na integration ya suluhisho thabiti.",
+            desc: "Dira ya baadaye ya kuunda software za kisasa, mifumo imara ya hardware na suluhisho za kihandisi.",
             badge: "Engineering",
             icon: "cpu"
         },
@@ -128,7 +184,7 @@ const SG_CONFIG = {
             number: "3.2",
             name: "SILLYGER Research Institute",
             tagline: "Scientific Research, Experimentation & Development",
-            desc: "Tafiti za kisayansi za kina, majaribio ya kimaabara, uchunguzi wa mifumo mipya na machapisho ya kiteknolojia.",
+            desc: "Dira ya kuanzisha maabara za tafiti za kisayansi, majaribio ya kina na machapisho ya kiteknolojia.",
             badge: "Deep Research",
             icon: "microscope"
         },
@@ -137,7 +193,7 @@ const SG_CONFIG = {
             number: "3.3",
             name: "SILLYGER AI",
             tagline: "AI, ML, Deep Learning & Intelligent Agents",
-            desc: "Utafiti na ujenzi wa Artificial Intelligence, Machine Learning, Deep Learning, AI Models, Computer Vision na NLP.",
+            desc: "Utafiti na ujenzi wa baadaye wa Artificial Intelligence, Machine Learning, Computer Vision na NLP.",
             badge: "Intelligence",
             icon: "brain"
         },
@@ -146,7 +202,7 @@ const SG_CONFIG = {
             number: "3.4",
             name: "SILLYGER Robotics",
             tagline: "Autonomous & Embedded Systems",
-            desc: "Robotics, Autonomous Systems, Embedded Systems, Sensors, Actuators, Micro-controllers na Viwanda Automation.",
+            desc: "Maabara tarajiwa ya Robotics, Embedded Systems, Sensors, Actuators na Micro-controllers.",
             badge: "Robotics",
             icon: "bot"
         },
@@ -155,7 +211,7 @@ const SG_CONFIG = {
             number: "3.5",
             name: "SILLYGER Cybersecurity",
             tagline: "Ethical Hacking & Defensive Security",
-            desc: "Ethical Hacking, Penetration Testing, Digital Forensics, Defensive Security, Malware Analysis na Security Research kwa maadili.",
+            desc: "Kitengo tarajiwa cha ulinzi wa mifumo, Ethical Hacking kwenye maabara rasmi, na Digital Forensics.",
             badge: "Security",
             icon: "shield-check"
         },
@@ -164,7 +220,7 @@ const SG_CONFIG = {
             number: "3.6",
             name: "SILLYGER Computer Architecture",
             tagline: "Digital Logic, CPUs & Chip Design",
-            desc: "Logic Gates, Digital Circuits, CPUs, GPUs, Memory Systems, Processors, Instruction Sets (ISA) na Computer Architecture kutoka mwanzo.",
+            desc: "Utafiti wa muda mrefu wa Logic Gates, Digital Circuits, CPUs, Memory Systems na Instruction Sets (ISA).",
             badge: "Silicon & Logic",
             icon: "layers"
         },
@@ -173,7 +229,7 @@ const SG_CONFIG = {
             number: "3.7",
             name: "SILLYGER Systems",
             tagline: "Kernels, Compilers & Low-level Software",
-            desc: "Operating Systems, Linux Kernels, Device Drivers, Compilers, System Software na uundaji wa lugha za kiprogramu.",
+            desc: "Maendeleo ya baadaye ya Operating Systems, Linux Kernels, Device Drivers na Compilers.",
             badge: "Low-Level",
             icon: "terminal"
         },
@@ -182,7 +238,7 @@ const SG_CONFIG = {
             number: "3.8",
             name: "SILLYGER Data Systems",
             tagline: "Databases & Big Data Infrastructure",
-            desc: "Databases, Big Data Engineering, Distributed Storage, Query Engines na Miundombinu ya kuhifadhi na kuchakata data.",
+            desc: "Ujenzi wa mifumo ya Databases, Distributed Storage na miundombinu ya kuchakata data kubwa.",
             badge: "Data Infra",
             icon: "database"
         },
@@ -191,7 +247,7 @@ const SG_CONFIG = {
             number: "3.9",
             name: "SILLYGER Networks & Infrastructure",
             tagline: "Cloud, Servers & Data Centers",
-            desc: "Computer Networks, Servers, Cloud Computing, Protocols, Internet Technologies na usanifu wa vituo vya data (Data Centers).",
+            desc: "Dira ya kujenga miundombinu ya Computer Networks, Servers, Cloud Computing na vituo vya data.",
             badge: "Infrastructure",
             icon: "network"
         },
@@ -200,7 +256,7 @@ const SG_CONFIG = {
             number: "3.10",
             name: "SILLYGER Electronics",
             tagline: "Circuits, PCBs & Microelectronics",
-            desc: "Electronic Circuits, Integrated Circuits (ICs), Microcontrollers, PCB Design, soldering na vifaa vya kielektroniki.",
+            desc: "Maabara tarajiwa ya Electronic Circuits, Microcontrollers, PCB Design na vifaa vya kielektroniki.",
             badge: "Hardware",
             icon: "zap"
         },
@@ -209,24 +265,24 @@ const SG_CONFIG = {
             number: "3.11",
             name: "SILLYGER Innovation & Products",
             tagline: "Ideation to Production",
-            desc: "Kubadilisha mawazo, tafiti za kimaabara na miradi ya wanachama kuwa bidhaa, huduma na mifumo halisi inayotumiwa na jamii.",
+            desc: "Hatua ya baadaye ya kubadilisha miradi ya wanafunzi na tafiti kuwa bidhaa halisi kwa jamii.",
             badge: "Production",
             icon: "rocket"
         }
     ]),
 
-    // 10 Core Curriculum Levels (Article 8)
+    // Possible Courses: 10 Learning Areas Students Can Explore Together (Article 8)
     CURRICULUM: Object.freeze([
-        { level: 1, title: "Computer Fundamentals & Electronics", desc: "Misingi ya tarakilishi, vipengele vya hardware, umeme msingi, na binary logic." },
-        { level: 2, title: "Digital Logic & Computer Architecture", desc: "Logic gates, flip-flops, ALUs, CPU structure, memory na instruction sets." },
-        { level: 3, title: "Programming & Software Engineering", desc: "Data structures, algorithms, modular programming, memory management na clean architecture." },
-        { level: 4, title: "Operating Systems & Linux", desc: "Process management, memory virtualisation, file systems, Linux kernels na system calls." },
-        { level: 5, title: "Computer Networking & Internet", desc: "OSI model, TCP/IP stack, socket programming, routing protocols na internet infrastructure." },
-        { level: 6, title: "Cybersecurity Fundamentals", desc: "Cryptography, network defense, threat modeling, security hygiene na vulnerability analysis." },
-        { level: 7, title: "Ethical Hacking & Penetration Testing", desc: "Authorized labs, web app security, network scanning, reverse engineering na exploit research." },
-        { level: 8, title: "Databases, Backend & Cloud", desc: "Relational/NoSQL databases, distributed systems, API architecture, servers na cloud deployment." },
-        { level: 9, title: "Advanced Cybersecurity & Research", desc: "Malware analysis, binary exploitation, digital forensics, AI security na academic papers." },
-        { level: 10, title: "Innovation & Real-world Projects", desc: "Ubunifu wa bidhaa kamili, hardware prototypes, open-source tooling na uongozi wa miradi." }
+        { level: 1, category: "Misingi", title: "Computer Fundamentals & Electronics", desc: "Misingi ya kompyuta inavyofanya kazi ndani, hardware msingi, umeme wa awali na binary logic." },
+        { level: 2, category: "Misingi", title: "Digital Logic & Computer Architecture", desc: "Logic gates, flip-flops, ALUs, muundo wa CPU, memory na jinsi maelekezo yanavyochakatwa." },
+        { level: 3, category: "Software", title: "Programming & Software Engineering", desc: "Kujifunza kuandika kodi safi, data structures, algorithms na ujenzi wa programu hatua kwa hatua." },
+        { level: 4, category: "Systems", title: "Operating Systems & Linux", desc: "Matumizi na misingi ya Linux, process management, file systems, terminal na mifumo ya uendeshaji." },
+        { level: 5, category: "Networks", title: "Computer Networking & Internet", desc: "Jinsi intaneti na mitandao inavyofanya kazi: TCP/IP, DNS, HTTP, routing na socket programming." },
+        { level: 6, category: "Security", title: "Cybersecurity Fundamentals", desc: "Misingi ya ulinzi wa mifumo, cryptography, usalama wa mitandao na utambuzi wa udhaifu kwa maadili." },
+        { level: 7, category: "Security", title: "Ethical Hacking & Security Labs", desc: "Mazoezi ya kiusalama kwenye maabara zilizoidhinishwa (CTFs), web security na ukaguzi wa mifumo." },
+        { level: 8, category: "Backend & Cloud", title: "Databases, Backend & Cloud", desc: "SQL/PostgreSQL, ujenzi wa APIs, servers, na kuweka mifumo hewani (cloud deployment)." },
+        { level: 9, category: "Advanced", title: "AI, Data & Systems Research", desc: "Misingi ya Artificial Intelligence, uchambuzi wa data, na utafiti wa mada za juu kwa pamoja." },
+        { level: 10, category: "Projects", title: "Collaborative Student Projects", desc: "Kuunda miradi ya pamoja ya wanafunzi (open-source tools, tovuti na mifumo halisi ya kujifunzia)." }
     ])
 };
 

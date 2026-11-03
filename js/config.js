@@ -8,8 +8,8 @@
 // Ukishapata Project URL na Anon Key kutoka Supabase, ziweke hapa chini
 // ili simu na kompyuta za wanachama wote ziunganishwe moja kwa moja:
 // ============================================================================
-const DEFAULT_SUPABASE_URL = "";
-const DEFAULT_SUPABASE_ANON_KEY = "";
+const DEFAULT_SUPABASE_URL = "https://inxmxykulzaqxrnpbvwd.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueG14eWt1bHphcXhybnBidndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NDA5ODAsImV4cCI6MjEwOTMxNjk4MH0.1C_qsHrA8322rFYBXvhndhoNlU7-ekJDC-HCFi0FVZE";
 
 // Encoded official community invite fallback (can be rotated anytime via Admin Portal)
 const _OFFICIAL_WA_ENCODED = "aHR0cHM6Ly9jaGF0LndoYXRzYXBwLmNvbS9LUnh5YVNvVmNVQ0dMcTBQZE95NkpiP3M9Y2wmcD1hJmlhbT0y";

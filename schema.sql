@@ -214,10 +214,37 @@ DROP POLICY IF EXISTS "Read member public profiles" ON public.members;
 DROP POLICY IF EXISTS "Admins or self can update member profile" ON public.members;
 DROP POLICY IF EXISTS "Admins can delete applicant" ON public.members;
 
-CREATE POLICY "Public registration allowed" ON public.members FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public registration allowed" ON public.members FOR INSERT WITH CHECK (status = 'PENDING' AND role = 'Applicant');
 CREATE POLICY "Read member public profiles" ON public.members FOR SELECT USING (true);
 CREATE POLICY "Admins or self can update member profile" ON public.members FOR UPDATE USING (true);
-CREATE POLICY "Admins can delete applicant" ON public.members FOR DELETE USING (member_id IS DISTINCT FROM 'SG-000001');
+CREATE POLICY "Admins can delete applicant" ON public.members FOR DELETE USING (member_id IS DISTINCT FROM 'SG-000001' AND username IS DISTINCT FROM 'willyger');
+
+-- Kernel-level trigger protecting Founder / Super Administrator (SG-000001)
+CREATE OR REPLACE FUNCTION public.protect_sg_founder_account()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        IF OLD.member_id = 'SG-000001' OR lower(OLD.username) = 'willyger' THEN
+            RAISE EXCEPTION 'Hauruhusiwi kufuta akaunti ya Mwanzilishi / Super Administrator (SG-000001)!';
+        END IF;
+        RETURN OLD;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF OLD.member_id = 'SG-000001' OR lower(OLD.username) = 'willyger' THEN
+            NEW.member_id := 'SG-000001';
+            NEW.username := 'willyger';
+            NEW.role := 'Super Administrator';
+            NEW.status := 'ACTIVE';
+        END IF;
+        RETURN NEW;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_protect_founder ON public.members;
+CREATE TRIGGER trg_protect_founder
+BEFORE UPDATE OR DELETE ON public.members
+FOR EACH ROW EXECUTE FUNCTION public.protect_sg_founder_account();
 
 DROP POLICY IF EXISTS "Announcements access" ON public.announcements;
 CREATE POLICY "Announcements access" ON public.announcements FOR ALL USING (true) WITH CHECK (true);

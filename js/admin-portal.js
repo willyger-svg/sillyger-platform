@@ -10,6 +10,68 @@ const _escAdmin = (v) => (typeof SGUtils !== "undefined" ? SGUtils.escapeHtml(v)
 
 let currentActiveTab = "queue";
 let inspectingMemberId = null;
+let _lastPendingQueueSig = "";
+const _busyApprovals = new Set();
+let _confirmResolver = null;
+
+// Non-blocking Toast Banner (Immune to browser alert/confirm dialog suppression)
+window.showAdminToast = function (message, variant = "success") {
+    const container = document.getElementById("admin-toast-container");
+    if (!container) return;
+
+    const palette = variant === "error"
+        ? "border-red-500/60 bg-red-950/95 text-red-100"
+        : (variant === "info"
+            ? "border-blue-500/60 bg-slate-900/95 text-blue-100"
+            : "border-emerald-500/60 bg-emerald-950/95 text-emerald-100");
+
+    const toast = document.createElement("div");
+    toast.className = `pointer-events-auto p-4 rounded-2xl border shadow-2xl text-xs font-semibold leading-relaxed flex items-start justify-between gap-3 transition duration-200 ${palette}`;
+    toast.innerHTML = `
+        <div class="whitespace-pre-line">${_escAdmin(message)}</div>
+        <button type="button" class="text-slate-400 hover:text-white shrink-0 font-bold">✕</button>
+    `;
+    toast.querySelector("button").onclick = () => toast.remove();
+    container.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 5500);
+};
+
+// In-Page Confirmation Dialog (Replaces native window.confirm which browsers/WebViews can silently block)
+window.askAdminConfirm = function ({ title = "Thibitisha Kitendo", message = "", confirmText = "Thibitisha", danger = false }) {
+    const modal = document.getElementById("modal-admin-confirm");
+    const elTitle = document.getElementById("admin-confirm-title");
+    const elMsg = document.getElementById("admin-confirm-message");
+    const elOk = document.getElementById("admin-confirm-ok-btn");
+
+    if (!modal || !elTitle || !elMsg || !elOk) {
+        return Promise.resolve(true);
+    }
+
+    elTitle.textContent = title;
+    elMsg.textContent = message;
+    elOk.textContent = confirmText;
+    elOk.className = danger
+        ? "px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold transition shadow-lg"
+        : "px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition shadow-lg";
+
+    modal.classList.remove("hidden");
+
+    return new Promise(resolve => {
+        _confirmResolver = resolve;
+    });
+};
+
+window.resolveAdminConfirm = function (accepted) {
+    const modal = document.getElementById("modal-admin-confirm");
+    if (modal) modal.classList.add("hidden");
+    if (_confirmResolver) {
+        const fn = _confirmResolver;
+        _confirmResolver = null;
+        fn(!!accepted);
+    }
+};
 
 document.addEventListener("DOMContentLoaded", () => {
     initAdminPortal();
@@ -34,9 +96,9 @@ function initAdminPortal() {
     renderSuperAdminDashboard(session);
 }
 
-function rerenderCurrentAdminView() {
+function rerenderCurrentAdminView(force = false) {
     refreshAdminTelemetry();
-    if (currentActiveTab === "queue") renderPendingQueue();
+    if (currentActiveTab === "queue") renderPendingQueue(force);
     else if (currentActiveTab === "members") {
         const searchEl = document.getElementById("search-members-input");
         renderMembersDirectory(searchEl ? searchEl.value : "");
@@ -51,22 +113,23 @@ function rerenderCurrentAdminView() {
 
 // Cross-tab & Cloud real-time sync listeners
 if (typeof window !== "undefined") {
-    window.addEventListener("storage", () => rerenderCurrentAdminView());
-    window.addEventListener("sg:synced", () => rerenderCurrentAdminView());
+    window.addEventListener("storage", () => rerenderCurrentAdminView(false));
+    window.addEventListener("sg:synced", () => rerenderCurrentAdminView(false));
 
     try {
         if (typeof BroadcastChannel !== "undefined") {
             const bc = new BroadcastChannel("sg_platform_sync");
-            bc.onmessage = () => rerenderCurrentAdminView();
+            bc.onmessage = () => rerenderCurrentAdminView(false);
         }
     } catch (e) {}
 
-    // Periodic cloud & local queue poll (every 6 seconds)
+    // Periodic cloud & local queue poll (every 6 seconds — non-destructive diffed render)
     setInterval(() => {
+        if (_busyApprovals.size > 0) return;
         SGStore.syncWithSupabase();
         refreshAdminTelemetry();
         if (currentActiveTab === "queue") {
-            renderPendingQueue();
+            renderPendingQueue(false);
         }
     }, 6000);
 }
@@ -110,12 +173,19 @@ function refreshAdminTelemetry() {
     const elStatTotal = document.getElementById("admin-stat-total");
     const elStatFund = document.getElementById("admin-stat-fund");
     const elStatLogs = document.getElementById("admin-stat-logs");
+    const elTabBadgePending = document.getElementById("tab-badge-pending");
 
     if (elStatPending) elStatPending.textContent = pending;
     if (elStatActive) elStatActive.textContent = active;
     if (elStatTotal) elStatTotal.textContent = total;
     if (elStatFund) elStatFund.textContent = "TZS " + fundBalance.toLocaleString();
     if (elStatLogs) elStatLogs.textContent = logsCount;
+
+    if (elTabBadgePending) {
+        elTabBadgePending.textContent = pending;
+        if (pending > 0) elTabBadgePending.classList.remove("hidden");
+        else elTabBadgePending.classList.add("hidden");
+    }
 }
 
 function setupAdminTabs() {
@@ -148,13 +218,63 @@ window.switchAdminTab = function (tabName) {
         targetPane.classList.remove("hidden");
     }
 
-    rerenderCurrentAdminView();
+    rerenderCurrentAdminView(true);
 };
 
 // -------------------------------------------------------------
-// TAB 1: PENDING APPLICATION REVIEW QUEUE
+// TAB 1: PENDING APPLICATION REVIEW QUEUE (1-CLICK CLOUD VERIFIED)
 // -------------------------------------------------------------
-function renderPendingQueue() {
+function showApprovedFeedbackBanner(approvedMember) {
+    const banner = document.getElementById("queue-action-feedback");
+    if (!banner || !approvedMember) return;
+
+    const waDigits = String(approvedMember.phone || "").replace(/[^0-9]/g, "");
+    const welcomeText = encodeURIComponent(
+        `Hongera ${approvedMember.full_name}! 🎉 Maombi yako ya kujiunga na SILLYGER Student Community yameidhinishwa rasmi.\n\nUnique Student ID yako ni: *${approvedMember.member_id}*\n\nIngia sasa kwenye Student Dashboard yako kufungua kiungo cha WhatsApp Group:\nhttps://willyger-svg.github.io/sillyger-platform/member-portal.html`
+    );
+
+    banner.classList.remove("hidden");
+    banner.innerHTML = `
+        <div class="p-4 sm:p-5 rounded-2xl border border-emerald-500/50 bg-emerald-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+            <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-mono-sg text-[10px] font-black uppercase">✓ IMEIDHINISHWA KWENYE CLOUD</span>
+                    <span class="font-mono-sg text-xs font-bold text-cyan-300">${_escAdmin(approvedMember.member_id)}</span>
+                </div>
+                <p class="text-sm font-bold text-white">
+                    ${_escAdmin(approvedMember.full_name)} <span class="text-xs font-mono-sg text-slate-400">(@${_escAdmin(approvedMember.username)})</span> sasa ni ACTIVE!
+                </p>
+                <p class="text-xs text-slate-300">
+                    Akiingia kwenye Dashboard yake sasa hivi ataona kitufe cha kuingia WhatsApp Group moja kwa moja.
+                </p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                ${waDigits ? `
+                    <a
+                        href="https://wa.me/${waDigits}?text=${welcomeText}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition flex items-center gap-1.5 shadow-md"
+                    >
+                        <span>💬 Mjulishe WhatsApp</span>
+                    </a>
+                ` : ""}
+                <button
+                    type="button"
+                    onclick="document.getElementById('queue-action-feedback').classList.add('hidden')"
+                    class="px-3 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs"
+                >
+                    Funga
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function renderPendingQueue(force = false) {
+    // Do not wipe DOM buttons while an approval request is actively running
+    if (!force && _busyApprovals.size > 0) return;
+
     const modeBanner = document.getElementById("queue-cloud-mode-banner");
     if (modeBanner) {
         if (SG_CONFIG.SUPABASE.isConfigured) {
@@ -168,7 +288,7 @@ function renderPendingQueue() {
                         <strong class="text-amber-400 font-mono-sg uppercase block mb-0.5">⚡ LOCAL MODE (Kifaa Hiki Pekee)</strong>
                         Kwa sasa maombi yanayotumwa kwenye kivinjari hiki pekee ndiyo yanaonekana hapa. Ili kupokea maombi kutoka kwenye <strong>simu za watu wote mtandaoni</strong>, unganisha <strong>Supabase (Bure 100%)</strong>.
                     </div>
-                    <button onclick="switchAdminTab('database')" class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition whitespace-nowrap">
+                    <button type="button" onclick="switchAdminTab('database')" class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition whitespace-nowrap">
                         Unganisha Supabase Sasa &rarr;
                     </button>
                 </div>
@@ -177,10 +297,26 @@ function renderPendingQueue() {
     }
 
     const container = document.getElementById("pending-queue-tbody");
+    const mobileContainer = document.getElementById("pending-queue-mobile-cards");
+    const approveAllBtn = document.getElementById("btn-approve-all-pending");
+    const approveAllCount = document.getElementById("approve-all-count");
     if (!container) return;
 
     const members = SGStore.getMembers();
     const pending = members.filter(m => m.status === "PENDING");
+
+    if (approveAllBtn && approveAllCount) {
+        approveAllCount.textContent = pending.length;
+        if (pending.length > 1) approveAllBtn.classList.remove("hidden");
+        else approveAllBtn.classList.add("hidden");
+    }
+
+    // Compute signature so background 6-second sync NEVER destroys buttons unless queue actually changed
+    const currentSig = JSON.stringify(pending.map(p => [p.id, p.username, p.status, p.phone, p.created_at]));
+    if (!force && currentSig === _lastPendingQueueSig && container.children.length > 0) {
+        return;
+    }
+    _lastPendingQueueSig = currentSig;
 
     if (pending.length === 0) {
         container.innerHTML = `
@@ -190,9 +326,73 @@ function renderPendingQueue() {
                 </td>
             </tr>
         `;
+        if (mobileContainer) {
+            mobileContainer.innerHTML = `
+                <div class="sg-glass p-8 rounded-2xl border border-slate-800 text-center text-slate-500 font-mono-sg text-xs">
+                    ✓ Hakuna maombi mapya yanayosubiri ukaguzi kwa sasa.
+                </div>
+            `;
+        }
         return;
     }
 
+    // 1. Mobile Cards View
+    if (mobileContainer) {
+        mobileContainer.innerHTML = pending.map(p => {
+            const safeId = _escAdmin(p.id);
+            const waDigits = String(p.phone || "").replace(/[^0-9]/g, "");
+            const noteText = p.learning_interest || p.motivation || "";
+            return `
+                <div class="sg-glass p-4 rounded-2xl border border-slate-800 space-y-3 shadow-lg">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span class="font-bold text-white text-sm block">${_escAdmin(p.full_name)}</span>
+                            <span class="text-xs font-mono-sg text-blue-400">@${_escAdmin(p.username)}</span>
+                        </div>
+                        <span class="px-2 py-0.5 rounded badge-pending text-[10px] font-mono-sg font-bold uppercase">PENDING</span>
+                    </div>
+                    <div class="text-xs space-y-1 text-slate-300">
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500">WhatsApp:</span>
+                            <a href="https://wa.me/${waDigits}" target="_blank" rel="noopener noreferrer" class="font-mono-sg text-emerald-400 font-bold hover:underline">${_escAdmin(p.phone)}</a>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-slate-500">Email:</span>
+                            <span class="font-mono-sg text-slate-300 truncate max-w-[200px]">${_escAdmin(p.email)}</span>
+                        </div>
+                        ${noteText ? `<p class="pt-1 text-slate-400 italic text-[11px]">"${_escAdmin(noteText)}"</p>` : ""}
+                    </div>
+                    <div class="grid grid-cols-12 gap-2 pt-2 border-t border-slate-800/70">
+                        <button
+                            type="button"
+                            onclick="approveApplicant('${safeId}', this)"
+                            class="col-span-7 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5"
+                        >
+                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Idhinisha Sasa</span>
+                        </button>
+                        <button
+                            type="button"
+                            onclick="openMemberDossier('${safeId}')"
+                            class="col-span-3 py-2.5 px-2 rounded-xl border border-slate-700 hover:border-purple-400 text-slate-200 text-xs font-semibold transition text-center"
+                        >
+                            Dossier
+                        </button>
+                        <button
+                            type="button"
+                            onclick="rejectApplicant('${safeId}')"
+                            class="col-span-2 py-2.5 px-2 rounded-xl border border-red-500/40 hover:bg-red-950/40 text-red-400 text-xs font-semibold transition text-center"
+                            title="Futa"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join("");
+    }
+
+    // 2. Desktop Table View
     container.innerHTML = pending.map(p => {
         const safeId = _escAdmin(p.id);
         const waDigits = String(p.phone || "").replace(/[^0-9]/g, "");
@@ -224,23 +424,26 @@ function renderPendingQueue() {
                 <td class="px-4 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
                         <button
-                            onclick="approveApplicant('${safeId}')"
-                            class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-500/20 flex items-center gap-1"
-                            title="Idhinisha na kutoa namba ya SG-xxxxxx"
+                            type="button"
+                            onclick="approveApplicant('${safeId}', this)"
+                            class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow-md shadow-emerald-500/20 flex items-center gap-1.5 whitespace-nowrap"
+                            title="Idhinisha moja kwa moja na kutoa namba ya SG-xxxxxx"
                         >
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            <span>Idhinisha (Approve)</span>
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Idhinisha Sasa</span>
                         </button>
                         <button
+                            type="button"
                             onclick="openMemberDossier('${safeId}')"
-                            class="px-2.5 py-1.5 rounded-xl border border-slate-700 hover:border-purple-400 text-slate-300 hover:text-white text-xs transition"
+                            class="px-2.5 py-2 rounded-xl border border-slate-700 hover:border-purple-400 text-slate-300 hover:text-white text-xs transition"
                             title="Kagua maelezo kamili"
                         >
                             Dossier
                         </button>
                         <button
+                            type="button"
                             onclick="rejectApplicant('${safeId}')"
-                            class="px-2.5 py-1.5 rounded-xl border border-red-500/30 hover:border-red-500/80 hover:bg-red-950/40 text-red-400 text-xs transition"
+                            class="px-2.5 py-2 rounded-xl border border-red-500/30 hover:border-red-500/80 hover:bg-red-950/40 text-red-400 text-xs transition"
                             title="Kataa au futa maombi haya"
                         >
                             Futa
@@ -252,26 +455,85 @@ function renderPendingQueue() {
     }).join("");
 }
 
-window.approveApplicant = async function (applicantId) {
-    const target = SGStore.findMemberById(applicantId);
-    if (!target) return;
+window.approveApplicant = async function (applicantId, btnEl = null) {
+    if (!applicantId || _busyApprovals.has(applicantId)) return;
 
     const adminUser = SGStore.getCurrentSession();
     const adminActor = adminUser ? adminUser.username : "willyger";
-    const nextId = SGStore.getNextMemberId();
-    const confirmMsg = `Thibitisha kumuidhinisha ${target.full_name}?\n\nMfumo utatoa Unique Member ID: ${nextId}\nHadhi itabadilika kuwa ACTIVE na kiungo cha WhatsApp kitafunguliwa.`;
 
-    if (confirm(confirmMsg)) {
-        try {
-            const approved = SGStore.approveMember(applicantId, adminActor);
-            await SGStore.flushPendingWrites();
-            const freshApproved = SGStore.findMemberById(applicantId) || approved;
-            alert(`✓ ${freshApproved.full_name} ameidhinishwa rasmi!\nUnique Member ID: ${freshApproved.member_id}`);
-            refreshAdminTelemetry();
-            renderPendingQueue();
-            renderMembersDirectory();
-        } catch (e) {
-            alert("Hitilafu: " + e.message);
+    _busyApprovals.add(applicantId);
+    const origHtml = btnEl ? btnEl.innerHTML : "";
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.classList.add("opacity-80", "cursor-wait");
+        btnEl.innerHTML = `<span>⏳ Inaidhinisha...</span>`;
+    }
+
+    try {
+        const freshApproved = await SGStore.approveMemberAsync(applicantId, adminActor);
+        _busyApprovals.delete(applicantId);
+
+        showApprovedFeedbackBanner(freshApproved);
+        showAdminToast(
+            `✓ ${freshApproved.full_name} ameidhinishwa rasmi!\nMember ID: ${freshApproved.member_id}`,
+            "success"
+        );
+
+        refreshAdminTelemetry();
+        renderPendingQueue(true);
+        renderMembersDirectory();
+    } catch (e) {
+        _busyApprovals.delete(applicantId);
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.classList.remove("opacity-80", "cursor-wait");
+            btnEl.innerHTML = origHtml;
+        }
+        showAdminToast("Hitilafu wakati wa kuidhinisha: " + (e.message || e), "error");
+    }
+};
+
+window.approveAllPendingApplicants = async function () {
+    const pending = SGStore.getMembers().filter(m => m.status === "PENDING");
+    if (pending.length === 0) return;
+
+    const ok = await askAdminConfirm({
+        title: `Idhinisha Wanafunzi Wote (${pending.length})?`,
+        message: `Mfumo utawapa namba rasmi za SG-XXXXXX wanafunzi wote ${pending.length} wanaosubiri na kuwafungulia WhatsApp Group mara moja.`,
+        confirmText: `✓ Idhinisha Wote (${pending.length})`,
+        danger: false
+    });
+    if (!ok) return;
+
+    const btn = document.getElementById("btn-approve-all-pending");
+    const origHtml = btn ? btn.innerHTML : "";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span>⏳ Inaidhinisha wote...</span>`;
+    }
+
+    const adminUser = SGStore.getCurrentSession();
+    const adminActor = adminUser ? adminUser.username : "willyger";
+
+    try {
+        _busyApprovals.add("__ALL__");
+        const approvedList = await SGStore.approveAllPendingAsync(adminActor);
+        _busyApprovals.delete("__ALL__");
+
+        if (approvedList.length > 0) {
+            showApprovedFeedbackBanner(approvedList[approvedList.length - 1]);
+            showAdminToast(`✓ Wanafunzi ${approvedList.length} wameidhinishwa kikamilifu!`, "success");
+        }
+        refreshAdminTelemetry();
+        renderPendingQueue(true);
+        renderMembersDirectory();
+    } catch (e) {
+        _busyApprovals.delete("__ALL__");
+        showAdminToast("Hitilafu: " + (e.message || e), "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
         }
     }
 };
@@ -280,19 +542,28 @@ window.rejectApplicant = async function (applicantId) {
     const target = SGStore.findMemberById(applicantId);
     if (!target) return;
 
-    if (confirm(`Je, una uhakika unataka kukataa na kufuta maombi ya ${target.full_name}?\n\nRekodi hii itaondolewa kwenye mfumo.`)) {
-        try {
-            const adminUser = SGStore.getCurrentSession();
-            const adminActor = adminUser ? adminUser.username : "willyger";
-            SGStore.deleteMember(applicantId, adminActor);
-            await SGStore.flushPendingWrites();
-            alert(`✓ Maombi ya ${target.full_name} yameondolewa.`);
-            refreshAdminTelemetry();
-            renderPendingQueue();
-            renderMembersDirectory();
-        } catch (e) {
-            alert("Hitilafu: " + e.message);
-        }
+    const ok = await askAdminConfirm({
+        title: "Kataa na Futa Maombi?",
+        message: `Je, una uhakika unataka kukataa na kufuta maombi ya ${target.full_name} (@${target.username})?\n\nRekodi hii itaondolewa kwenye mfumo.`,
+        confirmText: "Ndiyo, Futa Maombi",
+        danger: true
+    });
+    if (!ok) return;
+
+    try {
+        _busyApprovals.add(applicantId);
+        const adminUser = SGStore.getCurrentSession();
+        const adminActor = adminUser ? adminUser.username : "willyger";
+        await SGStore.deleteMemberAsync(applicantId, adminActor);
+        _busyApprovals.delete(applicantId);
+
+        showAdminToast(`✓ Maombi ya ${target.full_name} yameondolewa.`, "info");
+        refreshAdminTelemetry();
+        renderPendingQueue(true);
+        renderMembersDirectory();
+    } catch (e) {
+        _busyApprovals.delete(applicantId);
+        showAdminToast("Hitilafu: " + (e.message || e), "error");
     }
 };
 
@@ -306,7 +577,7 @@ window.manualRefreshQueue = async function () {
     try {
         await SGStore.syncWithSupabase(true);
         refreshAdminTelemetry();
-        renderPendingQueue();
+        renderPendingQueue(true);
         renderMembersDirectory();
         if (btn) {
             btn.innerHTML = `<span class="text-emerald-300">✓ Imesawazishwa</span>`;
@@ -409,6 +680,12 @@ window.openMemberDossier = function (memberId) {
     document.getElementById("dossier-motivation").textContent = member.learning_interest || member.motivation || "Mwanafunzi wa SILLYGER (bila maelezo ya ziada)";
     document.getElementById("dossier-joined").textContent = SGUtils.formatDateSw(member.created_at, true);
 
+    const pendingBanner = document.getElementById("dossier-pending-banner");
+    if (pendingBanner) {
+        if (member.status === "PENDING") pendingBanner.classList.remove("hidden");
+        else pendingBanner.classList.add("hidden");
+    }
+
     document.getElementById("dossier-member-id-input").value = member.member_id || "";
     document.getElementById("dossier-role-select").value = member.role || "Member";
     document.getElementById("dossier-status-select").value = member.status || "PENDING";
@@ -418,13 +695,21 @@ window.openMemberDossier = function (memberId) {
     modal.classList.remove("hidden");
 };
 
+window.quickApproveFromDossier = async function () {
+    if (!inspectingMemberId) return;
+    const targetId = inspectingMemberId;
+    const btn = document.getElementById("btn-dossier-quick-approve");
+    await approveApplicant(targetId, btn);
+    closeMemberDossier();
+};
+
 window.closeMemberDossier = function () {
     const modal = document.getElementById("modal-member-dossier");
     if (modal) modal.classList.add("hidden");
     inspectingMemberId = null;
 };
 
-window.saveDossierChanges = function (e) {
+window.saveDossierChanges = async function (e) {
     if (e) e.preventDefault();
     if (!inspectingMemberId) return;
 
@@ -433,39 +718,64 @@ window.saveDossierChanges = function (e) {
 
     const adminUser = SGStore.getCurrentSession();
     const adminActor = adminUser ? adminUser.username : "willyger";
+    const originalStatus = member.status;
+    const originalRole = member.role;
 
     const newId = document.getElementById("dossier-member-id-input").value.trim();
-    const newRole = document.getElementById("dossier-role-select").value;
+    const selectedRole = document.getElementById("dossier-role-select").value;
     const newStatus = document.getElementById("dossier-status-select").value;
     const newPassword = document.getElementById("dossier-new-password-input").value;
-    const reason = document.getElementById("dossier-audit-reason").value.trim() || "Super Administrator modification";
+    const reason = document.getElementById("dossier-audit-reason").value.trim() || "Imeidhinishwa / kusasishwa na Super Administrator";
+
+    const saveBtn = document.getElementById("btn-dossier-save");
+    const origBtnText = saveBtn ? saveBtn.textContent : "";
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "⏳ Inahifadhi...";
+    }
 
     try {
-        if (newId && newId !== member.member_id) {
-            SGStore.assignCustomMemberId(member.id, newId, reason, adminActor);
+        // If promoting from PENDING -> ACTIVE via Dossier, run full cloud-verified approval first
+        if (originalStatus === "PENDING" && newStatus === "ACTIVE" && !newId) {
+            const approved = await SGStore.approveMemberAsync(member.id, adminActor);
+            showApprovedFeedbackBanner(approved);
+        } else {
+            if (newId && newId !== member.member_id) {
+                SGStore.assignCustomMemberId(member.id, newId, reason, adminActor);
+            }
+            if (newStatus && newStatus !== member.status) {
+                SGStore.updateMemberStatus(member.id, newStatus, reason, adminActor);
+            }
         }
 
-        if (newStatus && newStatus !== member.status) {
-            SGStore.updateMemberStatus(member.id, newStatus, reason, adminActor);
-        }
-
-        // Refresh member snapshot in case updateMemberStatus auto-upgraded Applicant -> Member
+        // Only update role if Admin explicitly chose a role different from original (prevents downgrading Member -> Applicant!)
         const updatedAfterStatus = SGStore.findMemberById(member.id);
-        if (newRole && updatedAfterStatus && newRole !== updatedAfterStatus.role) {
-            SGStore.updateMemberRole(member.id, newRole, reason, adminActor);
+        const effectiveTargetRole = (newStatus === "ACTIVE" && selectedRole === "Applicant" && originalRole === "Applicant")
+            ? "Member"
+            : selectedRole;
+
+        if (effectiveTargetRole && updatedAfterStatus && effectiveTargetRole !== updatedAfterStatus.role) {
+            SGStore.updateMemberRole(member.id, effectiveTargetRole, reason, adminActor);
         }
 
         if (newPassword && newPassword.trim().length > 0) {
             SGStore.adminResetPassword(member.id, newPassword, adminActor);
         }
 
-        alert("✓ Taarifa za mwanachama zimesasishwa kikamilifu na kurekodiwa kwenye Audit Logs!");
+        await SGStore.flushPendingWrites();
+
+        showAdminToast("✓ Taarifa za mwanachama zimesasishwa kikamilifu!", "success");
         closeMemberDossier();
         refreshAdminTelemetry();
         renderMembersDirectory();
-        renderPendingQueue();
+        renderPendingQueue(true);
     } catch (err) {
-        alert("Hitilafu: " + err.message);
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = origBtnText;
+        }
     }
 };
 
@@ -527,16 +837,23 @@ window.publishOfficialAnnouncement = function (e) {
         author: authorName
     });
 
-    alert("✓ Tangazo rasmi limechapishwa na linapatikana kwa wanachama wote!");
+    showAdminToast("✓ Tangazo rasmi limechapishwa na linapatikana kwa wanachama wote!", "success");
     document.getElementById("form-create-announcement").reset();
     renderAnnouncementsManager();
     refreshAdminTelemetry();
 };
 
-window.removeOfficialAnnouncement = function (ancId) {
-    if (!confirm("Je, una uhakika unataka kuondoa tangazo hili?")) return;
+window.removeOfficialAnnouncement = async function (ancId) {
+    const ok = await askAdminConfirm({
+        title: "Futa Tangazo Rasmi?",
+        message: "Je, una uhakika unataka kuondoa tangazo hili kwenye Dashboard za wanafunzi?",
+        confirmText: "Ndiyo, Futa",
+        danger: true
+    });
+    if (!ok) return;
     const session = SGStore.getCurrentSession();
     SGStore.deleteAnnouncement(ancId, session ? session.username : "willyger");
+    showAdminToast("✓ Tangazo limeondolewa.", "info");
     renderAnnouncementsManager();
     refreshAdminTelemetry();
 };
@@ -667,13 +984,14 @@ window.saveActiveSessionTitle = function () {
         { active_session_title: title },
         session ? session.username : "willyger"
     );
-    alert(title ? `✓ Kipindi cha sasa kimewekwa: "${title}"` : "✓ Jina la kipindi kimefutwa.");
+    showAdminToast(title ? `✓ Kipindi cha sasa kimewekwa: "${title}"` : "✓ Jina la kipindi kimefutwa.", "success");
 };
 
 window.verifyAttendanceRecord = function (recordId) {
     const session = SGStore.getCurrentSession();
     const verifier = session ? `${session.full_name} (${session.role})` : "William Gerishom (Super Admin)";
     SGStore.verifyAttendance(recordId, verifier);
+    showAdminToast("✓ Mahudhurio yamethibitishwa!", "success");
     renderAttendanceManager();
     refreshAdminTelemetry();
 };
@@ -683,11 +1001,11 @@ window.verifyAllPendingAttendance = function () {
     const verifier = session ? `${session.full_name} (${session.role})` : "William Gerishom (Super Admin)";
     const count = SGStore.verifyAllAttendance(verifier);
     if (count > 0) {
-        alert(`✓ Vipindi ${count} vya mahudhurio vimethibitishwa vyote mara moja!`);
+        showAdminToast(`✓ Vipindi ${count} vya mahudhurio vimethibitishwa vyote mara moja!`, "success");
         renderAttendanceManager();
         refreshAdminTelemetry();
     } else {
-        alert("Hakuna mahudhurio mapya yasiyothibitishwa.");
+        showAdminToast("Hakuna mahudhurio mapya yasiyothibitishwa.", "info");
     }
 };
 

@@ -22,17 +22,31 @@ ON CONFLICT (id) DO NOTHING;
 CREATE OR REPLACE FUNCTION public.get_next_sg_member_id()
 RETURNS TEXT AS $$
 DECLARE
+    max_existing INT;
     next_num INT;
     candidate TEXT;
 BEGIN
+    INSERT INTO public.sg_id_sequence (id, current_val)
+    VALUES (1, 1)
+    ON CONFLICT (id) DO NOTHING;
+
+    SELECT COALESCE(
+        MAX(NULLIF(regexp_replace(member_id, '[^0-9]', '', 'g'), '')::INT),
+        0
+    )
+    INTO max_existing
+    FROM public.members
+    WHERE member_id ~ '^SG-[0-9]+$';
+
     LOOP
         UPDATE public.sg_id_sequence
-        SET current_val = current_val + 1
+        SET current_val = GREATEST(current_val, max_existing) + 1
         WHERE id = 1
         RETURNING current_val INTO next_num;
 
         candidate := 'SG-' || LPAD(next_num::TEXT, 6, '0');
         EXIT WHEN NOT EXISTS (SELECT 1 FROM public.members WHERE member_id = candidate);
+        max_existing := next_num;
     END LOOP;
 
     RETURN candidate;
@@ -161,33 +175,51 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_timestamp ON public.audit_logs(timesta
 -- 11. ATOMIC APPROVAL RPC FUNCTION
 CREATE OR REPLACE FUNCTION public.approve_member_and_assign_id(
     target_user_id TEXT,
-    admin_identifier TEXT
+    admin_identifier TEXT DEFAULT 'willyger'
 )
 RETURNS JSON AS $$
 DECLARE
+    existing_rec public.members%ROWTYPE;
     new_sg_id TEXT;
-    updated_record RECORD;
+    updated_record public.members%ROWTYPE;
+    actor_name TEXT;
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM public.members WHERE id = target_user_id AND status = 'PENDING') THEN
-        RAISE EXCEPTION 'Mwanachama hakupatikana au hadhi yake si PENDING.';
+    actor_name := COALESCE(NULLIF(btrim(admin_identifier), ''), 'willyger');
+
+    SELECT *
+    INTO existing_rec
+    FROM public.members
+    WHERE id = target_user_id OR lower(username) = lower(target_user_id)
+    LIMIT 1;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Mwanachama hakupatikana kwenye Cloud Database (%).', target_user_id;
     END IF;
 
-    new_sg_id := public.get_next_sg_member_id();
+    IF existing_rec.status = 'ACTIVE' AND existing_rec.member_id IS NOT NULL AND btrim(existing_rec.member_id) <> '' THEN
+        RETURN row_to_json(existing_rec);
+    END IF;
+
+    IF existing_rec.member_id IS NOT NULL AND btrim(existing_rec.member_id) <> '' THEN
+        new_sg_id := existing_rec.member_id;
+    ELSE
+        new_sg_id := public.get_next_sg_member_id();
+    END IF;
 
     UPDATE public.members
     SET
-        member_id = COALESCE(member_id, new_sg_id),
+        member_id = new_sg_id,
         status = 'ACTIVE',
-        role = CASE WHEN role = 'Applicant' THEN 'Member' ELSE role END,
-        approved_at = NOW(),
-        approved_by = admin_identifier
-    WHERE id = target_user_id
+        role = CASE WHEN role = 'Applicant' OR role IS NULL OR btrim(role) = '' THEN 'Member' ELSE role END,
+        approved_at = COALESCE(approved_at, NOW()),
+        approved_by = actor_name
+    WHERE id = existing_rec.id
     RETURNING * INTO updated_record;
 
     INSERT INTO public.audit_logs (action, actor, target, details)
     VALUES (
         'MEMBER_APPROVED',
-        admin_identifier,
+        actor_name,
         updated_record.username || ' (' || updated_record.member_id || ')',
         'Application approved. Assigned Unique Member ID: ' || updated_record.member_id || '. WhatsApp Community gate unlocked.'
     );
@@ -195,6 +227,9 @@ BEGIN
     RETURN row_to_json(updated_record);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.get_next_sg_member_id() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.approve_member_and_assign_id(TEXT, TEXT) TO anon, authenticated, service_role;
 
 -- 12. ROW LEVEL SECURITY (RLS) POLICIES (Idempotent — safe to re-run)
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
@@ -217,7 +252,7 @@ DROP POLICY IF EXISTS "Admins can delete applicant" ON public.members;
 
 CREATE POLICY "Public registration allowed" ON public.members FOR INSERT WITH CHECK (status = 'PENDING' AND role = 'Applicant');
 CREATE POLICY "Read member public profiles" ON public.members FOR SELECT USING (true);
-CREATE POLICY "Admins or self can update member profile" ON public.members FOR UPDATE USING (true);
+CREATE POLICY "Admins or self can update member profile" ON public.members FOR UPDATE USING (true) WITH CHECK (true);
 CREATE POLICY "Admins can delete applicant" ON public.members FOR DELETE USING (member_id IS DISTINCT FROM 'SG-000001' AND username IS DISTINCT FROM 'willyger');
 
 -- Kernel-level trigger protecting Founder / Super Administrator (SG-000001)

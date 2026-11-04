@@ -114,10 +114,17 @@ let _supabaseCacheKey = "";
 let _isInitialized = false;
 let _syncInFlight = null;
 let _lastSyncAt = 0;
+let _mutationSeq = 0;
 const _pendingWrites = new Set();
+
+function _bumpMutation() {
+    _mutationSeq += 1;
+    return _mutationSeq;
+}
 
 function _trackWrite(promiseLike) {
     if (!promiseLike || typeof promiseLike.then !== "function") return Promise.resolve();
+    _bumpMutation();
     const tracked = Promise.resolve(promiseLike)
         .catch(err => {
             console.warn("Supabase write notice:", err);
@@ -129,8 +136,59 @@ function _trackWrite(promiseLike) {
     return tracked;
 }
 
+function _trackStrictWrite(promiseLike) {
+    _bumpMutation();
+    const tracked = Promise.resolve(promiseLike).finally(() => {
+        _pendingWrites.delete(tracked);
+    });
+    _pendingWrites.add(tracked);
+    return tracked;
+}
+
+function _isCloudConfigured() {
+    return !!(typeof SG_CONFIG !== "undefined" && SG_CONFIG.SUPABASE && SG_CONFIG.SUPABASE.isConfigured);
+}
+
+/**
+ * Zero-dependency PostgREST & RPC fetch helper.
+ * Guarantees cloud approval & sync work even if cdn.jsdelivr.net (@supabase/supabase-js) fails to load!
+ */
+async function _directRestRequest(method, restPath, body = undefined, extraHeaders = {}) {
+    if (!_isCloudConfigured() || typeof fetch !== "function") {
+        throw new Error("Supabase Cloud haijaunganishwa au fetch haipo.");
+    }
+    const baseUrl = String(SG_CONFIG.SUPABASE.url || "").replace(/\/+$/, "");
+    const anonKey = SG_CONFIG.SUPABASE.anonKey;
+    const headers = {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        Accept: "application/json",
+        ...extraHeaders
+    };
+    const opts = { method, headers };
+    if (body !== undefined) {
+        headers["Content-Type"] = "application/json";
+        opts.body = JSON.stringify(body);
+    }
+    const res = await fetch(`${baseUrl}/rest/v1${restPath}`, opts);
+    const rawText = await res.text();
+    let parsed = null;
+    try {
+        parsed = rawText ? JSON.parse(rawText) : null;
+    } catch (_) {
+        parsed = rawText;
+    }
+    if (!res.ok) {
+        const msg = (parsed && typeof parsed === "object" && (parsed.message || parsed.error || parsed.details))
+            ? (parsed.message || parsed.error || parsed.details)
+            : `HTTP ${res.status}`;
+        throw new Error(msg);
+    }
+    return parsed;
+}
+
 function getSupabaseClient() {
-    if (typeof supabase !== "undefined" && typeof SG_CONFIG !== "undefined" && SG_CONFIG.SUPABASE && SG_CONFIG.SUPABASE.isConfigured) {
+    if (typeof supabase !== "undefined" && _isCloudConfigured()) {
         const key = `${SG_CONFIG.SUPABASE.url}::${SG_CONFIG.SUPABASE.anonKey}`;
         if (_supabaseClient && _supabaseCacheKey === key) {
             return _supabaseClient;
@@ -329,10 +387,11 @@ const SGStore = {
         this.syncWithSupabase();
     },
 
-    // Full Bi-Directional / Pull Cloud Sync with Supabase
+    // Full Bi-Directional / Pull Cloud Sync with Supabase (supports SDK + direct REST fallback)
     async syncWithSupabase(force = false) {
         const client = getSupabaseClient();
-        if (!client) return false;
+        const canDirectFetch = !client && _isCloudConfigured() && typeof fetch === "function";
+        if (!client && !canDirectFetch) return false;
 
         const now = Date.now();
         if (!force && (now - _lastSyncAt < 2500)) return false;
@@ -343,19 +402,36 @@ const SGStore = {
             try {
                 // Ensure any in-flight writes commit to Supabase before pulling
                 await this.flushPendingWrites();
+                const seqBeforePull = _mutationSeq;
+
+                const pullTable = async (sdkPromiseFactory, restQuery) => {
+                    if (client) {
+                        return await sdkPromiseFactory();
+                    }
+                    try {
+                        const data = await _directRestRequest("GET", restQuery);
+                        return { data, error: null };
+                    } catch (err) {
+                        return { data: null, error: err };
+                    }
+                };
 
                 const [mRes, aRes, fRes, attRes, lRes, tRes, logRes, sRes] = await Promise.all([
-                    client.from("members").select("*").order("created_at", { ascending: true }),
-                    client.from("announcements").select("*").order("created_at", { ascending: false }),
-                    client.from("fund_ledger").select("*").order("created_at", { ascending: false }),
-                    client.from("attendance").select("*").order("created_at", { ascending: false }),
-                    client.from("leave_requests").select("*").order("created_at", { ascending: false }),
-                    client.from("support_tickets").select("*").order("created_at", { ascending: false }),
-                    client.from("audit_logs").select("*").order("timestamp", { ascending: false }).limit(300),
-                    client.from("platform_settings").select("*")
+                    pullTable(() => client.from("members").select("*").order("created_at", { ascending: true }), "/members?select=*&order=created_at.asc"),
+                    pullTable(() => client.from("announcements").select("*").order("created_at", { ascending: false }), "/announcements?select=*&order=created_at.desc"),
+                    pullTable(() => client.from("fund_ledger").select("*").order("created_at", { ascending: false }), "/fund_ledger?select=*&order=created_at.desc"),
+                    pullTable(() => client.from("attendance").select("*").order("created_at", { ascending: false }), "/attendance?select=*&order=created_at.desc"),
+                    pullTable(() => client.from("leave_requests").select("*").order("created_at", { ascending: false }), "/leave_requests?select=*&order=created_at.desc"),
+                    pullTable(() => client.from("support_tickets").select("*").order("created_at", { ascending: false }), "/support_tickets?select=*&order=created_at.desc"),
+                    pullTable(() => client.from("audit_logs").select("*").order("timestamp", { ascending: false }).limit(300), "/audit_logs?select=*&order=timestamp.desc&limit=300"),
+                    pullTable(() => client.from("platform_settings").select("*"), "/platform_settings?select=*")
                 ]);
 
-                if (!mRes.error && Array.isArray(mRes.data) && mRes.data.length > 0) {
+                // Guard against race condition: if an approval/mutation happened while network pull was in flight,
+                // do NOT overwrite fresh local state with a stale cloud snapshot!
+                const staleForMembers = (_mutationSeq !== seqBeforePull) || (_pendingWrites.size > 0);
+
+                if (!staleForMembers && !mRes.error && Array.isArray(mRes.data) && mRes.data.length > 0) {
                     const localBefore = this.getMembers();
                     const normalizedMembers = mRes.data.map(m => ({
                         ...m,
@@ -375,7 +451,11 @@ const SGStore = {
                         const cleanRecord = { ...lm };
                         delete cleanRecord._unsynced_cloud;
                         normalizedMembers.push(cleanRecord);
-                        _trackWrite(client.from("members").insert([cleanRecord]));
+                        if (client) {
+                            _trackWrite(client.from("members").insert([cleanRecord]));
+                        } else {
+                            _trackWrite(_directRestRequest("POST", "/members", [cleanRecord]));
+                        }
                     }
 
                     this.saveMembers(normalizedMembers);
@@ -741,15 +821,16 @@ const SGStore = {
         return "SG-" + String(nextNum).padStart(6, "0");
     },
 
-    // Admin Approves Member (Transitions status PENDING -> ACTIVE & assigns SG-xxxxxx)
+    // Admin Approves Member (Synchronous local + tracked background cloud sync)
     approveMember(applicantId, adminActor = "ADMIN") {
+        _bumpMutation();
         const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId);
+        const index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
         if (index === -1) throw new Error("Mwanachama hakupatikana.");
 
         const member = members[index];
         if (member.status === "ACTIVE" && member.member_id) {
-            throw new Error("Mwanachama huyu tayari ni ACTIVE.");
+            return member;
         }
 
         if (!member.member_id) {
@@ -757,49 +838,243 @@ const SGStore = {
         }
 
         member.status = "ACTIVE";
-        member.role = member.role === "Applicant" ? "Member" : member.role;
+        member.role = (!member.role || member.role === "Applicant") ? "Member" : member.role;
         member.approved_at = new Date().toISOString();
         member.approved_by = adminActor;
+        delete member._unsynced_cloud;
 
         members[index] = member;
         this.saveMembers(members);
 
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.rpc("approve_member_and_assign_id", {
-                    target_user_id: member.id,
-                    admin_identifier: adminActor
-                }).then(({ data, error }) => {
-                    if (!error && data && data.member_id) {
-                        const latest = this.getMembers();
-                        const lIdx = latest.findIndex(x => x.id === member.id);
-                        if (lIdx !== -1 && latest[lIdx].member_id !== data.member_id) {
-                            latest[lIdx].member_id = data.member_id;
-                            this.saveMembers(latest);
-                        }
-                        return;
-                    }
-                    return client.from("members").update({
-                        member_id: member.member_id,
-                        status: "ACTIVE",
-                        role: member.role,
-                        approved_at: member.approved_at,
-                        approved_by: member.approved_by
-                    }).eq("username", member.username);
-                })
-            );
+        if (_isCloudConfigured()) {
+            _trackWrite(this._commitApprovalToCloud(member, adminActor));
+        } else {
+            this.addAuditLog({
+                action: "MEMBER_APPROVED",
+                actor: adminActor,
+                target: `${member.username} (${member.member_id})`,
+                details: `Application approved locally. Assigned Unique Member ID: ${member.member_id}.`
+            });
         }
-
-        this.addAuditLog({
-            action: "MEMBER_APPROVED",
-            actor: adminActor,
-            target: `${member.username} (${member.member_id})`,
-            details: `Application approved. Assigned Unique Member ID: ${member.member_id}. WhatsApp Community gate unlocked.`
-        });
 
         _notifyBroadcast({ type: "MEMBER_APPROVED", id: member.id, member_id: member.member_id });
         return member;
+    },
+
+    /**
+     * Internal Cloud Commit for Member Approval:
+     * 1. Calls atomic PostgreSQL RPC `approve_member_and_assign_id` (SDK or direct REST fallback)
+     * 2. If record was only local (not in cloud yet), inserts as PENDING Applicant first (passes RLS)
+     *    and immediately invokes `approve_member_and_assign_id`!
+     * 3. Falls back to direct PATCH on `members` if RPC is unavailable.
+     */
+    async _commitApprovalToCloud(memberSnapshot, adminActor = "willyger") {
+        const callRpc = async (targetId) => {
+            const client = getSupabaseClient();
+            if (client) {
+                const { data, error } = await client.rpc("approve_member_and_assign_id", {
+                    target_user_id: targetId,
+                    admin_identifier: adminActor
+                });
+                if (error) throw new Error(error.message || JSON.stringify(error));
+                return data;
+            }
+            return await _directRestRequest("POST", "/rpc/approve_member_and_assign_id", {
+                target_user_id: targetId,
+                admin_identifier: adminActor
+            });
+        };
+
+        let cloudRecord = null;
+        try {
+            cloudRecord = await callRpc(memberSnapshot.id);
+        } catch (rpcErr) {
+            const errMsg = String((rpcErr && rpcErr.message) || rpcErr || "");
+            // If applicant wasn't pushed to cloud yet, insert as PENDING Applicant first, then run RPC
+            if (errMsg.includes("hakupatikana") || errMsg.toLowerCase().includes("not found")) {
+                try {
+                    const seedRow = {
+                        id: memberSnapshot.id,
+                        full_name: memberSnapshot.full_name,
+                        username: memberSnapshot.username,
+                        email: memberSnapshot.email,
+                        phone: memberSnapshot.phone,
+                        password_hash: memberSnapshot.password_hash,
+                        track: memberSnapshot.track || "SG Student Community",
+                        learning_interest: memberSnapshot.learning_interest || memberSnapshot.motivation || "",
+                        motivation: memberSnapshot.motivation || memberSnapshot.learning_interest || "",
+                        experience: memberSnapshot.experience || "Student",
+                        role: "Applicant",
+                        status: "PENDING",
+                        member_id: null,
+                        agreed_constitution: true,
+                        agreed_ethics: true,
+                        agreed_pdpa: true,
+                        created_at: memberSnapshot.created_at || new Date().toISOString()
+                    };
+                    await _directRestRequest("POST", "/members?on_conflict=username", [seedRow], {
+                        Prefer: "resolution=ignore-duplicates"
+                    });
+                    cloudRecord = await callRpc(memberSnapshot.username);
+                } catch (_) {}
+            }
+
+            // Final direct PATCH fallback
+            if (!cloudRecord) {
+                const patchPayload = {
+                    member_id: memberSnapshot.member_id || this.getNextMemberId(),
+                    status: "ACTIVE",
+                    role: (!memberSnapshot.role || memberSnapshot.role === "Applicant") ? "Member" : memberSnapshot.role,
+                    approved_at: memberSnapshot.approved_at || new Date().toISOString(),
+                    approved_by: adminActor
+                };
+                const patched = await _directRestRequest(
+                    "PATCH",
+                    `/members?username=eq.${encodeURIComponent(memberSnapshot.username)}`,
+                    patchPayload,
+                    { Prefer: "return=representation" }
+                );
+                if (Array.isArray(patched) && patched.length > 0) {
+                    cloudRecord = patched[0];
+                } else {
+                    throw rpcErr;
+                }
+            }
+        }
+
+        if (cloudRecord && cloudRecord.member_id) {
+            _bumpMutation();
+            const latest = this.getMembers();
+            const lIdx = latest.findIndex(
+                x => x.id === memberSnapshot.id || (x.username && x.username === memberSnapshot.username)
+            );
+            if (lIdx !== -1) {
+                latest[lIdx] = {
+                    ...latest[lIdx],
+                    ...cloudRecord,
+                    status: "ACTIVE",
+                    password_hash: latest[lIdx].password_hash || cloudRecord.password_hash
+                };
+                delete latest[lIdx]._unsynced_cloud;
+                this.saveMembers(latest);
+                return latest[lIdx];
+            }
+        }
+        return cloudRecord || memberSnapshot;
+    },
+
+    /**
+     * Cloud-Verified Async Member Approval (Recommended for Admin Portal UI):
+     * Awaits real PostgreSQL persistence before returning so Admin gets 100% accurate confirmation!
+     */
+    async approveMemberAsync(applicantId, adminActor = "willyger") {
+        _bumpMutation();
+        let members = this.getMembers();
+        let index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
+
+        if (index === -1 && _isCloudConfigured()) {
+            await this.syncWithSupabase(true);
+            members = this.getMembers();
+            index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
+        }
+
+        if (index === -1) {
+            throw new Error("Mwombaji huyu hakupatikana. Tafadhali bonyeza 'Onyesha Upya (Refresh Queue)' kisha jaribu tena.");
+        }
+
+        const targetSnapshot = { ...members[index] };
+        if (targetSnapshot.status === "ACTIVE" && targetSnapshot.member_id) {
+            return targetSnapshot;
+        }
+
+        const provisionalId = targetSnapshot.member_id || this.getNextMemberId();
+        const nowIso = new Date().toISOString();
+
+        if (_isCloudConfigured() && typeof fetch === "function") {
+            const committed = await _trackStrictWrite(
+                this._commitApprovalToCloud(
+                    {
+                        ...targetSnapshot,
+                        member_id: provisionalId,
+                        status: "ACTIVE",
+                        role: (!targetSnapshot.role || targetSnapshot.role === "Applicant") ? "Member" : targetSnapshot.role,
+                        approved_at: nowIso,
+                        approved_by: adminActor
+                    },
+                    adminActor
+                )
+            );
+
+            // Mirror audit entry in local cache immediately (RPC already saved it to Supabase)
+            try {
+                const logs = this.getAuditLogs();
+                const finalId = (committed && committed.member_id) || provisionalId;
+                const targetLabel = `${targetSnapshot.username} (${finalId})`;
+                if (!logs.some(l => l.action === "MEMBER_APPROVED" && l.target === targetLabel)) {
+                    logs.unshift({
+                        id: "log_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
+                        action: "MEMBER_APPROVED",
+                        actor: adminActor,
+                        target: targetLabel,
+                        details: `Application approved. Assigned Unique Member ID: ${finalId}. WhatsApp Community gate unlocked.`,
+                        timestamp: nowIso
+                    });
+                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 500)));
+                }
+            } catch (_) {}
+
+            const fresh = this.findMemberById(targetSnapshot.id) || committed;
+            _notifyBroadcast({ type: "MEMBER_APPROVED", id: fresh.id, member_id: fresh.member_id });
+            return fresh;
+        }
+
+        // Pure local offline mode fallback
+        return this.approveMember(applicantId, adminActor);
+    },
+
+    async approveAllPendingAsync(adminActor = "willyger") {
+        const pending = this.getMembers().filter(m => m.status === "PENDING");
+        const approvedList = [];
+        for (const applicant of pending) {
+            const res = await this.approveMemberAsync(applicant.id, adminActor);
+            approvedList.push(res);
+        }
+        return approvedList;
+    },
+
+    async deleteMemberAsync(applicantId, adminActor = "willyger") {
+        _bumpMutation();
+        const members = this.getMembers();
+        const index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
+        if (index === -1) throw new Error("Mwanachama hakupatikana.");
+
+        const member = members[index];
+        if (this.isFounderMember(member)) {
+            throw new Error("Huwezi kufuta akaunti ya Mwanzilishi / Super Administrator!");
+        }
+
+        if (_isCloudConfigured() && typeof fetch === "function") {
+            const client = getSupabaseClient();
+            if (client) {
+                const { error } = await client.from("members").delete().eq("username", member.username);
+                if (error) throw new Error(error.message || "Imeshindikana kufuta kwenye Cloud Database.");
+            } else {
+                await _directRestRequest("DELETE", `/members?username=eq.${encodeURIComponent(member.username)}`);
+            }
+        }
+
+        const latest = this.getMembers().filter(m => m.id !== member.id && m.username !== member.username);
+        this.saveMembers(latest);
+
+        this.addAuditLog({
+            action: "MEMBER_DELETED",
+            actor: adminActor,
+            target: `${member.username} (${member.full_name})`,
+            details: `Record deleted from system by ${adminActor}.`
+        });
+
+        _notifyBroadcast({ type: "MEMBER_DELETED", id: applicantId });
+        return true;
     },
 
     // Update status (e.g. ACTIVE, ON_HOLD, SUSPENDED, INACTIVE, TERMINATED)

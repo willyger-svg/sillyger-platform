@@ -124,6 +124,7 @@
                 <button data-tab="queue" class="admin-nav-tab px-4 py-2.5 rounded-xl bg-purple-600/20 border border-purple-500/50 text-white font-bold text-xs flex items-center gap-2 transition whitespace-nowrap">
                     <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     <span>Maombi Mapya (Queue)</span>
+                    <span id="tab-badge-pending" class="hidden px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 font-mono-sg text-[10px] font-black">0</span>
                 </button>
                 <button data-tab="members" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -158,16 +159,28 @@
             <!-- TAB PANE 1: PENDING APPLICATION REVIEW QUEUE -->
             <div id="tab-pane-queue" class="admin-tab-pane space-y-4">
                 <div id="queue-cloud-mode-banner" class="hidden"></div>
+                <div id="queue-action-feedback" class="hidden"></div>
+
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                         <h2 class="text-xl font-bold text-white">Maombi Mapya Yanayosubiri Ukaguzi (Pending Queue)</h2>
                         <p class="text-xs text-slate-400">
-                            Watu hawa wamejaza fomu na kukubali Katiba v1.4. Ukibonyeza <strong>"Idhinisha"</strong>, mfumo unawapa Unique Member ID mara moja na kufungua kiungo cha WhatsApp!
+                            Watu hawa wamejaza fomu na kukubali Katiba v1.4. Bonyeza <strong>"✓ Idhinisha Sasa"</strong> kuwapa Unique Member ID papo hapo na kuwafungulia WhatsApp Group!
                         </p>
                     </div>
-                    <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button
+                            id="btn-approve-all-pending"
+                            type="button"
+                            onclick="approveAllPendingApplicants()"
+                            class="hidden px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 transition shadow-md shadow-emerald-500/20"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                            <span>Idhinisha Wote (<span id="approve-all-count">0</span>)</span>
+                        </button>
                         <button
                             id="btn-manual-refresh-queue"
+                            type="button"
                             onclick="manualRefreshQueue()"
                             class="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/60 border border-purple-500/50 text-purple-300 hover:text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-500/10"
                         >
@@ -177,7 +190,13 @@
                     </div>
                 </div>
 
-                <div class="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
+                <!-- Mobile Cards View (Zero horizontal scrolling needed on phones) -->
+                <div id="pending-queue-mobile-cards" class="md:hidden space-y-3">
+                    <!-- Populated dynamically via admin-portal.js -->
+                </div>
+
+                <!-- Desktop Table View -->
+                <div class="hidden md:block sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
@@ -645,7 +664,24 @@
                         <span id="dossier-username" class="text-xs font-mono-sg text-cyan-400">@...</span>
                     </div>
                 </div>
-                <button onclick="closeMemberDossier()" class="text-slate-400 hover:text-white p-2 text-lg">✕</button>
+                <button type="button" onclick="closeMemberDossier()" class="text-slate-400 hover:text-white p-2 text-lg">✕</button>
+            </div>
+
+            <!-- Quick 1-Click Approval Banner for PENDING Applicants inside Dossier -->
+            <div id="dossier-pending-banner" class="hidden mb-5 p-4 rounded-2xl border border-emerald-500/40 bg-emerald-950/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <span class="text-[11px] font-mono-sg font-bold text-emerald-400 uppercase block">● INASUBIRI IDHINI (PENDING)</span>
+                    <p class="text-xs text-slate-200 mt-0.5">Mwanafunzi huyu bado hajaidhinishwa. Muidhinishe hapa apate Member ID & WhatsApp Link:</p>
+                </div>
+                <button
+                    type="button"
+                    id="btn-dossier-quick-approve"
+                    onclick="quickApproveFromDossier()"
+                    class="shrink-0 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                    <span>Idhinisha Sasa (Approve)</span>
+                </button>
             </div>
 
             <!-- Member Read-Only Information -->
@@ -742,14 +778,13 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-300 mb-1" for="dossier-audit-reason">
-                        Sababu ya Mabadiliko (Inarekodiwa kwenye Audit Logs) <span class="text-red-400">*</span>
+                        Sababu ya Mabadiliko (Hiari — inarekodiwa kwenye Audit Logs)
                     </label>
                     <input
                         type="text"
                         id="dossier-audit-reason"
                         class="w-full sg-input px-3.5 py-2 rounded-xl text-xs"
                         placeholder="mf. Ameidhinishwa uanachama / Amekamilisha majukumu ya ukufunzi"
-                        required
                     >
                 </div>
 
@@ -757,7 +792,7 @@
                     <button type="button" onclick="closeMemberDossier()" class="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800">
                         Ghairi
                     </button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-500/20">
+                    <button type="submit" id="btn-dossier-save" class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition shadow-lg shadow-purple-500/20">
                         Hifadhi Mabadiliko (Save Changes)
                     </button>
                 </div>
@@ -766,10 +801,43 @@
         </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- MODAL: IN-PAGE CONFIRMATION DIALOG (Immune to popup blockers)  -->
+    <!-- ============================================================== -->
+    <div id="modal-admin-confirm" class="hidden fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="sg-glass p-6 rounded-3xl border border-slate-700 max-w-md w-full space-y-4 shadow-2xl">
+            <div class="flex items-start justify-between gap-3">
+                <h3 id="admin-confirm-title" class="text-base font-extrabold text-white">Thibitisha Kitendo</h3>
+                <button type="button" onclick="resolveAdminConfirm(false)" class="text-slate-400 hover:text-white text-sm px-2">✕</button>
+            </div>
+            <p id="admin-confirm-message" class="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-line"></p>
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                    type="button"
+                    onclick="resolveAdminConfirm(false)"
+                    class="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-xs font-semibold text-slate-300 transition"
+                >
+                    Ghairi
+                </button>
+                <button
+                    type="button"
+                    id="admin-confirm-ok-btn"
+                    onclick="resolveAdminConfirm(true)"
+                    class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold transition shadow-lg"
+                >
+                    Thibitisha
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Toast Notification Banner Container -->
+    <div id="admin-toast-container" class="fixed top-20 right-4 z-[70] flex flex-col gap-2.5 max-w-sm w-[calc(100%-2rem)] pointer-events-none"></div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
-    <script src="js/store.js"></script>
-    <script src="js/admin-portal.js"></script>
+    <script src="js/config.js?v=2.2"></script>
+    <script src="js/store.js?v=2.2"></script>
+    <script src="js/admin-portal.js?v=2.2"></script>
 </body>
 </html>

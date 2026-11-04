@@ -1,10 +1,11 @@
 /**
- * SILLYGER (SG) TV — Live Stream Player & Video Broadcasting Hub (v2.9)
+ * SILLYGER (SG) TV — Live Stream Player & Video Broadcasting Hub (v2.9.1)
  * Handles embedded YouTube playback, real-time live updates, and archive replay.
  */
 
 let currentPlayingVideoId = "";
 let currentPlayingTitle = "";
+let isTvMuted = true;
 
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Mobile navigation menu toggle
@@ -26,15 +27,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         adminBanner.classList.remove("hidden");
     }
 
-    // 4. Initial render from local/cached broadcast state
-    renderTvStage();
+    // 4. Initial render from local/cached broadcast state (do not force recreate iframe)
+    renderTvStage(false);
     renderTvArchive();
 
-    // 5. Background sync with Cloud
+    // 5. Background sync with Cloud (preserves playing iframe if videoId unchanged)
     if (typeof SGStore !== "undefined" && SGStore.syncWithCloud) {
         try {
             await SGStore.syncWithCloud();
-            renderTvStage();
+            renderTvStage(false);
             renderTvArchive();
         } catch (_) {}
     }
@@ -45,7 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             const bc = new BroadcastChannel("sillyger_sync_v2");
             bc.onmessage = (e) => {
                 if (e.data && (e.data.type === "TV_BROADCAST_UPDATED" || e.data.type === "TV_ARCHIVE_UPDATED" || e.data.type === "CLOUD_SYNC_COMPLETE")) {
-                    renderTvStage();
+                    renderTvStage(false);
                     renderTvArchive();
                 }
             };
@@ -57,13 +58,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (typeof SGStore !== "undefined" && SGStore.syncWithCloud) {
             try {
                 await SGStore.syncWithCloud();
-                renderTvStage(false); // don't disrupt current player if same video
+                renderTvStage(false);
             } catch (_) {}
         }
     }, 25000);
 });
 
-function renderTvStage(forceIframeReload = true) {
+function updateAudioButtonState(muted) {
+    const btn = document.getElementById("tv-unmute-btn");
+    const icon = document.getElementById("tv-unmute-icon");
+    const label = document.getElementById("tv-unmute-label");
+    const floatOverlay = document.getElementById("tv-unmute-floating-overlay");
+
+    if (muted) {
+        if (icon) icon.textContent = "🔊";
+        if (label) label.textContent = "Washa Sauti";
+        if (btn) {
+            btn.className = "px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-blue-600/30 active:scale-95";
+        }
+        if (floatOverlay) floatOverlay.classList.remove("hidden");
+    } else {
+        if (icon) icon.textContent = "🔇";
+        if (label) label.textContent = "Zima Sauti";
+        if (btn) {
+            btn.className = "px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center gap-1.5 transition active:scale-95";
+        }
+        if (floatOverlay) floatOverlay.classList.add("hidden");
+    }
+}
+
+function renderTvStage(forceIframeReload = false) {
     const broadcast = typeof SGStore !== "undefined" ? SGStore.getTvBroadcast() : {};
     const playerSlot = document.getElementById("tv-player-slot");
     const statusBadge = document.getElementById("tv-status-badge");
@@ -72,10 +96,11 @@ function renderTvStage(forceIframeReload = true) {
     const descEl = document.getElementById("tv-current-desc");
     const updatedTimeEl = document.getElementById("tv-updated-time");
     const waBtn = document.getElementById("tv-wa-discuss-btn");
+    const floatOverlay = document.getElementById("tv-unmute-floating-overlay");
 
     const isLive = !!broadcast.is_live;
     const videoUrl = broadcast.url || "";
-    const videoId = SGUtils.extractYouTubeId(videoUrl) || broadcast.video_id || "";
+    const videoId = (typeof SGUtils !== "undefined" && SGUtils.extractYouTubeId(videoUrl)) || broadcast.video_id || "";
     const title = broadcast.title || (isLive ? "SILLYGER Live Class" : "SILLYGER TV");
     const desc = broadcast.desc || "Kipindi cha teknolojia na mafunzo ya pamoja kutoka SILLYGER Community.";
 
@@ -108,7 +133,7 @@ function renderTvStage(forceIframeReload = true) {
 
     // Set WhatsApp link
     if (waBtn) {
-        const waLink = SGUtils.getWhatsAppGroupInviteUrl();
+        const waLink = typeof SGUtils !== "undefined" ? SGUtils.getWhatsAppGroupInviteUrl() : null;
         if (waLink) {
             waBtn.href = waLink;
             waBtn.target = "_blank";
@@ -121,22 +146,30 @@ function renderTvStage(forceIframeReload = true) {
     // Render Player iframe
     if (playerSlot) {
         if (videoId) {
-            // Only reload iframe if video changed or requested
-            if (forceIframeReload || currentPlayingVideoId !== videoId) {
+            const existingIframe = document.getElementById("sg-tv-iframe");
+            const needsReload = forceIframeReload || !existingIframe || currentPlayingVideoId !== videoId;
+
+            if (needsReload) {
                 currentPlayingVideoId = videoId;
                 currentPlayingTitle = title;
+                isTvMuted = true; // initial automated page-load starts muted to satisfy modern browser autoplay policies
+
                 playerSlot.innerHTML = `
                     <iframe id="sg-tv-iframe"
                             class="w-full h-full border-0"
-                            src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+                            src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1"
                             title="${SGUtils.escapeHtml(title)}"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
                             allowfullscreen>
                     </iframe>
                 `;
+
+                updateAudioButtonState(true);
             }
         } else {
             currentPlayingVideoId = "";
+            if (floatOverlay) floatOverlay.classList.add("hidden");
             playerSlot.innerHTML = `
                 <div class="text-center p-8 space-y-4 max-w-md">
                     <div class="w-16 h-16 rounded-3xl bg-blue-950/80 border border-blue-500/40 flex items-center justify-center mx-auto text-3xl shadow-xl shadow-blue-500/20">
@@ -217,12 +250,41 @@ function renderTvArchive() {
     }).join("");
 }
 
+window.toggleTvAudio = function () {
+    const iframe = document.getElementById("sg-tv-iframe");
+    if (!iframe) return;
+
+    if (isTvMuted) {
+        // Send postMessage to YouTube player API
+        try {
+            if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "setVolume", args: [100] }), "*");
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+            }
+        } catch (_) {}
+        isTvMuted = false;
+        updateAudioButtonState(false);
+        SGUtils.showToast("🔊 Sauti imewashwa!", "success");
+    } else {
+        try {
+            if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
+            }
+        } catch (_) {}
+        isTvMuted = true;
+        updateAudioButtonState(true);
+        SGUtils.showToast("🔇 Sauti imezimwa.", "info");
+    }
+};
+
 window.playArchiveVideo = function (urlOrId, title, desc) {
     const videoId = SGUtils.extractYouTubeId(urlOrId);
     if (!videoId) return;
 
     currentPlayingVideoId = videoId;
     currentPlayingTitle = title;
+    isTvMuted = false; // direct user click, so unmuted playback is allowed by browsers
 
     const playerSlot = document.getElementById("tv-player-slot");
     const titleEl = document.getElementById("tv-current-title");
@@ -240,17 +302,18 @@ window.playArchiveVideo = function (urlOrId, title, desc) {
         playerSlot.innerHTML = `
             <iframe id="sg-tv-iframe"
                     class="w-full h-full border-0"
-                    src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1&enablejsapi=1"
                     title="${SGUtils.escapeHtml(title)}"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen>
             </iframe>
         `;
     }
 
-    // Smooth scroll up to player
+    updateAudioButtonState(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    SGUtils.showToast(`✓ Inacheza: ${title}`, "info");
+    SGUtils.showToast(`▶ Inacheza: ${title}`, "info");
 };
 
 window.restartCurrentTvVideo = function () {
@@ -260,9 +323,20 @@ window.restartCurrentTvVideo = function () {
     }
     const iframe = document.getElementById("sg-tv-iframe");
     if (iframe) {
-        iframe.src = `https://www.youtube-nocookie.com/embed/${currentPlayingVideoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&t=0`;
-        SGUtils.showToast("✓ Video imeanzishwa upya kuanzia mwanzo!", "info");
+        // Send postMessage restart first
+        try {
+            if (iframe.contentWindow) {
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "seekTo", args: [0, true] }), "*");
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "unMute", args: [] }), "*");
+                iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+            }
+        } catch (_) {}
+        // Also reload src with unmuted autoplay to guarantee instant fresh start
+        iframe.src = `https://www.youtube.com/embed/${currentPlayingVideoId}?autoplay=1&mute=0&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&t=0`;
     }
+    isTvMuted = false;
+    updateAudioButtonState(false);
+    SGUtils.showToast("⏮️ Video inacheza mwanzo na sauti!", "info");
 };
 
 window.refreshTvStream = async function () {
@@ -272,7 +346,7 @@ window.refreshTvStream = async function () {
             await SGStore.syncWithCloud();
         } catch (_) {}
     }
-    renderTvStage(true);
+    renderTvStage(true); // force reload iframe on manual click
     renderTvArchive();
     SGUtils.showToast("✓ SILLYGER TV imesasishwa!", "success");
 };

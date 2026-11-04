@@ -251,6 +251,15 @@ function renderSuperAdminDashboard(adminUser) {
 
     refreshAdminTelemetry();
     setupAdminTabs();
+
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedTab = urlParams.get("tab") || window.location.hash.replace("#", "").replace("tab-pane-", "").replace("admin-pane-", "");
+        if (requestedTab && document.getElementById(`tab-pane-${requestedTab}`)) {
+            currentActiveTab = requestedTab;
+        }
+    } catch (_) {}
+
     switchAdminTab(currentActiveTab);
 }
 
@@ -1519,8 +1528,10 @@ function renderAdminTvPreview(urlOrId, isLive) {
     if (videoId) {
         previewSlot.innerHTML = `
             <iframe class="w-full h-full border-0 rounded-xl"
-                    src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1"
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&playsinline=1"
                     title="SILLYGER TV Preview"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
                     allowfullscreen>
             </iframe>
         `;

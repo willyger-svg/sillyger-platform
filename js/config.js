@@ -151,14 +151,37 @@ const SGUtils = {
         if (!input) return null;
         input = String(input).trim();
         if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
-        const m = input.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/))([a-zA-Z0-9_-]{11})/i);
-        return m ? m[1] : null;
+        const m = input.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?.*v=|live\/|shorts\/))([a-zA-Z0-9_-]{11})/i);
+        if (m && m[1]) return m[1];
+        try {
+            const url = new URL(input.startsWith("http") ? input : "https://" + input);
+            if (url.searchParams.has("v")) {
+                const v = url.searchParams.get("v");
+                if (/^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+            }
+            const parts = url.pathname.split("/").filter(Boolean);
+            const lastPart = parts[parts.length - 1];
+            if (lastPart && /^[a-zA-Z0-9_-]{11}$/.test(lastPart)) {
+                return lastPart;
+            }
+        } catch (_) {}
+        return null;
     },
 
-    getYouTubeEmbedUrl(input, autoplay = true) {
+    getYouTubeEmbedUrl(input, options = {}) {
         const id = this.extractYouTubeId(input);
         if (!id) return "";
-        return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+        const autoplay = typeof options === "object" ? (options.autoplay !== false) : !!options;
+        const mute = typeof options === "object" ? !!options.mute : false;
+        const params = new URLSearchParams({
+            autoplay: autoplay ? "1" : "0",
+            playsinline: "1",
+            rel: "0",
+            modestbranding: "1",
+            enablejsapi: "1"
+        });
+        if (mute) params.set("mute", "1");
+        return `https://www.youtube.com/embed/${id}?${params.toString()}`;
     },
 
     getYouTubeThumbnail(input, quality = "hqdefault") {
@@ -203,23 +226,15 @@ const SG_CONFIG = {
     },
 
     extractYouTubeId(input) {
-        if (!input) return null;
-        input = String(input).trim();
-        if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
-        const m = input.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/))([a-zA-Z0-9_-]{11})/i);
-        return m ? m[1] : null;
+        return typeof SGUtils !== "undefined" ? SGUtils.extractYouTubeId(input) : null;
     },
 
-    getYouTubeEmbedUrl(input, autoplay = true) {
-        const id = this.extractYouTubeId(input);
-        if (!id) return "";
-        return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+    getYouTubeEmbedUrl(input, options = {}) {
+        return typeof SGUtils !== "undefined" ? SGUtils.getYouTubeEmbedUrl(input, options) : "";
     },
 
     getYouTubeThumbnail(input, quality = "hqdefault") {
-        const id = this.extractYouTubeId(input);
-        if (!id) return "assets/sillyger-logo-icon.png";
-        return `https://img.youtube.com/vi/${id}/${quality}.jpg`;
+        return typeof SGUtils !== "undefined" ? SGUtils.getYouTubeThumbnail(input, quality) : "assets/sillyger-logo-icon.png";
     },
 
     // Storage keys for local-first / hybrid persistence

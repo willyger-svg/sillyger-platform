@@ -759,36 +759,251 @@ function renderPortalCourses() {
 }
 
 // -----------------------------------------------------------------------
-// PROFILE DETAILS & SUPPORT TICKETS TAB
+// PROFILE DETAILS & SUPPORT TICKETS TAB (UPGRADED STUDENT PROFILE)
 // -----------------------------------------------------------------------
 function renderProfileAndTickets(member) {
-    const profileGrid = document.getElementById("profile-details-grid");
-    if (profileGrid) {
-        const note = member.learning_interest || member.motivation || "Hakuna maelezo ya ziada";
-        profileGrid.innerHTML = `
-            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
-                <span class="text-slate-500 block mb-0.5">Jina Kamili</span>
-                <span class="font-bold text-white text-sm">${_esc(member.full_name)}</span>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
-                <span class="text-slate-500 block mb-0.5">Username & SG-ID</span>
-                <span class="font-mono-sg font-bold text-blue-400">@${_esc(member.username)} · ${_esc(member.member_id || "PENDING")}</span>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
-                <span class="text-slate-500 block mb-0.5">Barua Pepe (Email)</span>
-                <span class="text-slate-200 font-mono-sg">${_esc(member.email)}</span>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
-                <span class="text-slate-500 block mb-0.5">Namba ya WhatsApp</span>
-                <span class="text-emerald-400 font-mono-sg font-bold">${_esc(member.phone)}</span>
-            </div>
-            <div class="sm:col-span-2 p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
-                <span class="text-slate-500 block mb-0.5">Mada Unayopenda / Ujumbe Wako</span>
-                <span class="text-slate-300">${_esc(note)}</span>
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
+    const isSuperAdmin = SGStore.isSuperAdmin(member);
+    const safeName = _esc(member.full_name || "Mwanafunzi");
+    const safeFirst = _esc((member.full_name || "Mwanafunzi").split(" ")[0]);
+    const safeUsername = _esc(member.username || "mwanafunzi");
+    const safeId = _esc(member.member_id || "SG-PENDING");
+    const safeEmail = _esc(member.email || "—");
+    const safePhone = _esc(member.phone || "—");
+    const waDigits = String(member.phone || "").replace(/[^0-9]/g, "");
+    const joinedDate = SGUtils.formatDateSw(member.created_at, true);
+    const interestNote = member.learning_interest || member.motivation || "Hakuna maelezo ya ziada yaliyowekwa";
+
+    const initials = (member.full_name || "SG")
+        .split(" ")
+        .filter(Boolean)
+        .map(w => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+
+    // 1. Profile Hero Card
+    const heroSlot = document.getElementById("profile-hero-card");
+    if (heroSlot) {
+        heroSlot.innerHTML = `
+            <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/35 bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-950 shadow-2xl relative overflow-hidden space-y-6">
+                <!-- Background ambient decorative glow -->
+                <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-blue-600/10 blur-3xl pointer-events-none"></div>
+
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                    <div class="flex items-start sm:items-center gap-4 sm:gap-5">
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-0.5 shadow-xl shadow-blue-600/30 shrink-0">
+                            <div class="w-full h-full rounded-[22px] bg-slate-950 flex items-center justify-center font-mono-sg text-xl sm:text-2xl font-black text-white relative">
+                                <span>${_esc(initials)}</span>
+                                <span class="absolute bottom-1 right-1 w-3 h-3 rounded-full ${isActive ? "bg-emerald-400 ring-2 ring-slate-950 animate-pulse" : "bg-amber-400 ring-2 ring-slate-950"}"></span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1 min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h2 class="text-xl sm:text-2xl font-extrabold text-white truncate">${safeName}</h2>
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase ${isActive ? "badge-active" : "badge-pending"}">
+                                    ${isActive ? "✓ ACTIVE STUDENT" : "⏳ PENDING APPROVAL"}
+                                </span>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-2 text-xs font-mono-sg text-slate-400">
+                                <span class="text-blue-400 font-bold">@${safeUsername}</span>
+                                <span>•</span>
+                                <button type="button" onclick="copyStudentId()" class="text-slate-300 hover:text-white inline-flex items-center gap-1 bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800" title="Bofya kunakili">
+                                    <span>${safeId}</span>
+                                    <span class="text-[10px] text-blue-400">📋</span>
+                                </button>
+                                <span>•</span>
+                                <span class="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/40 text-purple-300 text-[10px] font-bold">
+                                    ${_esc(member.role || "Member")}
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 flex items-center gap-1.5 pt-0.5">
+                                <span class="text-emerald-400">🛡️</span>
+                                <span>Sheria ya Ulinzi wa Taarifa Binafsi (PDPA 2022) Imethibitishwa</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                        <button type="button" onclick="openEditProfileModal()" class="px-4 py-2.5 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 hover:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm">
+                            <span>✏️</span>
+                            <span>Hariri Wasifu</span>
+                        </button>
+                        <button type="button" onclick="printStudentIdBadge()" class="px-4 py-2.5 rounded-2xl btn-sg-primary text-xs flex items-center gap-1.5 shadow-md">
+                            <span>🖨️</span>
+                            <span>Print ID</span>
+                        </button>
+                        <button type="button" onclick="openModal('modal-change-password')" class="px-3.5 py-2.5 rounded-2xl border border-slate-700 hover:border-slate-500 bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-semibold transition" title="Badili Nenosiri">
+                            <span>🔒</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         `;
     }
 
+    // 2. Profile Details Grid
+    const profileGrid = document.getElementById("profile-details-grid");
+    if (profileGrid) {
+        profileGrid.innerHTML = `
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-slate-500 block uppercase">Jina Kamili</span>
+                <span class="font-bold text-white text-sm block">${safeName}</span>
+                <span class="text-[10px] text-slate-500">Kama linavyoonekana kwenye vyeti na vitambulisho</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-slate-500 block uppercase">Namba ya SG-ID</span>
+                <div class="flex items-center justify-between">
+                    <span class="font-mono-sg font-extrabold text-sm ${isActive ? "text-emerald-400" : "text-amber-400"}">${safeId}</span>
+                    <button type="button" onclick="copyStudentId()" class="text-[11px] text-blue-400 hover:text-white font-mono-sg">Nakili</button>
+                </div>
+                <span class="text-[10px] text-slate-500">Kitambulisho cha kudumu cha jumuiya</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-slate-500 block uppercase">Barua Pepe (Email)</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-slate-200 font-mono-sg text-xs truncate">${safeEmail}</span>
+                    <span class="text-emerald-400 text-xs shrink-0" title="Imethibitishwa">✓</span>
+                </div>
+                <span class="text-[10px] text-slate-500">Inatumika kwa ajili ya kuingia na taarifa rasmi</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-slate-500 block uppercase">Namba ya WhatsApp</span>
+                <div class="flex items-center justify-between gap-1">
+                    <span class="text-emerald-400 font-mono-sg font-bold text-xs">${safePhone}</span>
+                    ${waDigits ? `
+                        <a href="https://wa.me/${waDigits}" target="_blank" rel="noopener noreferrer" class="text-[11px] text-emerald-400 hover:underline font-mono-sg">
+                            Chat &rarr;
+                        </a>
+                    ` : ""}
+                </div>
+                <span class="text-[10px] text-slate-500">Imesajiliwa kwa ajili ya WhatsApp Learning Group</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-slate-500 block uppercase">Tarehe ya Kujiunga</span>
+                <span class="text-slate-200 text-xs font-mono-sg block">${_esc(joinedDate)}</span>
+                <span class="text-[10px] text-slate-500">Kulingana na rekodi za mfumo</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-slate-500 block uppercase">Haki na Majukumu (RBAC)</span>
+                <span class="text-purple-300 font-bold text-xs block">${_esc(member.role || "Member")}</span>
+                <span class="text-[10px] text-slate-500">Kwa mujibu wa Katiba ya SILLYGER v1.4</span>
+            </div>
+
+            <div class="sm:col-span-2 p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-mono-sg text-slate-500 uppercase">Mada Unazopenda Kujifunza / Malengo Yako</span>
+                    <button type="button" onclick="openEditProfileModal()" class="text-[11px] text-blue-400 hover:underline">Badili &rarr;</button>
+                </div>
+                <p class="text-slate-200 text-xs leading-relaxed bg-slate-900/50 p-3 rounded-xl border border-slate-800/60">${_esc(interestNote)}</p>
+            </div>
+        `;
+    }
+
+    // 3. Security & Account Protection Grid
+    const securityGrid = document.getElementById("profile-security-grid");
+    if (securityGrid) {
+        securityGrid.innerHTML = `
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-emerald-400 block font-bold">🔒 SHA-256 PASSWORD HASHING</span>
+                <p class="text-[11px] text-slate-300">Nenosiri lako halihifadhiwi wazi (plaintext). Linahifadhiwa kama cryptographic hash yenye salt salama.</p>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-blue-400 block font-bold">🛡️ SERVER SESSION SHIELD</span>
+                <p class="text-[11px] text-slate-300">Kikao chako kinalindwa na token ya muda ya seva kupitia PostgreSQL SECURITY DEFINER RPCs.</p>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-indigo-400 block font-bold">📜 PDPA 2022 COMPLIANT</span>
+                <p class="text-[11px] text-slate-300">Taarifa zako za simu na email zinalindwa kwa mujibu wa Sheria ya Ulinzi wa Taarifa Binafsi Tanzania.</p>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1">
+                <span class="text-[11px] font-mono-sg text-amber-400 block font-bold">💬 GATED WHATSAPP ACCESS</span>
+                <p class="text-[11px] text-slate-300">${isActive ? "Kiungo cha WhatsApp kiko wazi kwa ajili yako." : "Kinafunguka mara baada ya kupokea SG-ID rasmi."}</p>
+            </div>
+        `;
+    }
+
+    // 4. Digital Student ID Printable Showcase Slot
+    const idSlot = document.getElementById("profile-student-id-slot");
+    if (idSlot) {
+        idSlot.innerHTML = `
+            <div id="sg-printable-id-card" class="p-5 sm:p-6 rounded-3xl border ${isActive ? "border-blue-500/50 bg-gradient-to-br from-blue-950/80 via-slate-900 to-indigo-950/70" : "border-slate-700 bg-slate-900"} shadow-2xl relative overflow-hidden space-y-4">
+                <!-- Watermark Logo -->
+                <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none font-mono-sg text-9xl font-black text-white">SG</div>
+
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white text-sm shadow-md">
+                            SG
+                        </div>
+                        <div>
+                            <span class="text-xs font-black text-white tracking-widest block leading-none">SILLYGER</span>
+                            <span class="text-[9px] font-mono-sg text-blue-300 uppercase tracking-widest">Student Community ID</span>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-mono-sg font-bold ${isActive ? "badge-active" : "badge-pending"}">
+                        ${isActive ? "VERIFIED MEMBER" : "PENDING"}
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-3.5 pt-1">
+                    <div class="w-12 h-12 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center font-mono-sg text-base font-black text-blue-300 shrink-0">
+                        ${_esc(initials)}
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-sm font-extrabold text-white truncate">${safeName}</h4>
+                        <span class="text-xs font-mono-sg text-blue-400 block">@${safeUsername}</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono-sg">
+                    <div>
+                        <span class="text-[9px] text-slate-400 block uppercase">Student ID</span>
+                        <span class="font-extrabold ${isActive ? "text-emerald-400" : "text-amber-400"}">${safeId}</span>
+                    </div>
+                    <div>
+                        <span class="text-[9px] text-slate-400 block uppercase">Toleo la Katiba</span>
+                        <span class="text-slate-200">Charter v1.4</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex items-center justify-between text-[10px] font-mono-sg text-slate-400 border-t border-slate-800/60">
+                    <span>Tanzania · PDPA 2022</span>
+                    <span class="text-emerald-400 font-bold">● Active 2026/27</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // 5. Direct Super Admin WhatsApp CTA
+    const waCtaSlot = document.getElementById("profile-admin-wa-cta");
+    if (waCtaSlot) {
+        const adminPhone = "255750449373";
+        const helpMessage = encodeURIComponent(
+            `Habari Super Admin William! Mimi ni ${member.full_name || ""} (@${member.username || ""}), kitambulisho changu ni *${member.member_id || "PENDING"}* kwenye SILLYGER Platform. Nahitaji msaada kuhusu:`
+        );
+        waCtaSlot.innerHTML = `
+            <a href="https://wa.me/${adminPhone}?text=${helpMessage}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-md">
+                <span>💬 Tuma Ujumbe WhatsApp kwa Admin</span>
+                <span>&rarr;</span>
+            </a>
+        `;
+    }
+
+    // 6. Support Tickets List
     const listEl = document.getElementById("member-tickets-list");
     if (!listEl) return;
 
@@ -800,7 +1015,7 @@ function renderProfileAndTickets(member) {
     if (tickets.length === 0) {
         listEl.innerHTML = `
             <div class="p-5 rounded-2xl bg-slate-950/50 border border-slate-800/80 text-center text-xs text-slate-500 font-mono-sg">
-                Hujatuma swali au tiketi yoyote bado. Bofya "+ Tuma Swali / Ombi" ukiwa na uhitaji.
+                Hujatuma swali au tiketi yoyote bado. Bofya "+ Tuma Swali / Tiketi Mpya" ukiwa na jambo lolote.
             </div>
         `;
         return;
@@ -812,15 +1027,50 @@ function renderProfileAndTickets(member) {
                 <span class="font-bold text-white">${_esc(t.subject)} <span class="text-slate-500 font-mono-sg text-[10px]">(${_esc(t.category)})</span></span>
                 <span class="px-2 py-0.5 rounded font-mono-sg text-[10px] font-bold ${t.status === "RESOLVED" ? "badge-active" : "badge-pending"}">${_esc(t.status)}</span>
             </div>
-            <p class="text-slate-300 text-[11px]">${_esc(t.message)}</p>
+            <p class="text-slate-300 text-[11px] leading-relaxed">${_esc(t.message)}</p>
             ${t.response ? `
-                <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-emerald-300">
-                    <strong>Jibu la Admin (${_esc(t.responded_by || "Admin")}):</strong> ${_esc(t.response)}
+                <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-emerald-300 leading-relaxed bg-emerald-950/20 p-2.5 rounded-xl border border-emerald-500/20">
+                    <strong>Jibu la Admin (${_esc(t.responded_by || "Super Admin")}):</strong> ${_esc(t.response)}
                 </div>
-            ` : ""}
+            ` : `
+                <div class="text-[10px] font-mono-sg text-slate-500 pt-1">⏳ Tiketi yako inafanyiwa kazi na Admin.</div>
+            `}
         </div>
     `).join("");
 }
+
+// -----------------------------------------------------------------------
+// EDIT PROFILE & PRINT ID HELPERS
+// -----------------------------------------------------------------------
+window.openEditProfileModal = function () {
+    const session = SGStore.getCurrentSession();
+    if (!session) return;
+    const member = SGStore.findMemberById(session.id) || session;
+
+    const nameInput = document.getElementById("ep-fullname");
+    const phoneInput = document.getElementById("ep-phone");
+    const phonePreview = document.getElementById("ep-phone-preview");
+    const interestInput = document.getElementById("ep-interest");
+    const errBox = document.getElementById("edit-profile-error");
+
+    if (nameInput) nameInput.value = member.full_name || "";
+    if (phoneInput) phoneInput.value = member.phone || "";
+    if (interestInput) interestInput.value = member.learning_interest || member.motivation || "";
+    if (errBox) {
+        errBox.classList.add("hidden");
+        errBox.textContent = "";
+    }
+    if (phonePreview && member.phone) {
+        phonePreview.textContent = `✓ Namba itahifadhiwa kama: ${member.phone}`;
+        phonePreview.className = "text-[11px] font-mono-sg text-emerald-400 mt-1";
+    }
+
+    openModal("modal-edit-profile");
+};
+
+window.printStudentIdBadge = function () {
+    window.print();
+};
 
 // -----------------------------------------------------------------------
 // INTERACTIVE FORMS
@@ -956,6 +1206,95 @@ function setupPortalForms() {
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = orig;
+                }
+            }
+        });
+    }
+
+    // Live Tanzania WhatsApp Phone Auto-Formatter in Edit Profile Modal
+    const epPhoneInput = document.getElementById("ep-phone");
+    const epPhonePreview = document.getElementById("ep-phone-preview");
+    if (epPhoneInput && epPhonePreview) {
+        epPhoneInput.addEventListener("input", (e) => {
+            const raw = e.target.value.trim();
+            if (!raw) {
+                epPhonePreview.textContent = "Format: +255XXXXXXXXX";
+                epPhonePreview.className = "text-[11px] font-mono-sg text-slate-500 mt-1";
+                return;
+            }
+            const normalized = SGStore.normalizePhone(raw);
+            const isValid = SGStore.isValidTzPhone(normalized);
+            if (isValid) {
+                epPhonePreview.textContent = `✓ Namba itahifadhiwa kama: ${normalized}`;
+                epPhonePreview.className = "text-[11px] font-mono-sg text-emerald-400 mt-1";
+            } else {
+                epPhonePreview.textContent = `Format sahihi: +2557XXXXXXXX au 07XXXXXXXX (${normalized})`;
+                epPhonePreview.className = "text-[11px] font-mono-sg text-amber-400 mt-1";
+            }
+        });
+    }
+
+    // Edit Profile Form Submission Handler
+    const editProfileForm = document.getElementById("form-edit-profile");
+    if (editProfileForm) {
+        editProfileForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const errBox = document.getElementById("edit-profile-error");
+            if (errBox) {
+                errBox.classList.add("hidden");
+                errBox.textContent = "";
+            }
+
+            const fullName = document.getElementById("ep-fullname").value.trim();
+            const rawPhone = document.getElementById("ep-phone").value.trim();
+            const interest = document.getElementById("ep-interest").value.trim();
+
+            if (!fullName || fullName.length < 3) {
+                if (errBox) {
+                    errBox.textContent = "Tafadhali weka jina lako kamili (angalau herufi 3).";
+                    errBox.classList.remove("hidden");
+                }
+                return;
+            }
+
+            const normalizedPhone = SGStore.normalizePhone(rawPhone);
+            if (!SGStore.isValidTzPhone(normalizedPhone)) {
+                if (errBox) {
+                    errBox.textContent = "Namba ya WhatsApp si sahihi kwa Tanzania. Weka muundo wa 07XXXXXXXX au +2557XXXXXXXX.";
+                    errBox.classList.remove("hidden");
+                }
+                return;
+            }
+
+            const submitBtn = editProfileForm.querySelector('button[type="submit"]');
+            const orig = submitBtn ? submitBtn.innerHTML : "";
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = `<span>Inahifadhi...</span>`;
+            }
+
+            try {
+                const updatedSession = await SGStore.updateOwnProfileAsync({
+                    fullName,
+                    phone: normalizedPhone,
+                    learningInterest: interest
+                });
+                await SGStore.flushPendingWrites();
+
+                closeModal("modal-edit-profile");
+                SGUtils.showToast("✓ Wasifu wako umesasishwa kikamilifu!", "success");
+
+                // Immediately refresh all dashboard sections with fresh data
+                renderMemberDashboard(updatedSession);
+            } catch (err) {
+                if (errBox) {
+                    errBox.textContent = err.message || "Hitilafu imetokea wakati wa kusasisha wasifu.";
+                    errBox.classList.remove("hidden");
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = orig;
                 }
             }
         });

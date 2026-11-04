@@ -162,3 +162,34 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #3b82f6;
 }
+
+/* ==========================================================================
+ * PRINT OPTIMIZATION FOR DIGITAL STUDENT ID BADGE
+ * ========================================================================== */
+@media print {
+    body * {
+        visibility: hidden !important;
+    }
+    #sg-printable-id-card,
+    #sg-printable-id-card * {
+        visibility: visible !important;
+    }
+    #sg-printable-id-card {
+        position: fixed !important;
+        left: 50% !important;
+        top: 40% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90mm !important;
+        max-width: 90mm !important;
+        margin: 0 auto !important;
+        background: #0b1120 !important;
+        color: #ffffff !important;
+        border: 2px solid #3b82f6 !important;
+        border-radius: 16px !important;
+        box-shadow: none !important;
+        padding: 20px !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+

@@ -178,7 +178,11 @@ const SGUtils = {
             playsinline: "1",
             rel: "0",
             modestbranding: "1",
-            enablejsapi: "1"
+            enablejsapi: "1",
+            controls: "1",
+            iv_load_policy: "3",
+            loop: "1",
+            playlist: id
         });
         if (mute) params.set("mute", "1");
         return `https://www.youtube.com/embed/${id}?${params.toString()}`;

@@ -115,12 +115,12 @@
             <!-- ========================================================== -->
             <!-- MAIN CINEMA SCREEN (16:9 THEATER PLAYER)                  -->
             <!-- ========================================================== -->
-            <div class="sg-glass p-3 sm:p-5 rounded-3xl border border-blue-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900">
+            <div id="tv-theater-container" class="sg-glass p-3 sm:p-5 rounded-3xl border border-blue-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900">
                 <!-- Background Ambient Glow -->
                 <div class="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-blue-600/15 blur-3xl pointer-events-none"></div>
 
                 <!-- Video Player Container (Strict 16:9 Aspect Ratio) -->
-                <div class="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center">
+                <div id="tv-screen-box" class="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center">
                     <!-- Dynamic Video Slot (iframe or standby screen) -->
                     <div id="tv-player-slot" class="w-full h-full flex items-center justify-center">
                         <div class="text-center p-6 space-y-3">
@@ -132,6 +132,12 @@
                         </div>
                     </div>
 
+                    <!-- TV Watermark / Station Identifier Bug (Top-Right) -->
+                    <div id="tv-station-badge" class="hidden absolute top-3.5 right-3.5 z-20 pointer-events-none select-none flex items-center gap-1.5 px-3 py-1 rounded-lg bg-black/75 backdrop-blur-md border border-white/10 text-[10px] font-mono-sg font-bold text-white shadow-xl">
+                        <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        <span class="tracking-wider">SILLYGER TV · CH-1</span>
+                    </div>
+
                     <!-- Floating Audio Unmute Pill Overlay (Visible when video starts muted by browser policy) -->
                     <div id="tv-unmute-floating-overlay" class="hidden absolute bottom-4 left-4 z-20 pointer-events-auto">
                         <button type="button" onclick="toggleTvAudio()" class="px-4 py-2 rounded-full bg-blue-600/95 hover:bg-blue-500 text-white font-bold text-xs shadow-2xl backdrop-blur flex items-center gap-2 transition hover:scale-105 active:scale-95 border border-blue-400/40">
@@ -141,14 +147,14 @@
                     </div>
                 </div>
 
-                <!-- Stream Meta Info & Live Actions Bar -->
-                <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <!-- Stream Meta Info & TV Broadcast Controls Toolbar -->
+                <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div class="space-y-1.5 min-w-0">
                         <div class="flex flex-wrap items-center gap-2">
                             <span id="tv-indicator-pill" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase bg-slate-800 text-slate-300">
                                 OFFLINE
                             </span>
-                            <span id="tv-category-tag" class="text-xs font-mono-sg text-blue-400">SILLYGER Tech Session</span>
+                            <span id="tv-category-tag" class="text-xs font-mono-sg text-blue-400">Live Station</span>
                             <span class="text-slate-600">•</span>
                             <span id="tv-updated-time" class="text-[11px] font-mono-sg text-slate-400">—</span>
                         </div>
@@ -156,25 +162,48 @@
                             SILLYGER TV Live Broadcast
                         </h2>
                         <p id="tv-current-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
-                            Karibu kwenye kituo cha matangazo ya video na madarasa ya moja kwa moja ya wanafunzi wa SILLYGER Community.
+                            Karibu kwenye kituo rasmi cha matangazo ya video na madarasa ya moja kwa moja ya wanafunzi wa SILLYGER Community.
                         </p>
                     </div>
 
-                    <!-- Direct Actions (Audio, Restart, WhatsApp Chat, Share) -->
+                    <!-- Direct TV Controls (Audio, Volume Slider, Fullscreen, WhatsApp Chat, Share) -->
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <!-- Mute / Unmute Button -->
                         <button type="button" id="tv-unmute-btn" onclick="toggleTvAudio()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-blue-600/30 active:scale-95" title="Washa au zima sauti ya video">
                             <span id="tv-unmute-icon">🔊</span>
                             <span id="tv-unmute-label">Washa Sauti</span>
                         </button>
+
+                        <!-- TV Volume Level Controller (0 - 100%) -->
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs shadow-inner">
+                            <span class="text-slate-400 text-[11px] font-mono-sg">🎚️ Sauti</span>
+                            <input type="range" id="tv-volume-slider" min="0" max="100" value="100" 
+                                   oninput="setTvVolume(this.value)" 
+                                   class="w-16 sm:w-24 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                   title="Rekebisha sauti (0 - 100%)">
+                            <span id="tv-volume-percent" class="font-mono-sg text-[10px] text-blue-400 font-bold w-7 text-right">100%</span>
+                        </div>
+
+                        <!-- Fullscreen Button -->
+                        <button type="button" onclick="toggleTvFullscreen()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Tazama Skrini Nzima (Fullscreen)">
+                            <span>⛶</span>
+                            <span class="hidden sm:inline">Skrini Nzima</span>
+                        </button>
+
+                        <!-- Rewind to Start -->
                         <button type="button" onclick="restartCurrentTvVideo()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Rudia video kuanzia mwanzo">
                             <span>⏮️</span>
-                            <span>Cheza Mwanzo</span>
+                            <span class="hidden sm:inline">Mwanzo</span>
                         </button>
+
+                        <!-- WhatsApp Discussion Link -->
                         <a id="tv-wa-discuss-btn" href="member-portal.html" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95" title="Jiunge na majadiliano ya WhatsApp kuhusu kipindi hiki">
                             <span>💬</span>
-                            <span>Jadili WhatsApp</span>
+                            <span class="hidden sm:inline">Jadili</span> WhatsApp
                         </a>
-                        <button type="button" onclick="copyTvPageLink()" class="px-3 py-2 rounded-xl bg-blue-950/60 hover:bg-blue-900/60 border border-blue-500/30 text-blue-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Nakili kiungo cha ukurasa huu">
+
+                        <!-- Share Link -->
+                        <button type="button" onclick="copyTvPageLink()" class="px-3 py-2 rounded-xl bg-blue-950/60 hover:bg-blue-900/60 border border-blue-500/30 text-blue-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Nakili kiungo cha SILLYGER TV">
                             <span>🔗</span>
                             <span>Shiriki</span>
                         </button>
@@ -183,20 +212,38 @@
             </div>
 
             <!-- ========================================================== -->
-            <!-- SILLYGER TV VIDEO ARCHIVE & ON-DEMAND PLAYLIST            -->
+            <!-- SILLYGER TV CHANNEL GUIDE & TRANSMISSION STANDARDS         -->
             <!-- ========================================================== -->
-            <div class="space-y-5">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
-                    <div>
-                        <span class="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block">ON-DEMAND REPLAYS · MAKTABA YA VIPINDI</span>
-                        <h3 class="text-xl font-bold text-white">Vipindi na Madarasa Yaliyopita</h3>
+            <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-950/80 via-sgcard/60 to-slate-950/80">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="space-y-2 max-w-2xl">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                            <span class="font-mono-sg text-xs font-bold text-blue-400 uppercase tracking-widest">Kituo Rasmi cha SILLYGER TV (Channel 1)</span>
+                        </div>
+                        <h3 class="text-xl font-extrabold text-white">Matangazo Moja kwa Moja ya Jumuiya</h3>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                            SILLYGER TV inarusha vipindi vya teknolojia, madarasa ya coding, cybersecurity, mifumo na mihadhara ya wanafunzi moja kwa moja. Matangazo haya yanadhibitiwa na msimamizi na wanachama wote wanatazama kipindi kimoja kwa wakati mmoja bila kuingiliwa na video nyingine.
+                        </p>
                     </div>
-                    <p class="text-xs text-slate-400">Bofya video yoyote hapa chini kuitazama hapo juu mwanzo hadi mwisho.</p>
-                </div>
-
-                <!-- Archive Cards Grid -->
-                <div id="tv-archive-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <!-- Populated dynamically by js/tv.js -->
+                    <div class="grid grid-cols-2 gap-3 shrink-0 text-center font-mono-sg text-xs">
+                        <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80">
+                            <span class="text-slate-400 block text-[10px] uppercase">Mfumo</span>
+                            <span class="text-emerald-400 font-bold">Synchronized Live</span>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80">
+                            <span class="text-slate-400 block text-[10px] uppercase">Ubora</span>
+                            <span class="text-blue-400 font-bold">1080p HD Ready</span>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80">
+                            <span class="text-slate-400 block text-[10px] uppercase">Ufikiaji</span>
+                            <span class="text-purple-400 font-bold">Bure & Wazi</span>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800/80">
+                            <span class="text-slate-400 block text-[10px] uppercase">Miongozo</span>
+                            <span class="text-amber-400 font-bold">Katiba v1.4</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -233,8 +280,8 @@
 
     <!-- Core Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js?v=2.9.3"></script>
-    <script src="js/store.js?v=2.9.3"></script>
-    <script src="js/tv.js?v=2.9.3"></script>
+    <script src="js/config.js?v=2.9.4"></script>
+    <script src="js/store.js?v=2.9.4"></script>
+    <script src="js/tv.js?v=2.9.4"></script>
 </body>
 </html>

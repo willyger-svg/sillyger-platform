@@ -333,7 +333,13 @@ function renderGreetingAndIdentity(member) {
         .slice(0, 2)
         .join("")
         .toUpperCase();
-    if (el("dash-avatar")) el("dash-avatar").textContent = initials || "SG";
+    if (el("dash-avatar")) {
+        if (member.avatar_url) {
+            el("dash-avatar").innerHTML = `<img src="${_esc(member.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-2xl">`;
+        } else {
+            el("dash-avatar").textContent = initials || "SG";
+        }
+    }
     if (el("dash-full-name")) el("dash-full-name").textContent = member.full_name || "...";
     if (el("dash-username")) el("dash-username").textContent = "@" + (member.username || "...");
 
@@ -553,10 +559,17 @@ function renderDigitalStudentIdCard(member) {
                 </span>
             </div>
 
-            <div class="space-y-1 pt-1">
-                <span class="text-[10px] font-mono-sg text-slate-400 uppercase block">Jina la Mwanafunzi</span>
-                <p class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">${_esc(member.full_name)}</p>
-                <p class="text-xs font-mono-sg text-blue-400">@${_esc(member.username)}</p>
+            <div class="flex items-center gap-3.5 pt-1">
+                <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center font-mono-sg text-base font-black text-blue-300 shrink-0 overflow-hidden shadow-inner">
+                    ${member.avatar_url
+                        ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover">`
+                        : `<span>${_esc(initials)}</span>`}
+                </div>
+                <div class="space-y-0.5 min-w-0">
+                    <span class="text-[9px] font-mono-sg text-slate-400 uppercase block">Jina la Mwanafunzi</span>
+                    <p class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">${_esc(member.full_name)}</p>
+                    <p class="text-xs font-mono-sg text-blue-400">@${_esc(member.username)}</p>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 text-xs font-mono-sg">
@@ -785,6 +798,10 @@ function renderProfileAndTickets(member) {
     // 1. Profile Hero Card
     const heroSlot = document.getElementById("profile-hero-card");
     if (heroSlot) {
+        const avatarImageHtml = member.avatar_url
+            ? `<img src="${_esc(member.avatar_url)}" alt="${safeName}" class="w-full h-full object-cover rounded-[22px]">`
+            : `<span>${_esc(initials)}</span>`;
+
         heroSlot.innerHTML = `
             <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/35 bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-950 shadow-2xl relative overflow-hidden space-y-6">
                 <!-- Background ambient decorative glow -->
@@ -792,10 +809,15 @@ function renderProfileAndTickets(member) {
 
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                     <div class="flex items-start sm:items-center gap-4 sm:gap-5">
-                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-0.5 shadow-xl shadow-blue-600/30 shrink-0">
-                            <div class="w-full h-full rounded-[22px] bg-slate-950 flex items-center justify-center font-mono-sg text-xl sm:text-2xl font-black text-white relative">
-                                <span>${_esc(initials)}</span>
-                                <span class="absolute bottom-1 right-1 w-3 h-3 rounded-full ${isActive ? "bg-emerald-400 ring-2 ring-slate-950 animate-pulse" : "bg-amber-400 ring-2 ring-slate-950"}"></span>
+                        <div class="relative group cursor-pointer shrink-0" onclick="openEditProfileModal()" title="Bofya kuweka au kubadili picha ya wasifu">
+                            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-0.5 shadow-xl shadow-blue-600/30">
+                                <div class="w-full h-full rounded-[22px] bg-slate-950 flex items-center justify-center font-mono-sg text-xl sm:text-2xl font-black text-white relative overflow-hidden">
+                                    ${avatarImageHtml}
+                                    <span class="absolute bottom-1 right-1 w-3 h-3 rounded-full ${isActive ? "bg-emerald-400 ring-2 ring-slate-950 animate-pulse" : "bg-amber-400 ring-2 ring-slate-950"}"></span>
+                                </div>
+                            </div>
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-blue-600 group-hover:bg-blue-500 text-white flex items-center justify-center text-[11px] shadow-md border-2 border-slate-950 transition">
+                                📷
                             </div>
                         </div>
 
@@ -828,8 +850,8 @@ function renderProfileAndTickets(member) {
                     <!-- Quick Action Buttons -->
                     <div class="flex flex-wrap items-center gap-2.5 shrink-0">
                         <button type="button" onclick="openEditProfileModal()" class="px-4 py-2.5 rounded-2xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 hover:text-white font-bold text-xs transition flex items-center gap-1.5 shadow-sm">
-                            <span>✏️</span>
-                            <span>Hariri Wasifu</span>
+                            <span>📷</span>
+                            <span>Badili Picha / Wasifu</span>
                         </button>
                         <button type="button" onclick="printStudentIdBadge()" class="px-4 py-2.5 rounded-2xl btn-sg-primary text-xs flex items-center gap-1.5 shadow-md">
                             <span>🖨️</span>
@@ -1040,22 +1062,97 @@ function renderProfileAndTickets(member) {
 }
 
 // -----------------------------------------------------------------------
-// EDIT PROFILE & PRINT ID HELPERS
+// EDIT PROFILE, AVATAR UPLOAD & PRINT ID HELPERS
 // -----------------------------------------------------------------------
+let currentPendingAvatar = undefined; // undefined = unchanged, "" = remove, "data:image..." = new photo
+
+function _compressImageToDataUrl(file, maxDimension = 280, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.type.startsWith("image/")) {
+            return reject(new Error("Tafadhali chagua faili la picha (JPG, PNG, WebP)."));
+        }
+        if (file.size > 8 * 1024 * 1024) {
+            return reject(new Error("Picha ni kubwa mno (zaidi ya 8MB). Chagua picha ndogo kidogo."));
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width;
+                let h = img.height;
+                if (w > maxDimension || h > maxDimension) {
+                    if (w > h) {
+                        h = Math.round((h * maxDimension) / w);
+                        w = maxDimension;
+                    } else {
+                        w = Math.round((w * maxDimension) / h);
+                        h = maxDimension;
+                    }
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, w, h);
+                const dataUrl = canvas.toDataURL("image/jpeg", quality);
+                resolve(dataUrl);
+            };
+            img.onerror = () => reject(new Error("Hitilafu wakati wa kusoma picha."));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error("Hitilafu wakati wa kufungua faili."));
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderModalAvatarPreview(avatarUrl, fullName = "") {
+    const previewInner = document.getElementById("ep-avatar-preview-inner");
+    const removeBtn = document.getElementById("btn-remove-avatar");
+    if (!previewInner) return;
+
+    if (avatarUrl) {
+        previewInner.innerHTML = `<img src="${_esc(avatarUrl)}" alt="Avatar Preview" class="w-full h-full object-cover">`;
+        if (removeBtn) removeBtn.classList.remove("hidden");
+    } else {
+        const initials = (fullName || "SG")
+            .split(" ")
+            .filter(Boolean)
+            .map(w => w[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase();
+        previewInner.innerHTML = `<span>${_esc(initials || "SG")}</span>`;
+        if (removeBtn) removeBtn.classList.add("hidden");
+    }
+}
+
+window.handleRemoveAvatar = function () {
+    currentPendingAvatar = "";
+    const session = SGStore.getCurrentSession();
+    renderModalAvatarPreview(null, session ? session.full_name : "SG");
+    const fileInput = document.getElementById("ep-avatar-file");
+    if (fileInput) fileInput.value = "";
+    SGUtils.showToast("Picha imeondolewa kwenye hakikisho. Bofya 'Hifadhi Mabadiliko'.", "info");
+};
+
 window.openEditProfileModal = function () {
     const session = SGStore.getCurrentSession();
     if (!session) return;
     const member = SGStore.findMemberById(session.id) || session;
 
+    currentPendingAvatar = member.avatar_url || "";
+
     const nameInput = document.getElementById("ep-fullname");
     const phoneInput = document.getElementById("ep-phone");
     const phonePreview = document.getElementById("ep-phone-preview");
     const interestInput = document.getElementById("ep-interest");
+    const fileInput = document.getElementById("ep-avatar-file");
     const errBox = document.getElementById("edit-profile-error");
 
     if (nameInput) nameInput.value = member.full_name || "";
     if (phoneInput) phoneInput.value = member.phone || "";
     if (interestInput) interestInput.value = member.learning_interest || member.motivation || "";
+    if (fileInput) fileInput.value = "";
     if (errBox) {
         errBox.classList.add("hidden");
         errBox.textContent = "";
@@ -1065,6 +1162,7 @@ window.openEditProfileModal = function () {
         phonePreview.className = "text-[11px] font-mono-sg text-emerald-400 mt-1";
     }
 
+    renderModalAvatarPreview(member.avatar_url, member.full_name);
     openModal("modal-edit-profile");
 };
 
@@ -1234,6 +1332,33 @@ function setupPortalForms() {
         });
     }
 
+    // Profile Picture File Chooser & Real-time Canvas Compressor
+    const epAvatarFile = document.getElementById("ep-avatar-file");
+    if (epAvatarFile) {
+        epAvatarFile.addEventListener("change", async (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const errBox = document.getElementById("edit-profile-error");
+            if (errBox) {
+                errBox.classList.add("hidden");
+                errBox.textContent = "";
+            }
+            try {
+                SGUtils.showToast("⏳ Inashinikiza picha...", "info");
+                const compressedDataUrl = await _compressImageToDataUrl(file, 280, 0.82);
+                currentPendingAvatar = compressedDataUrl;
+                renderModalAvatarPreview(compressedDataUrl);
+                SGUtils.showToast("✓ Picha imechaguliwa! Bofya 'Hifadhi Mabadiliko' kuikamilisha.", "success");
+            } catch (err) {
+                if (errBox) {
+                    errBox.textContent = err.message || "Hitilafu ya picha.";
+                    errBox.classList.remove("hidden");
+                }
+                SGUtils.showToast(err.message || "Hitilafu ya picha.", "error");
+            }
+        });
+    }
+
     // Edit Profile Form Submission Handler
     const editProfileForm = document.getElementById("form-edit-profile");
     if (editProfileForm) {
@@ -1277,12 +1402,13 @@ function setupPortalForms() {
                 const updatedSession = await SGStore.updateOwnProfileAsync({
                     fullName,
                     phone: normalizedPhone,
-                    learningInterest: interest
+                    learningInterest: interest,
+                    avatarUrl: currentPendingAvatar
                 });
                 await SGStore.flushPendingWrites();
 
                 closeModal("modal-edit-profile");
-                SGUtils.showToast("✓ Wasifu wako umesasishwa kikamilifu!", "success");
+                SGUtils.showToast("✓ Wasifu wako na picha vimesasishwa kikamilifu!", "success");
 
                 // Immediately refresh all dashboard sections with fresh data
                 renderMemberDashboard(updatedSession);

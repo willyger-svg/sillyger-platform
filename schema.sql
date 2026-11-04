@@ -82,7 +82,8 @@ CREATE TABLE IF NOT EXISTS public.members (
     agreed_pdpa BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     approved_at TIMESTAMPTZ,
-    approved_by TEXT
+    approved_by TEXT,
+    avatar_url TEXT DEFAULT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_members_email ON public.members(email);
@@ -899,7 +900,8 @@ CREATE OR REPLACE FUNCTION public.sg_update_own_profile(
     p_session_token TEXT,
     p_full_name TEXT DEFAULT NULL,
     p_phone TEXT DEFAULT NULL,
-    p_learning_interest TEXT DEFAULT NULL
+    p_learning_interest TEXT DEFAULT NULL,
+    p_avatar_url TEXT DEFAULT NULL
 )
 RETURNS JSONB AS $$
 DECLARE
@@ -929,10 +931,19 @@ BEGIN
         v_member.learning_interest := btrim(p_learning_interest);
     END IF;
 
+    IF p_avatar_url IS NOT NULL THEN
+        IF btrim(p_avatar_url) = '' THEN
+            v_member.avatar_url := NULL;
+        ELSE
+            v_member.avatar_url := btrim(p_avatar_url);
+        END IF;
+    END IF;
+
     UPDATE public.members
     SET full_name = v_member.full_name,
         phone = v_member.phone,
-        learning_interest = v_member.learning_interest
+        learning_interest = v_member.learning_interest,
+        avatar_url = v_member.avatar_url
     WHERE id = v_member.id;
 
     INSERT INTO public.audit_logs (action, actor, target, details)
@@ -940,7 +951,7 @@ BEGIN
         'PROFILE_UPDATED',
         v_member.username,
         COALESCE(v_member.member_id, v_member.username),
-        'Mwanachama amesasisha taarifa zake za wasifu.'
+        'Mwanachama amesasisha taarifa zake za wasifu / picha.'
     );
 
     RETURN jsonb_build_object(

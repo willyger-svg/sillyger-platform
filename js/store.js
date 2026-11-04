@@ -766,19 +766,22 @@ const SGStore = {
         return this.changePassword(session.id, currentPassword, newPassword);
     },
 
-    async updateOwnProfileAsync({ fullName = null, phone = null, learningInterest = null }) {
+    async updateOwnProfileAsync({ fullName = null, phone = null, learningInterest = null, avatarUrl = undefined }) {
         const session = this.getCurrentSession();
         if (!session) throw new Error("Tafadhali ingia kwanza kwenye akaunti yako.");
 
         if (_isCloudConfigured()) {
-            const res = await _trackWrite(
-                _callCloudRpc("sg_update_own_profile", {
-                    p_session_token: session.session_token,
-                    p_full_name: fullName ? String(fullName).trim() : null,
-                    p_phone: phone ? String(phone).trim() : null,
-                    p_learning_interest: learningInterest !== null ? String(learningInterest).trim() : null
-                })
-            );
+            const payload = {
+                p_session_token: session.session_token,
+                p_full_name: fullName ? String(fullName).trim() : null,
+                p_phone: phone ? String(phone).trim() : null,
+                p_learning_interest: learningInterest !== null && learningInterest !== undefined ? String(learningInterest).trim() : null
+            };
+            if (avatarUrl !== undefined) {
+                payload.p_avatar_url = avatarUrl ? String(avatarUrl).trim() : "";
+            }
+
+            const res = await _trackWrite(_callCloudRpc("sg_update_own_profile", payload));
 
             if (res && res.member) {
                 const updatedSession = Object.assign({}, session, res.member, {
@@ -796,7 +799,8 @@ const SGStore = {
         if (idx !== -1) {
             if (fullName) members[idx].full_name = String(fullName).trim();
             if (phone) members[idx].phone = this.normalizePhone(phone);
-            if (learningInterest !== null) members[idx].learning_interest = String(learningInterest).trim();
+            if (learningInterest !== null && learningInterest !== undefined) members[idx].learning_interest = String(learningInterest).trim();
+            if (avatarUrl !== undefined) members[idx].avatar_url = avatarUrl ? String(avatarUrl).trim() : null;
             _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
             const updated = Object.assign({}, session, members[idx]);
             _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION, JSON.stringify(updated));

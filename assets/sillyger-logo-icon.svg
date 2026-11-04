@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Radial Gradient -->
+    <radialGradient id="bgGlow" cx="50%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#0e172e"/>
+      <stop offset="45%" stop-color="#060c1c"/>
+      <stop offset="100%" stop-color="#020409"/>
+    </radialGradient>
+
+    <!-- Cyan to Electric Blue Gradient -->
+    <linearGradient id="cyanBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="50%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <!-- Royal Blue to Neon Violet Gradient -->
+    <linearGradient id="blueViolet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="40%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <!-- Core Accent Glow -->
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+
+    <!-- Ambient Shadow & Glow Filter -->
+    <filter id="cyberGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#00F5FF" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <!-- Deep Obsidian Cyber Background with Rounded Shield Border -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGlow)"/>
+  <rect width="512" height="512" rx="112" fill="none" stroke="url(#cyanBlue)" stroke-width="2.5" stroke-opacity="0.35"/>
+
+  <!-- Orbital Cyber Rings -->
+  <circle cx="256" cy="256" r="214" fill="none" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="8 12" opacity="0.6"/>
+  <circle cx="256" cy="256" r="188" fill="none" stroke="url(#cyanBlue)" stroke-width="1.5" opacity="0.25"/>
+
+  <!-- Radial Tech Accents (Corner Ticks) -->
+  <path d="M 256 36 L 256 50 M 256 462 L 256 476 M 36 256 L 50 256 M 462 256 L 476 256" stroke="#00F5FF" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Glowing Ambient Core Aura -->
+  <circle cx="256" cy="256" r="95" fill="#00F5FF" opacity="0.12" filter="url(#cyberGlow)"/>
+
+  <!-- ============================================================== -->
+  <!-- MAIN GEOMETRIC 'SG' TECH MONOGRAM (PRECISION VECTOR PATHS)     -->
+  <!-- ============================================================== -->
+  <g filter="url(#softShadow)">
+    
+    <!-- UPPER LOOP / 'S' UPPER HOOK (Cyber Cyan/Blue) -->
+    <path d="M 326 142 
+             C 272 142, 186 150, 186 210
+             C 186 252, 238 266, 280 278
+             L 316 288
+             C 334 294, 348 304, 348 322
+             C 348 344, 324 354, 290 354
+             C 250 354, 212 338, 196 324
+             L 172 358
+             C 198 380, 246 394, 292 394
+             C 356 394, 396 362, 396 318
+             C 396 274, 354 256, 308 244
+             L 272 234
+             C 246 226, 234 218, 234 204
+             C 234 188, 252 178, 286 178
+             C 320 178, 350 190, 368 202
+             L 388 168
+             C 368 152, 336 142, 326 142 Z" 
+          fill="url(#cyanBlue)" />
+
+    <!-- 'G' RIGHT OUTER EMBRACE & HORIZONTAL DATA-CORE BAR -->
+    <!-- Lower sweeping arc connecting to inner tech crossbar -->
+    <path d="M 374 252 L 284 252 L 284 286 L 336 286 L 336 310
+             C 336 340, 296 354, 260 354
+             C 208 354, 168 316, 168 256
+             C 168 196, 208 158, 260 158
+             C 292 158, 324 170, 342 186
+             L 364 154
+             C 338 132, 298 122, 258 122
+             C 184 122, 126 178, 126 256
+             C 126 334, 184 390, 258 390
+             C 328 390, 376 346, 376 296
+             L 376 252 Z"
+          fill="url(#blueViolet)" opacity="0.94"/>
+
+    <!-- Dynamic Neon Cyber Nodes & Interlock Circuit Dots -->
+    <circle cx="376" cy="252" r="7" fill="#00F5FF" filter="url(#cyberGlow)"/>
+    <circle cx="284" cy="286" r="5" fill="#38bdf8"/>
+    <circle cx="186" cy="210" r="5" fill="#00F5FF"/>
+    <circle cx="396" cy="318" r="5" fill="#a855f7"/>
+  </g>
+
+  <!-- Glowing Center Diamond Pulse -->
+  <polygon points="256,244 266,256 256,268 246,256" fill="#00F5FF" filter="url(#cyberGlow)"/>
+</svg>

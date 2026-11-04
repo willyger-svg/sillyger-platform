@@ -1,0 +1,197 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Deep Cosmic Obsidian Background -->
+    <radialGradient id="waBg" cx="50%" cy="46%" r="72%">
+      <stop offset="0%" stop-color="#0c1733"/>
+      <stop offset="42%" stop-color="#060c1d"/>
+      <stop offset="80%" stop-color="#02050e"/>
+      <stop offset="100%" stop-color="#000206"/>
+    </radialGradient>
+
+    <!-- Electric Cyan Gradient -->
+    <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="45%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <!-- Hyper Blue to Indigo/Violet Gradient -->
+    <linearGradient id="hyperBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="40%" stop-color="#3b82f6"/>
+      <stop offset="80%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+
+    <!-- Silver White Platinum Text Gradient -->
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="70%" stop-color="#E2E8F0"/>
+      <stop offset="100%" stop-color="#93C5FD"/>
+    </linearGradient>
+
+    <!-- Tech Glow Filter -->
+    <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur1"/>
+      <feGaussianBlur stdDeviation="32" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="intenseGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800;900&amp;family=JetBrains+Mono:wght@600;700&amp;display=swap');
+    .brand-title {
+      font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 76px;
+      font-weight: 800;
+      letter-spacing: 0.38em;
+      fill: url(#textGrad);
+      text-anchor: middle;
+    }
+    .brand-subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.42em;
+      fill: #38bdf8;
+      text-anchor: middle;
+    }
+    .tech-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      fill: #64748b;
+      text-anchor: middle;
+    }
+  </style>
+
+  <!-- Solid Canvas Background -->
+  <rect width="1024" height="1024" fill="url(#waBg)"/>
+
+  <!-- Circular Safe-Zone Ambient Ring (Matches WhatsApp Round Avatar Crop) -->
+  <circle cx="512" cy="512" r="496" fill="none" stroke="#1e293b" stroke-width="2" opacity="0.4"/>
+  <circle cx="512" cy="512" r="468" fill="none" stroke="url(#neonCyan)" stroke-width="2.5" stroke-dasharray="12 18" opacity="0.5"/>
+  <circle cx="512" cy="512" r="444" fill="none" stroke="#0f172a" stroke-width="1.5"/>
+
+  <!-- Radial Tech Accent Guides & Crosshairs -->
+  <line x1="512" y1="48" x2="512" y2="76" stroke="#00F5FF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="512" y1="948" x2="512" y2="976" stroke="#00F5FF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="48" y1="512" x2="76" y2="512" stroke="#00F5FF" stroke-width="3" stroke-linecap="round"/>
+  <line x1="948" y1="512" x2="976" y2="512" stroke="#00F5FF" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Corner Status Telemetry (Subtle Tech Aesthetic) -->
+  <text x="512" y="112" class="tech-code">COMMUNITY · LEARNING · INNOVATION</text>
+
+  <!-- Ambient Light Rays Behind Central Crest -->
+  <circle cx="512" cy="420" r="190" fill="#00F5FF" opacity="0.09" filter="url(#bloom)"/>
+  <circle cx="512" cy="420" r="120" fill="#6366f1" opacity="0.14" filter="url(#bloom)"/>
+
+  <!-- ============================================================== -->
+  <!-- CENTRAL EMBLEM: THE ELITE 'SG' CYBER-CREST                     -->
+  <!-- Centered at cx=512, cy=415, Scaled 1.6x                        -->
+  <!-- ============================================================== -->
+  <g transform="translate(512, 415) scale(1.68) translate(-256, -256)">
+
+    <!-- Outer Hex-Shield Energy Perimeter -->
+    <polygon points="256,42 438,147 438,357 256,462 74,357 74,147" 
+             fill="#020617" 
+             fill-opacity="0.82"
+             stroke="url(#neonCyan)" 
+             stroke-width="3" 
+             stroke-opacity="0.6"/>
+
+    <polygon points="256,58 422,154 422,348 256,444 90,348 90,154" 
+             fill="none" 
+             stroke="#1e293b" 
+             stroke-width="1.5" 
+             stroke-dasharray="6 8"
+             opacity="0.7"/>
+
+    <!-- 'S' UPPER CYBER RIBBON -->
+    <path d="M 326 142 
+             C 272 142, 186 150, 186 210
+             C 186 252, 238 266, 280 278
+             L 316 288
+             C 334 294, 348 304, 348 322
+             C 348 344, 324 354, 290 354
+             C 250 354, 212 338, 196 324
+             L 172 358
+             C 198 380, 246 394, 292 394
+             C 356 394, 396 362, 396 318
+             C 396 274, 354 256, 308 244
+             L 272 234
+             C 246 226, 234 218, 234 204
+             C 234 188, 252 178, 286 178
+             C 320 178, 350 190, 368 202
+             L 388 168
+             C 368 152, 336 142, 326 142 Z" 
+          fill="url(#neonCyan)" 
+          filter="url(#intenseGlow)"/>
+
+    <!-- 'G' LOWER CIRCUIT ARC & HORIZONTAL DATA-CORE BAR -->
+    <path d="M 374 252 L 284 252 L 284 286 L 336 286 L 336 310
+             C 336 340, 296 354, 260 354
+             C 208 354, 168 316, 168 256
+             C 168 196, 208 158, 260 158
+             C 292 158, 324 170, 342 186
+             L 364 154
+             C 338 132, 298 122, 258 122
+             C 184 122, 126 178, 126 256
+             C 126 334, 184 390, 258 390
+             C 328 390, 376 346, 376 296
+             L 376 252 Z"
+          fill="url(#hyperBlue)" 
+          opacity="0.96"/>
+
+    <!-- Quantum Energy Core Node -->
+    <polygon points="256,242 268,256 256,270 244,256" fill="#00F5FF" filter="url(#intenseGlow)"/>
+    <circle cx="256" cy="256" r="3" fill="#ffffff"/>
+
+    <!-- Futuristic Terminal Dots -->
+    <circle cx="376" cy="252" r="8" fill="#00F5FF" filter="url(#intenseGlow)"/>
+    <circle cx="186" cy="210" r="6" fill="#00F5FF"/>
+    <circle cx="396" cy="318" r="6" fill="#a855f7"/>
+  </g>
+
+  <!-- ============================================================== -->
+  <!-- BRAND TYPOGRAPHY: SILLYGER                                     -->
+  <!-- ============================================================== -->
+  <!-- Decorative Top Circuit Line for Text -->
+  <g opacity="0.8">
+    <line x1="334" y1="736" x2="444" y2="736" stroke="#00F5FF" stroke-width="2"/>
+    <circle cx="444" cy="736" r="3.5" fill="#00F5FF"/>
+    <circle cx="512" cy="736" r="4.5" fill="#38bdf8"/>
+    <circle cx="580" cy="736" r="3.5" fill="#00F5FF"/>
+    <line x1="580" y1="736" x2="690" y2="736" stroke="#00F5FF" stroke-width="2"/>
+  </g>
+
+  <!-- Main Wordmark -->
+  <!-- Extra margin added via x offset to compensate letter-spacing -->
+  <text x="532" y="828" class="brand-title">SILLYGER</text>
+
+  <!-- Subtitle Badge with Neon Border -->
+  <g transform="translate(512, 882)">
+    <rect x="-220" y="-22" width="440" height="44" rx="22" 
+          fill="#030816" 
+          fill-opacity="0.9"
+          stroke="url(#neonCyan)" 
+          stroke-width="1.5"/>
+    <text x="8" y="7" class="brand-subtitle">STUDENT TECH PLATFORM</text>
+  </g>
+
+  <!-- Bottom Verification Footer -->
+  <text x="512" y="946" class="tech-code">EST. 2026 · TANZANIA · CODE &amp; LEAD</text>
+</svg>

@@ -339,6 +339,7 @@ function renderMemberDashboard(session) {
     renderKpiCards(member);
     renderWhatsAppGate(member);
     renderOverviewSessionWidget(member);
+    renderTvBanner();
     renderDigitalStudentIdCard(member);
     renderOnboardingProgress(member);
     renderAnnouncements();
@@ -607,6 +608,37 @@ function renderOverviewSessionWidget(member) {
             ) : `<span class="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono-sg text-slate-500 shrink-0">Locked</span>`}
         </div>
     `;
+}
+
+function renderTvBanner() {
+    const bannerEl = document.getElementById("overview-tv-live-banner");
+    if (!bannerEl) return;
+    const broadcast = typeof SGStore !== "undefined" ? SGStore.getTvBroadcast() : {};
+    if (broadcast && broadcast.is_live && broadcast.url) {
+        bannerEl.classList.remove("hidden");
+        bannerEl.innerHTML = `
+            <div class="p-4 sm:p-5 rounded-2xl border border-red-500/50 bg-gradient-to-r from-red-950/60 via-slate-900 to-slate-950 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+                <div class="flex items-center gap-3.5 min-w-0">
+                    <div class="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 text-lg shrink-0">
+                        📺
+                    </div>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-[9px] font-mono-sg font-black bg-red-600 text-white uppercase animate-pulse">LIVE SASA</span>
+                            <span class="text-xs font-mono-sg text-blue-400">SILLYGER TV</span>
+                        </div>
+                        <h4 class="text-sm font-extrabold text-white truncate mt-0.5">${_esc(broadcast.title || "Darasa la Moja kwa Moja")}</h4>
+                    </div>
+                </div>
+                <a href="tv.html" class="self-start sm:self-center px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs transition flex items-center gap-1.5 shrink-0 shadow-md shadow-red-600/30">
+                    <span>Tazama Live Stream</span>
+                    <span>&rarr;</span>
+                </a>
+            </div>
+        `;
+    } else {
+        bannerEl.classList.add("hidden");
+    }
 }
 
 function renderDigitalStudentIdCard(member) {

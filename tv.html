@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="sw" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SILLYGER TV — Kituo cha Matangazo ya Moja kwa Moja & Video za Mafunzo</title>
+    <link rel="icon" type="image/svg+xml" href="assets/sillyger-logo-icon.svg">
+    <!-- Open Graph / WhatsApp Social Sharing Meta Tags -->
+    <meta property="og:type" content="video.other">
+    <meta property="og:title" content="SILLYGER TV — Live Broadcasting & Video Hub">
+    <meta property="og:description" content="Tazama matangazo ya moja kwa moja ya madarasa ya teknolojia, coding, cybersecurity na AI kwenye SILLYGER TV.">
+    <meta property="og:image" content="https://willyger-svg.github.io/sillyger-platform/assets/SILLYGER_LOGO_WHATSAPP.png">
+    <meta property="og:image:width" content="1024">
+    <meta property="og:image:height" content="1024">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://willyger-svg.github.io/sillyger-platform/assets/SILLYGER_LOGO_WHATSAPP.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sgbg: '#0b1120',
+                        sgcard: '#111a2e',
+                        sgblue: '#3b82f6',
+                        sgdark: '#060a14'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/custom.css?v=2.9">
+</head>
+<body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
+
+    <!-- Unified Top Navigation -->
+    <header class="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-3 group">
+                <img src="assets/sillyger-logo-icon.svg" alt="SILLYGER" class="w-10 h-10 rounded-xl shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg sm:text-xl font-extrabold tracking-wide text-white block leading-none">SILLYGER</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono-sg font-black bg-red-600/20 border border-red-500/50 text-red-400 flex items-center gap-1.5 uppercase">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                            TV
+                        </span>
+                    </div>
+                    <span class="text-[10px] font-mono-sg text-blue-400 block tracking-widest uppercase mt-0.5">Live Broadcasting Studio</span>
+                </div>
+            </a>
+
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-300">
+                <a href="index.html" class="hover:text-blue-400 transition">Nyumbani</a>
+                <a href="tv.html" class="text-blue-400 font-bold flex items-center gap-1.5">
+                    <span>📺</span>
+                    <span>SILLYGER TV</span>
+                </a>
+                <a href="courses.html" class="hover:text-blue-400 transition">Possible Courses</a>
+                <a href="future-divisions.html" class="hover:text-blue-400 transition">Future Vision</a>
+                <a href="constitution.html" class="hover:text-blue-400 transition">Katiba</a>
+            </nav>
+
+            <div class="flex items-center gap-2.5">
+                <div id="header-session-slot" class="hidden sm:flex items-center gap-2.5"></div>
+                <button id="mobile-menu-btn" class="md:hidden text-slate-300 hover:text-white p-2" aria-label="Fungua menyu">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-slate-800 bg-sgcard/95 px-4 pt-3 pb-5 space-y-2.5 text-sm">
+            <a href="index.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Nyumbani</a>
+            <a href="tv.html" class="block text-blue-400 font-bold py-1.5">📺 SILLYGER TV (Live)</a>
+            <a href="courses.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Possible Courses</a>
+            <a href="future-divisions.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Future Vision</a>
+            <a href="constitution.html" class="block text-slate-300 hover:text-blue-400 py-1.5">Katiba v1.4</a>
+            <a href="member-portal.html" class="block text-blue-400 font-semibold py-1.5">Ingia Student Portal</a>
+        </div>
+    </header>
+
+    <main class="flex-grow py-8 sm:py-12">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+
+            <!-- TV Page Header & Live Status Banner -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+                <div>
+                    <div class="flex items-center gap-2.5">
+                        <span id="tv-status-badge" class="px-3 py-1 rounded-full text-xs font-mono-sg font-bold uppercase flex items-center gap-2 bg-slate-800 border border-slate-700 text-slate-300">
+                            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                            <span>INAPAKIA HALI YA TV...</span>
+                        </span>
+                        <span class="text-xs text-slate-400 font-mono-sg hidden sm:inline">SILLYGER Live Stream Channel</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight mt-2 flex items-center gap-3">
+                        <span>SILLYGER TV</span>
+                        <span class="text-xs font-mono-sg font-normal px-2.5 py-0.5 rounded-lg bg-blue-950/80 border border-blue-500/30 text-blue-300">Free Community Broadcast</span>
+                    </h1>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button type="button" onclick="refreshTvStream()" class="px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition flex items-center gap-1.5" title="Sasisha Matangazo ya Sasa">
+                        <span>🔄</span>
+                        <span>Sasisha Stream</span>
+                    </button>
+                    <a href="member-portal.html" class="px-4 py-2 rounded-xl btn-sg-primary text-xs font-bold flex items-center gap-1.5 shadow-md">
+                        <span>🎓</span>
+                        <span>Student Portal</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- MAIN CINEMA SCREEN (16:9 THEATER PLAYER)                  -->
+            <!-- ========================================================== -->
+            <div class="sg-glass p-3 sm:p-5 rounded-3xl border border-blue-500/40 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900">
+                <!-- Background Ambient Glow -->
+                <div class="absolute -right-24 -top-24 w-72 h-72 rounded-full bg-blue-600/15 blur-3xl pointer-events-none"></div>
+
+                <!-- Video Player Container (Strict 16:9 Aspect Ratio) -->
+                <div class="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center">
+                    <!-- Dynamic Video Slot (iframe or standby screen) -->
+                    <div id="tv-player-slot" class="w-full h-full flex items-center justify-center">
+                        <div class="text-center p-6 space-y-3">
+                            <div class="w-16 h-16 rounded-2xl bg-blue-950/60 border border-blue-500/30 flex items-center justify-center mx-auto text-2xl text-blue-400 animate-pulse">
+                                📺
+                            </div>
+                            <h3 class="text-base font-bold text-white">Inapakia SILLYGER TV...</h3>
+                            <p class="text-xs text-slate-400">Tafadhali subiri sekunde chache.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stream Meta Info & Live Actions Bar -->
+                <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="space-y-1.5 min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="tv-indicator-pill" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase bg-slate-800 text-slate-300">
+                                OFFLINE
+                            </span>
+                            <span id="tv-category-tag" class="text-xs font-mono-sg text-blue-400">SILLYGER Tech Session</span>
+                            <span class="text-slate-600">•</span>
+                            <span id="tv-updated-time" class="text-[11px] font-mono-sg text-slate-400">—</span>
+                        </div>
+                        <h2 id="tv-current-title" class="text-lg sm:text-xl font-extrabold text-white tracking-tight break-words">
+                            SILLYGER TV Live Broadcast
+                        </h2>
+                        <p id="tv-current-desc" class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-3xl">
+                            Karibu kwenye kituo cha matangazo ya video na madarasa ya moja kwa moja ya wanafunzi wa SILLYGER Community.
+                        </p>
+                    </div>
+
+                    <!-- Direct Actions (Restart, WhatsApp Chat, Share) -->
+                    <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <button type="button" onclick="restartCurrentTvVideo()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Rudia video kuanzia mwanzo">
+                            <span>⏮️</span>
+                            <span>Cheza Mwanzo</span>
+                        </button>
+                        <a id="tv-wa-discuss-btn" href="member-portal.html" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95" title="Jiunge na majadiliano ya WhatsApp kuhusu kipindi hiki">
+                            <span>💬</span>
+                            <span>Jadili WhatsApp</span>
+                        </a>
+                        <button type="button" onclick="copyTvPageLink()" class="px-3 py-2 rounded-xl bg-blue-950/60 hover:bg-blue-900/60 border border-blue-500/30 text-blue-300 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Nakili kiungo cha ukurasa huu">
+                            <span>🔗</span>
+                            <span>Shiriki</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- SILLYGER TV VIDEO ARCHIVE & ON-DEMAND PLAYLIST            -->
+            <!-- ========================================================== -->
+            <div class="space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+                    <div>
+                        <span class="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block">ON-DEMAND REPLAYS · MAKTABA YA VIPINDI</span>
+                        <h3 class="text-xl font-bold text-white">Vipindi na Madarasa Yaliyopita</h3>
+                    </div>
+                    <p class="text-xs text-slate-400">Bofya video yoyote hapa chini kuitazama hapo juu mwanzo hadi mwisho.</p>
+                </div>
+
+                <!-- Archive Cards Grid -->
+                <div id="tv-archive-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- Populated dynamically by js/tv.js -->
+                </div>
+            </div>
+
+            <!-- Admin Notice Callout -->
+            <div id="tv-admin-banner" class="hidden sg-glass p-5 rounded-2xl border border-indigo-500/40 bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-950 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-2xl">⚡</span>
+                    <div>
+                        <h4 class="text-sm font-bold text-white">Wewe ni Msimamizi (Super Administrator)</h4>
+                        <p class="text-xs text-slate-300">Unaweza kurusha video mpya ya YouTube au kuanzisha Live Stream mpya wakati wowote kutoka Admin Portal.</p>
+                    </div>
+                </div>
+                <a href="admin-portal.html#admin-pane-tv" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition whitespace-nowrap shadow-md">
+                    Fungua TV Broadcast Studio &rarr;
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-800/80 bg-slate-950/90 text-slate-400 text-xs py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2.5">
+                <img src="assets/sillyger-logo-icon.svg" alt="SG" class="w-6 h-6 rounded-md">
+                <span class="font-semibold text-slate-300">SILLYGER TV · Continuous Tech Learning Channel (Charter v1.4 & PDPA 2022)</span>
+            </div>
+            <div class="flex items-center gap-5">
+                <a href="index.html" class="hover:text-white transition">Nyumbani</a>
+                <a href="courses.html" class="hover:text-white transition">Possible Courses</a>
+                <a href="member-portal.html" class="hover:text-white transition">Student Portal</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Core Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js?v=2.9"></script>
+    <script src="js/store.js?v=2.9"></script>
+    <script src="js/tv.js?v=2.9"></script>
+</body>
+</html>

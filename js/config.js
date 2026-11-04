@@ -145,6 +145,26 @@ const SGUtils = {
                 });
             });
         }
+    },
+
+    extractYouTubeId(input) {
+        if (!input) return null;
+        input = String(input).trim();
+        if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+        const m = input.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/))([a-zA-Z0-9_-]{11})/i);
+        return m ? m[1] : null;
+    },
+
+    getYouTubeEmbedUrl(input, autoplay = true) {
+        const id = this.extractYouTubeId(input);
+        if (!id) return "";
+        return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+    },
+
+    getYouTubeThumbnail(input, quality = "hqdefault") {
+        const id = this.extractYouTubeId(input);
+        if (!id) return "assets/sillyger-logo-icon.png";
+        return `https://img.youtube.com/vi/${id}/${quality}.jpg`;
     }
 };
 
@@ -182,6 +202,26 @@ const SG_CONFIG = {
         return "";
     },
 
+    extractYouTubeId(input) {
+        if (!input) return null;
+        input = String(input).trim();
+        if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+        const m = input.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|live\/))([a-zA-Z0-9_-]{11})/i);
+        return m ? m[1] : null;
+    },
+
+    getYouTubeEmbedUrl(input, autoplay = true) {
+        const id = this.extractYouTubeId(input);
+        if (!id) return "";
+        return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+    },
+
+    getYouTubeThumbnail(input, quality = "hqdefault") {
+        const id = this.extractYouTubeId(input);
+        if (!id) return "assets/sillyger-logo-icon.png";
+        return `https://img.youtube.com/vi/${id}/${quality}.jpg`;
+    },
+
     // Storage keys for local-first / hybrid persistence
     STORAGE_KEYS: Object.freeze({
         APPLICANTS: "sg_applicants_v1_4",
@@ -193,7 +233,9 @@ const SG_CONFIG = {
         LEAVE_REQUESTS: "sg_leaves_v1_4",
         SUPPORT_TICKETS: "sg_tickets_v1_4",
         ANNOUNCEMENTS: "sg_announcements_v1_4",
-        FUND_LEDGER: "sg_fund_ledger_v1_4"
+        FUND_LEDGER: "sg_fund_ledger_v1_4",
+        TV_BROADCAST: "sg_tv_broadcast_v1",
+        TV_ARCHIVE: "sg_tv_archive_v1"
     }),
 
     // Supabase Configuration (Reads from Admin localStorage override OR file constants above)

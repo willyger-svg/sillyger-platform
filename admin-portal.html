@@ -159,6 +159,11 @@
                     <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
                     <span>Database & Mipangilio</span>
                 </button>
+                <button data-tab="tv" class="admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap">
+                    <span class="text-red-400 text-sm">📺</span>
+                    <span>SILLYGER TV Live Studio</span>
+                    <span id="tab-badge-tv-live" class="hidden px-2 py-0.5 rounded-full bg-red-600 text-white font-mono-sg text-[9px] font-black animate-pulse">LIVE</span>
+                </button>
             </div>
 
             <!-- TAB PANE 1: PENDING APPLICATION REVIEW QUEUE -->
@@ -643,6 +648,168 @@
                             >
                                 Safisha Mfumo (Futa Majaribio)
                             </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TAB PANE 9: SILLYGER TV LIVE BROADCAST STUDIO -->
+            <div id="tab-pane-tv" class="admin-tab-pane hidden space-y-6">
+                <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-red-500/40 space-y-6">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase bg-red-600 text-white animate-pulse">
+                                    LIVE STUDIO
+                                </span>
+                                <span class="font-mono-sg text-xs text-blue-400">SILLYGER TV Command Center</span>
+                            </div>
+                            <h2 class="text-xl sm:text-2xl font-extrabold text-white mt-1">
+                                SILLYGER TV Live Stream & Broadcast Controller
+                            </h2>
+                            <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+                                Weka kiungo chochote cha video ya YouTube au YouTube Live Stream. Mara unapobonyeza <strong>"Rusha Live"</strong>, video hiyo itacheza moja kwa moja kuanzia mwanzo hadi mwisho kwenye <strong>SILLYGER TV</strong> kwa wanachama wote duniani!
+                            </p>
+                        </div>
+                        <a href="tv.html" target="_blank" rel="noopener noreferrer" class="self-start sm:self-center px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 transition flex items-center gap-2 shadow-md">
+                            <span>📺</span>
+                            <span>Fungua SILLYGER TV ↗</span>
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Left: Broadcaster Form -->
+                        <div class="lg:col-span-7 space-y-4">
+                            <form id="form-admin-tv-broadcast" onsubmit="handleAdminTvPublish(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-white mb-1.5" for="admin-tv-input-url">
+                                        <span>Kiungo cha YouTube (Video URL au Live Stream Link)</span>
+                                        <span class="text-red-400">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input
+                                            type="text"
+                                            id="admin-tv-input-url"
+                                            placeholder="https://www.youtube.com/watch?v=... au https://youtu.be/..."
+                                            class="w-full sg-input px-3.5 py-3 rounded-xl text-xs font-mono-sg pr-10"
+                                            required
+                                            oninput="handleAdminTvUrlChange(this.value)"
+                                        >
+                                        <span class="absolute right-3 top-3 text-slate-400 text-sm">🔗</span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-400 mt-1">
+                                        Inakubali viungo vyote vya kawaida vya YouTube, YouTube Live, Shorts, au Video ID pekee (herufi 11).
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-white mb-1.5" for="admin-tv-input-title">
+                                        <span>Kichwa cha Kipindi / Somo (Stream Title)</span>
+                                        <span class="text-red-400">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="admin-tv-input-title"
+                                        placeholder="mfano: Darasa la Moja kwa Moja: Artificial Intelligence & Cybersecurity"
+                                        class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-semibold"
+                                        required
+                                    >
+                                </div>
+
+                                <div>
+                                    <label class="block text-xs font-bold text-white mb-1.5" for="admin-tv-input-desc">
+                                        <span>Maelezo ya Somo / Ujumbe kwa Wanafunzi</span>
+                                    </label>
+                                    <textarea
+                                        id="admin-tv-input-desc"
+                                        rows="3"
+                                        placeholder="Eleza nini kinachofundishwa, mambo muhimu ya kuzingatia, au maelekezo ya WhatsApp..."
+                                        class="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
+                                    ></textarea>
+                                </div>
+
+                                <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            id="admin-tv-input-islive"
+                                            class="w-4 h-4 rounded text-red-600 focus:ring-red-500 bg-slate-900 border-slate-700"
+                                            checked
+                                        >
+                                        <div>
+                                            <label for="admin-tv-input-islive" class="text-xs font-bold text-white cursor-pointer block">
+                                                Washa Hadhi ya "🔴 ON AIR — LIVE SASA"
+                                            </label>
+                                            <span class="text-[11px] text-slate-400 block">
+                                                Wanafunzi wataona alama nyekundu ya Live na video itaanza kucheza moja kwa moja (Autoplay).
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span class="text-xl">📡</span>
+                                </div>
+
+                                <div class="flex flex-wrap items-center gap-3 pt-2">
+                                    <button
+                                        type="submit"
+                                        id="btn-admin-tv-publish"
+                                        class="px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-xl shadow-red-600/30 transition active:scale-95"
+                                    >
+                                        <span>🚀</span>
+                                        <span id="btn-admin-tv-publish-text">Rusha Live Kwenye SILLYGER TV</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onclick="handleAdminTvStopLive()"
+                                        class="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 font-semibold text-xs flex items-center gap-1.5 transition active:scale-95"
+                                        title="Weka TV katika hali ya Standby / Zima matangazo"
+                                    >
+                                        <span>⏸️</span>
+                                        <span>Weka Standby</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Right: Real-time Live Screen Preview -->
+                        <div class="lg:col-span-5 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-mono-sg font-bold text-slate-300 uppercase">
+                                    Hakikisho la Skrini (Live Preview)
+                                </span>
+                                <span id="admin-tv-preview-status" class="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-slate-800 text-slate-400">
+                                    STANDBY
+                                </span>
+                            </div>
+
+                            <div class="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl flex items-center justify-center">
+                                <div id="admin-tv-preview-slot" class="w-full h-full flex items-center justify-center">
+                                    <div class="text-center p-4 space-y-2">
+                                        <div class="text-3xl">📺</div>
+                                        <p class="text-xs text-slate-400">Bandika kiungo cha YouTube kushoto ili kuona hakikisho hapa.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] font-mono-sg text-slate-400 flex items-center justify-between">
+                                <span>Kituo: SILLYGER TV</span>
+                                <a href="tv.html" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 underline">Tazama jinsi wanafunzi wanavyoona &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Archive / Playlist Manager inside TV Studio -->
+                    <div class="pt-6 border-t border-slate-800 space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-bold text-white">Maktaba ya Video za Masomo (Saved Broadcasts & Archive)</h3>
+                                <p class="text-xs text-slate-400">Video hizi zinaonekana chini ya ukurasa wa SILLYGER TV kama maktaba ya wanafunzi kujifunza wakati wowote.</p>
+                            </div>
+                        </div>
+
+                        <div id="admin-tv-archive-list" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                            <!-- Populated dynamically -->
                         </div>
                     </div>
 

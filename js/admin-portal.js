@@ -170,6 +170,7 @@ function rerenderCurrentAdminView(force = false) {
     else if (currentActiveTab === "leaves") renderLeavesAndTicketsManager();
     else if (currentActiveTab === "audit") renderAuditLogsViewer();
     else if (currentActiveTab === "database") renderDatabaseSettings();
+    else if (currentActiveTab === "tv") renderAdminTvStudio();
 }
 
 // Cross-tab & Cloud real-time sync listeners
@@ -278,6 +279,13 @@ function refreshAdminTelemetry() {
         elTabBadgePending.textContent = pending;
         if (pending > 0) elTabBadgePending.classList.remove("hidden");
         else elTabBadgePending.classList.add("hidden");
+    }
+
+    const tvBroadcast = typeof SGStore !== "undefined" ? SGStore.getTvBroadcast() : null;
+    const elTabBadgeTv = document.getElementById("tab-badge-tv-live");
+    if (elTabBadgeTv) {
+        if (tvBroadcast && tvBroadcast.is_live) elTabBadgeTv.classList.remove("hidden");
+        else elTabBadgeTv.classList.add("hidden");
     }
 }
 
@@ -1457,5 +1465,205 @@ window.resetCommunityDataToPristine = async function () {
         setTimeout(() => location.reload(), 800);
     } else {
         showAdminToast("Uthibitisho haujafanana na neno 'FUTA'. Hakuna kilichofutwa.", "info");
+    }
+};
+
+// =========================================================================
+// TAB 9: SILLYGER TV LIVE BROADCAST STUDIO
+// =========================================================================
+function renderAdminTvStudio() {
+    const broadcast = typeof SGStore !== "undefined" ? SGStore.getTvBroadcast() : {};
+    const urlInput = document.getElementById("admin-tv-input-url");
+    const titleInput = document.getElementById("admin-tv-input-title");
+    const descInput = document.getElementById("admin-tv-input-desc");
+    const isLiveInput = document.getElementById("admin-tv-input-islive");
+
+    // Populate inputs if currently blank
+    if (urlInput && !urlInput.value) {
+        urlInput.value = broadcast.url || "";
+    }
+    if (titleInput && !titleInput.value) {
+        titleInput.value = broadcast.title || "";
+    }
+    if (descInput && !descInput.value) {
+        descInput.value = broadcast.desc || "";
+    }
+    if (isLiveInput) {
+        isLiveInput.checked = !!broadcast.is_live;
+    }
+
+    renderAdminTvPreview(urlInput ? urlInput.value : broadcast.url, broadcast.is_live);
+    renderAdminTvArchiveList();
+}
+
+function renderAdminTvPreview(urlOrId, isLive) {
+    const previewSlot = document.getElementById("admin-tv-preview-slot");
+    const previewStatus = document.getElementById("admin-tv-preview-status");
+    if (!previewSlot) return;
+
+    const videoId = typeof SGUtils !== "undefined" ? SGUtils.extractYouTubeId(urlOrId) : null;
+
+    if (previewStatus) {
+        if (isLive && videoId) {
+            previewStatus.className = "px-2.5 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-red-600 text-white animate-pulse";
+            previewStatus.textContent = "🔴 ON AIR — LIVE";
+        } else if (videoId) {
+            previewStatus.className = "px-2.5 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40";
+            previewStatus.textContent = "⏸️ STANDBY (TAYARI)";
+        } else {
+            previewStatus.className = "px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-slate-800 text-slate-400";
+            previewStatus.textContent = "OFFLINE";
+        }
+    }
+
+    if (videoId) {
+        previewSlot.innerHTML = `
+            <iframe class="w-full h-full border-0 rounded-xl"
+                    src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1"
+                    title="SILLYGER TV Preview"
+                    allowfullscreen>
+            </iframe>
+        `;
+    } else {
+        previewSlot.innerHTML = `
+            <div class="text-center p-5 space-y-2 text-slate-400">
+                <div class="text-3xl">📺</div>
+                <p class="text-xs">Weka kiungo cha YouTube kushoto ili kuona hakikisho hapa.</p>
+            </div>
+        `;
+    }
+}
+
+window.handleAdminTvUrlChange = function (val) {
+    const isLive = document.getElementById("admin-tv-input-islive")?.checked;
+    renderAdminTvPreview(val, isLive);
+};
+
+window.handleAdminTvPublish = async function (e) {
+    e.preventDefault();
+    const url = document.getElementById("admin-tv-input-url")?.value;
+    const title = document.getElementById("admin-tv-input-title")?.value;
+    const desc = document.getElementById("admin-tv-input-desc")?.value;
+    const isLive = document.getElementById("admin-tv-input-islive")?.checked;
+
+    const btn = document.getElementById("btn-admin-tv-publish");
+    const textEl = document.getElementById("btn-admin-tv-publish-text");
+    const origText = textEl ? textEl.textContent : "Rusha Live Kwenye SILLYGER TV";
+
+    if (btn) btn.disabled = true;
+    if (textEl) textEl.textContent = "⏳ Inarusha Live...";
+
+    try {
+        await SGStore.setTvLiveStreamAsync({
+            url,
+            title,
+            desc,
+            isLive: !!isLive
+        });
+
+        renderAdminTvStudio();
+        showAdminToast(
+            isLive
+                ? "✓ Hongera! Video sasa iko LIVE kwenye SILLYGER TV kuanzia mwanzo hadi mwisho! 🔴"
+                : "✓ SILLYGER TV imewekwa katika hali ya Standby.",
+            "success"
+        );
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    } finally {
+        if (btn) btn.disabled = false;
+        if (textEl) textEl.textContent = origText;
+    }
+};
+
+window.handleAdminTvStopLive = async function () {
+    try {
+        const broadcast = SGStore.getTvBroadcast();
+        await SGStore.setTvLiveStreamAsync({
+            url: broadcast.url || "",
+            title: broadcast.title || "SILLYGER TV",
+            desc: broadcast.desc || "",
+            isLive: false
+        });
+        const isLiveInput = document.getElementById("admin-tv-input-islive");
+        if (isLiveInput) isLiveInput.checked = false;
+        renderAdminTvStudio();
+        showAdminToast("✓ Matangazo ya Live yamesimamishwa. SILLYGER TV iko Standby.", "info");
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
+};
+
+function renderAdminTvArchiveList() {
+    const listEl = document.getElementById("admin-tv-archive-list");
+    if (!listEl) return;
+
+    const archive = typeof SGStore !== "undefined" ? SGStore.getTvArchive() : [];
+    if (!archive || archive.length === 0) {
+        listEl.innerHTML = `
+            <div class="p-4 rounded-xl bg-slate-950/40 border border-slate-800 text-xs text-slate-500 font-mono-sg text-center">
+                Hakuna video zilizohifadhiwa kwenye maktaba bado.
+            </div>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = archive.map((item) => {
+        const videoId = SGUtils.extractYouTubeId(item.youtube_url || item.video_id);
+        const safeTitle = _escAdmin(item.title || "Kipindi");
+        const safeUrl = _escAdmin(item.youtube_url || "");
+        const safeId = _escAdmin(item.id);
+        const dateStr = SGUtils.formatDateSw(item.created_at || new Date().toISOString());
+
+        return `
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-16 h-10 rounded-lg bg-slate-900 border border-slate-800 overflow-hidden shrink-0 relative">
+                        <img src="${SGUtils.getYouTubeThumbnail(videoId)}" alt="" class="w-full h-full object-cover">
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="font-bold text-white truncate">${safeTitle}</h4>
+                        <div class="flex items-center gap-2 text-[11px] font-mono-sg text-slate-400">
+                            <span class="text-blue-400 truncate">${safeUrl}</span>
+                            <span>•</span>
+                            <span>${dateStr}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" onclick="quickPlayTvArchive('${safeUrl}', '${safeTitle}')" class="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-bold text-xs flex items-center gap-1 transition">
+                        <span>▶</span>
+                        <span>Rusha Hii Live</span>
+                    </button>
+                    <button type="button" onclick="deleteAdminTvArchive('${safeId}')" class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-red-950 text-slate-400 hover:text-red-400 border border-slate-800 text-xs transition" title="Futa">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
+window.quickPlayTvArchive = function (url, title) {
+    const urlInput = document.getElementById("admin-tv-input-url");
+    const titleInput = document.getElementById("admin-tv-input-title");
+    const isLiveInput = document.getElementById("admin-tv-input-islive");
+    if (urlInput) urlInput.value = url;
+    if (titleInput) titleInput.value = title;
+    if (isLiveInput) isLiveInput.checked = true;
+    renderAdminTvPreview(url, true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showAdminToast("Taarifa zimepakiwa. Bofya 'Rusha Live Kwenye SILLYGER TV' kuthibitisha.", "info");
+};
+
+window.deleteAdminTvArchive = async function (id) {
+    if (!confirm("Je, una uhakika unataka kufuta video hii kwenye maktaba?")) return;
+    try {
+        await SGStore.deleteTvArchiveItemAsync(id);
+        renderAdminTvArchiveList();
+        showAdminToast("✓ Video imefutwa kwenye maktaba.", "info");
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
     }
 };

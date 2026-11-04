@@ -91,6 +91,13 @@
             <!-- Group 2: Public Platform Pages -->
             <div class="space-y-1 pt-2 border-t border-slate-800/80">
                 <span class="px-3 text-[10px] font-mono-sg font-bold uppercase tracking-wider text-slate-500 block mb-1">KURASA ZA JUMUIYA</span>
+                <a href="tv.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-red-300 hover:bg-red-950/40 hover:text-white flex items-center justify-between border border-red-500/30 bg-red-950/15 transition">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base">📺</span>
+                        <span>SILLYGER TV (Live)</span>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-mono-sg font-bold bg-red-600 text-white animate-pulse">STREAM</span>
+                </a>
                 <a href="index.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition">
                     <span class="text-base">🏠</span>
                     <span>Tovuti Kuu (Homepage)</span>
@@ -156,6 +163,10 @@
             </div>
 
             <div class="flex items-center gap-2 sm:gap-2.5">
+                <a href="tv.html" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-red-500/40 bg-red-950/25 hover:bg-red-900/40 text-red-300 hover:text-white text-xs font-bold transition shadow-sm" title="Tazama SILLYGER TV">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span>TV</span>
+                </a>
                 <span id="live-sync-pill" class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[10px] font-mono-sg text-emerald-400">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>Cloud Sync Active</span>
@@ -342,6 +353,9 @@
                     <!-- PANE 1: OVERVIEW (MUHTASARI WA DASHBOARD)          -->
                     <!-- ================================================== -->
                     <div id="student-pane-overview" class="student-tab-pane space-y-6">
+
+                        <!-- SILLYGER TV Live Stream Alert Banner -->
+                        <div id="overview-tv-live-banner" class="hidden"></div>
 
                         <!-- 4 KPI METRIC CARDS -->
                         <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">

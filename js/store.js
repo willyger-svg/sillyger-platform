@@ -515,6 +515,12 @@ const SGStore = {
                             active_session_title: pub.active_session_title
                         }));
                     }
+                    if (pub.tv_stream && typeof pub.tv_stream === "object") {
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_BROADCAST, JSON.stringify(pub.tv_stream));
+                    }
+                    if (Array.isArray(pub.tv_archive)) {
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_ARCHIVE, JSON.stringify(pub.tv_archive));
+                    }
                 }
                 _notifyBroadcast({ type: "CLOUD_SYNC_COMPLETE", scope: "public" });
                 return true;
@@ -1495,6 +1501,156 @@ const SGStore = {
             divisionsCount: SG_CONFIG.DIVISIONS.length,
             curriculumLevels: SG_CONFIG.CURRICULUM.length
         };
+    },
+
+    // =========================================================================
+    // SILLYGER TV & LIVE BROADCASTING ENGINE
+    // =========================================================================
+    getTvBroadcast() {
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.TV_BROADCAST);
+            if (raw) return JSON.parse(raw);
+        } catch (_) {}
+        return {
+            url: "",
+            video_id: "",
+            title: "SILLYGER TV Live Broadcast",
+            desc: "Karibu SILLYGER TV. Chagua somo lolote kwenye maktaba kuanza kujifunza.",
+            is_live: false,
+            updated_at: new Date().toISOString()
+        };
+    },
+
+    getTvArchive() {
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.TV_ARCHIVE);
+            if (raw) {
+                const list = JSON.parse(raw);
+                if (Array.isArray(list) && list.length > 0) return list;
+            }
+        } catch (_) {}
+        return [
+            {
+                id: "tv_default_1",
+                video_id: "dQw4w9WgXcQ",
+                youtube_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                title: "Utangulizi wa SILLYGER Platform & Mwelekeo wa Jumuiya",
+                description: "Muhtasari wa mafunzo ya pamoja, teknolojia, na mwongozo wa mwanafunzi.",
+                category: "Orientation",
+                is_live: false,
+                broadcasted_by: "Super Administrator",
+                created_at: new Date().toISOString()
+            }
+        ];
+    },
+
+    async setTvLiveStreamAsync({ url, title, desc, isLive = true }) {
+        const session = this.getCurrentSession();
+        const videoId = SGUtils.extractYouTubeId(url);
+        if (!videoId && isLive) {
+            throw new Error("Kiungo cha YouTube si sahihi. Weka kiungo kamili (mfano: https://youtu.be/... au https://youtube.com/watch?v=...)");
+        }
+
+        const cleanTitle = title && String(title).trim() ? String(title).trim() : "SILLYGER TV Live Broadcast";
+        const cleanDesc = desc ? String(desc).trim() : "";
+        const cleanUrl = url ? String(url).trim() : "";
+
+        const payload = {
+            tv_live_url: cleanUrl,
+            tv_live_title: cleanTitle,
+            tv_live_desc: cleanDesc,
+            tv_is_live: isLive ? "true" : "false"
+        };
+
+        const localObj = {
+            url: cleanUrl,
+            video_id: videoId || "",
+            title: cleanTitle,
+            desc: cleanDesc,
+            is_live: !!isLive,
+            updated_at: new Date().toISOString()
+        };
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_BROADCAST, JSON.stringify(localObj));
+
+        if (_isCloudConfigured()) {
+            await _callCloudRpc("sg_admin_update_settings", {
+                p_session_token: session ? session.session_token : "",
+                p_updates: payload
+            });
+            if (isLive && videoId) {
+                try {
+                    await _callCloudRpc("sg_admin_manage_tv", {
+                        p_session_token: session ? session.session_token : "",
+                        p_op: "ADD_ARCHIVE",
+                        p_video_id: videoId,
+                        p_youtube_url: cleanUrl,
+                        p_title: cleanTitle,
+                        p_desc: cleanDesc,
+                        p_category: "Live Stream"
+                    });
+                } catch (_) {}
+            }
+        }
+
+        _notifyBroadcast({ type: "TV_BROADCAST_UPDATED", data: localObj });
+        return localObj;
+    },
+
+    async addTvArchiveItemAsync({ url, title, desc, category = "Tutorial" }) {
+        const session = this.getCurrentSession();
+        const videoId = SGUtils.extractYouTubeId(url);
+        if (!videoId) {
+            throw new Error("Kiungo cha YouTube si sahihi.");
+        }
+        const cleanTitle = title && String(title).trim() ? String(title).trim() : "SILLYGER Tutorial";
+        const cleanDesc = desc ? String(desc).trim() : "";
+        const cleanUrl = String(url).trim();
+
+        const newItem = {
+            id: "tv_" + Date.now(),
+            video_id: videoId,
+            youtube_url: cleanUrl,
+            title: cleanTitle,
+            description: cleanDesc,
+            category: category,
+            is_live: false,
+            broadcasted_by: session ? session.full_name : "Super Admin",
+            created_at: new Date().toISOString()
+        };
+
+        const archive = this.getTvArchive();
+        archive.unshift(newItem);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_ARCHIVE, JSON.stringify(archive));
+
+        if (_isCloudConfigured()) {
+            await _callCloudRpc("sg_admin_manage_tv", {
+                p_session_token: session ? session.session_token : "",
+                p_op: "ADD_ARCHIVE",
+                p_video_id: videoId,
+                p_youtube_url: cleanUrl,
+                p_title: cleanTitle,
+                p_desc: cleanDesc,
+                p_category: category
+            });
+        }
+        _notifyBroadcast({ type: "TV_ARCHIVE_UPDATED" });
+        return newItem;
+    },
+
+    async deleteTvArchiveItemAsync(itemId) {
+        const session = this.getCurrentSession();
+        const archive = this.getTvArchive().filter(x => x.id !== itemId);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_ARCHIVE, JSON.stringify(archive));
+
+        if (_isCloudConfigured()) {
+            await _callCloudRpc("sg_admin_manage_tv", {
+                p_session_token: session ? session.session_token : "",
+                p_op: "DELETE_ARCHIVE",
+                p_item_id: itemId
+            });
+        }
+        _notifyBroadcast({ type: "TV_ARCHIVE_UPDATED" });
+        return true;
     }
 };
 

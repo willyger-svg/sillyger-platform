@@ -156,9 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isAdmin) {
             regSuccessCard.innerHTML = `
                 <div class="sg-glass p-8 md:p-10 rounded-3xl border border-indigo-500/40 text-center space-y-6">
-                    <div class="w-16 h-16 rounded-2xl bg-indigo-500/15 border border-indigo-500/40 text-indigo-300 mx-auto flex items-center justify-center">
-                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
+                    <img src="assets/sillyger-logo-icon.svg" alt="SILLYGER" class="w-16 h-16 rounded-2xl mx-auto shadow-xl shadow-purple-600/30">
 
                     <div>
                         <span class="inline-block px-3 py-1 rounded-full badge-active text-xs font-mono-sg font-bold uppercase mb-3">
@@ -204,9 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         regSuccessCard.innerHTML = `
             <div class="sg-glass p-8 md:p-10 rounded-3xl border border-blue-500/35 text-center space-y-6">
-                <div class="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 mx-auto flex items-center justify-center">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                </div>
+                <img src="assets/sillyger-logo-icon.svg" alt="SILLYGER" class="w-16 h-16 rounded-2xl mx-auto shadow-xl shadow-blue-600/30">
 
                 <div>
                     <span class="inline-block px-3 py-1 rounded-full badge-pending text-xs font-mono-sg font-bold uppercase mb-3">

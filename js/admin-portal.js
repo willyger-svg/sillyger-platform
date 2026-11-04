@@ -149,7 +149,8 @@ function initAdminPortal() {
     if (dashboardView) dashboardView.classList.remove("hidden");
     renderSuperAdminDashboard(session);
 
-    SGStore.syncWithSupabase(true).then(() => {
+    SGStore.syncWithSupabase(true).then(async () => {
+        if (SGStore.syncTvState) await SGStore.syncTvState();
         const fresh = SGStore.getCurrentSession();
         if (fresh) {
             rerenderCurrentAdminView(true);
@@ -1572,6 +1573,14 @@ window.handleAdminTvPublish = async function (e) {
             isLive: !!isLive
         });
 
+        // Confirm with Supabase that the broadcast really landed in the cloud
+        if (SGStore.syncTvState) await SGStore.syncTvState();
+        const confirmed = SGStore.getTvBroadcast();
+        const wantedId = SGUtils.extractYouTubeId(url);
+        if (isLive && wantedId && SGUtils.extractYouTubeId(confirmed.url) !== wantedId) {
+            throw new Error("Video haijafika Supabase. Ondoka (logout) kisha uingie tena, halafu urushe upya.");
+        }
+
         renderAdminTvStudio();
         showAdminToast(
             isLive
@@ -1643,7 +1652,7 @@ function renderAdminTvArchiveList() {
                 </div>
 
                 <div class="flex items-center gap-2 shrink-0">
-                    <button type="button" onclick="quickPlayTvArchive('${safeUrl}', '${safeTitle}')" class="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-bold text-xs flex items-center gap-1 transition">
+                    <button type="button" data-url="${safeUrl}" data-title="${safeTitle}" onclick="quickPlayTvArchive(this.dataset.url, this.dataset.title)" class="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 text-red-300 font-bold text-xs flex items-center gap-1 transition">
                         <span>▶</span>
                         <span>Rusha Hii Live</span>
                     </button>

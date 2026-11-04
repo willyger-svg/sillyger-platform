@@ -1506,6 +1506,46 @@ const SGStore = {
     // =========================================================================
     // SILLYGER TV & LIVE BROADCASTING ENGINE
     // =========================================================================
+
+    /**
+     * Pulls the live TV state straight from Supabase for EVERY visitor
+     * (public, student or admin). The portal/admin sync RPCs do not include
+     * tv_stream / tv_archive, so the TV page must always use this.
+     */
+    async syncTvState() {
+        if (!_isCloudConfigured()) return false;
+        try {
+            const pub = await _callCloudRpc("sg_get_public_overview", {});
+            if (pub && typeof pub === "object") {
+                if (pub.tv_stream && typeof pub.tv_stream === "object") {
+                    const stream = { ...pub.tv_stream };
+                    stream.video_id = SGUtils.extractYouTubeId(stream.url) || "";
+                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_BROADCAST, JSON.stringify(stream));
+                }
+                if (Array.isArray(pub.tv_archive)) {
+                    // De-duplicate by video_id (every "Rusha Live" adds an archive row)
+                    const seen = new Set();
+                    const unique = pub.tv_archive.filter(item => {
+                        const key = item.video_id || SGUtils.extractYouTubeId(item.youtube_url) || item.id;
+                        if (seen.has(key)) return false;
+                        seen.add(key);
+                        return true;
+                    });
+                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.TV_ARCHIVE, JSON.stringify(unique));
+                }
+                return true;
+            }
+        } catch (err) {
+            console.warn("SILLYGER TV sync notice:", err.message || err);
+        }
+        return false;
+    },
+
+    // Backwards-compatible alias used by tv.js
+    async syncWithCloud() {
+        return this.syncTvState();
+    },
+
     getTvBroadcast() {
         try {
             const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.TV_BROADCAST);
@@ -1529,19 +1569,7 @@ const SGStore = {
                 if (Array.isArray(list) && list.length > 0) return list;
             }
         } catch (_) {}
-        return [
-            {
-                id: "tv_default_1",
-                video_id: "dQw4w9WgXcQ",
-                youtube_url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                title: "Utangulizi wa SILLYGER Platform & Mwelekeo wa Jumuiya",
-                description: "Muhtasari wa mafunzo ya pamoja, teknolojia, na mwongozo wa mwanafunzi.",
-                category: "Orientation",
-                is_live: false,
-                broadcasted_by: "Super Administrator",
-                created_at: new Date().toISOString()
-            }
-        ];
+        return [];
     },
 
     async setTvLiveStreamAsync({ url, title, desc, isLive = true }) {

@@ -31,21 +31,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderTvStage(false);
     renderTvArchive();
 
-    // 5. Background sync with Cloud (preserves playing iframe if videoId unchanged)
-    if (typeof SGStore !== "undefined" && SGStore.syncWithCloud) {
-        try {
-            await SGStore.syncWithCloud();
+    // 5. Pull the real live state from Supabase (works for public, student & admin)
+    await pullTvStateAndRender();
+
+    // 6. Listen for same-tab and cross-tab updates (store uses "sg_platform_sync")
+    window.addEventListener("sg:synced", (e) => {
+        const t = e.detail && e.detail.type;
+        if (t === "TV_BROADCAST_UPDATED" || t === "TV_ARCHIVE_UPDATED") {
             renderTvStage(false);
             renderTvArchive();
-        } catch (_) {}
-    }
-
-    // 6. Listen for multi-tab broadcast updates
+        }
+    });
     if (typeof BroadcastChannel !== "undefined") {
         try {
-            const bc = new BroadcastChannel("sillyger_sync_v2");
+            const bc = new BroadcastChannel("sg_platform_sync");
             bc.onmessage = (e) => {
-                if (e.data && (e.data.type === "TV_BROADCAST_UPDATED" || e.data.type === "TV_ARCHIVE_UPDATED" || e.data.type === "CLOUD_SYNC_COMPLETE")) {
+                if (e.data && (e.data.type === "TV_BROADCAST_UPDATED" || e.data.type === "TV_ARCHIVE_UPDATED")) {
                     renderTvStage(false);
                     renderTvArchive();
                 }
@@ -53,16 +54,21 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (_) {}
     }
 
-    // 7. Auto-refresh broadcast state every 25 seconds
-    setInterval(async () => {
-        if (typeof SGStore !== "undefined" && SGStore.syncWithCloud) {
-            try {
-                await SGStore.syncWithCloud();
-                renderTvStage(false);
-            } catch (_) {}
-        }
-    }, 25000);
+    // 7. Poll Supabase every 15 seconds so viewers switch automatically when admin publishes
+    setInterval(() => {
+        if (document.visibilityState === "hidden") return;
+        pullTvStateAndRender();
+    }, 15000);
 });
+
+async function pullTvStateAndRender() {
+    if (typeof SGStore === "undefined" || !SGStore.syncTvState) return;
+    try {
+        await SGStore.syncTvState();
+    } catch (_) {}
+    renderTvStage(false); // only reloads the iframe if the video actually changed
+    renderTvArchive();
+}
 
 function updateAudioButtonState(muted) {
     const btn = document.getElementById("tv-unmute-btn");
@@ -211,7 +217,8 @@ function renderTvArchive() {
 
         return `
             <div class="sg-glass rounded-2xl border border-slate-800 hover:border-blue-500/50 transition-all duration-200 overflow-hidden flex flex-col group cursor-pointer shadow-lg hover:shadow-blue-500/10"
-                 onclick="playArchiveVideo('${SGUtils.escapeHtml(item.youtube_url || videoId)}', '${safeTitle}', '${safeDesc}')">
+                 data-video="${SGUtils.escapeHtml(videoId || "")}" data-title="${safeTitle}" data-desc="${safeDesc}"
+                 onclick="playArchiveVideo(this.dataset.video, this.dataset.title, this.dataset.desc)">
                 
                 <!-- Video Thumbnail with Play Overlay -->
                 <div class="relative aspect-video w-full bg-slate-950 overflow-hidden">

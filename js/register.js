@@ -244,12 +244,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 <div class="p-4 rounded-2xl bg-blue-950/25 border border-blue-500/30 text-slate-200 text-xs text-left max-w-lg mx-auto leading-relaxed">
                     <strong class="text-blue-300 block mb-1">Hatua Inayofuata:</strong>
-                    Ingia kwenye <strong>Student Portal</strong> yako sasa hivi. Mara tu Admin atakapoidhinisha ombi lako, utapewa <strong>SG-ID</strong> na kitufe cha kijani cha kuingia kwenye <strong>WhatsApp Group</strong> kitaonekana hapo hapo bila kuhitaji kujisajili upya.
+                    Ingia kwenye <strong>Student Dashboard</strong> yako sasa hivi. Huko utaona <strong>Kitambulisho chako cha Mwanafunzi</strong>, maendeleo ya idhini yako, na mara tu Admin akikuidhinisha, kitufe cha <strong>WhatsApp Group</strong> kitafunguka hapo hapo.
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
                     <a href="member-portal.html" class="w-full sm:w-auto px-8 py-3.5 rounded-2xl btn-sg-primary text-sm flex items-center justify-center gap-2">
-                        <span>Fungua Student Portal Sasa</span>
+                        <span>Fungua Student Dashboard Sasa</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </a>
                     <a href="index.html" class="text-xs text-slate-400 hover:text-white">Rudi Mwanzo</a>

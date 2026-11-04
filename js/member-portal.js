@@ -1,17 +1,19 @@
 /**
- * SILLYGER (SG) Student Portal Controller (v2.0)
- * Focused on:
- * - Secure SHA-256 Login & Smart Admin Routing
- * - Official WhatsApp Community Access Gate (Locked for PENDING, Unlocked for ACTIVE)
- * - Community Updates & Announcements Feed
- * - Student Session Check-in, Leave Requests, Support Tickets & Password Security
+ * SILLYGER (SG) Student Dashboard Controller (v2.1)
+ * Full Multi-Panel Student Dashboard Experience:
+ * - Sidebar + Mobile Tab Switching (Overview, WhatsApp, Updates, Check-in & Leave, Possible Courses, Profile & Support)
+ * - 4 Real-Time KPI Cards, Digital Student ID Smart-Card, Onboarding Checklist Progress Bar
+ * - WhatsApp Community Access Gate + One-Click Group Intro Copy
+ * - Live Cloud Sync & Cross-Tab BroadcastChannel Refresh
  */
 
 const _esc = (v) => (typeof SGUtils !== "undefined" ? SGUtils.escapeHtml(v) : String(v || ""));
+let currentStudentTab = "overview";
 
 document.addEventListener("DOMContentLoaded", () => {
     SGStore.init();
     handleUrlAlertBanner();
+    setupStudentTabs();
     setupPortalForms();
     initMemberPortal();
 
@@ -41,6 +43,39 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 8000);
 });
 
+function setupStudentTabs() {
+    document.querySelectorAll(".student-nav-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const tab = btn.getAttribute("data-student-tab") || "overview";
+            switchStudentTab(tab);
+        });
+    });
+}
+
+window.switchStudentTab = function (tabName) {
+    currentStudentTab = tabName || "overview";
+
+    document.querySelectorAll(".student-nav-btn").forEach(btn => {
+        const btnTab = btn.getAttribute("data-student-tab");
+        if (btnTab === currentStudentTab) {
+            btn.classList.add("btn-sg-primary", "font-bold");
+            btn.classList.remove("text-slate-300", "hover:bg-slate-800/70", "font-semibold");
+        } else {
+            btn.classList.remove("btn-sg-primary", "font-bold");
+            btn.classList.add("text-slate-300", "hover:bg-slate-800/70", "font-semibold");
+        }
+    });
+
+    document.querySelectorAll(".student-tab-pane").forEach(pane => {
+        pane.classList.add("hidden");
+    });
+
+    const activePane = document.getElementById(`student-pane-${currentStudentTab}`);
+    if (activePane) {
+        activePane.classList.remove("hidden");
+    }
+};
+
 function handleUrlAlertBanner() {
     const alertBox = document.getElementById("portal-url-alert");
     if (!alertBox) return;
@@ -49,7 +84,7 @@ function handleUrlAlertBanner() {
 
     if (alertType === "login_required") {
         alertBox.innerHTML = `
-            <span>🔒 Tafadhali ingia kwanza kwenye akaunti yako ili kufikia ukurasa huo.</span>
+            <span>🔒 Tafadhali ingia kwanza kwenye Dashboard yako ili kufikia ukurasa huo.</span>
             <button onclick="this.parentElement.classList.add('hidden')" class="text-amber-300 hover:text-white font-bold">✕</button>
         `;
         alertBox.classList.remove("hidden");
@@ -97,13 +132,14 @@ function initMemberPortal() {
         const adminSlot = document.getElementById("admin-link-slot");
         const adminSlotDash = document.getElementById("admin-link-slot-dash");
         const adminBtn = isAdmin ? `
-            <a href="admin-portal.html" class="px-3.5 py-2 rounded-xl bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 hover:text-white text-xs font-bold font-mono-sg flex items-center gap-1.5 transition">
-                <span>🛠️ Admin Panel</span>
+            <a href="admin-portal.html" class="px-3.5 py-2 rounded-xl bg-indigo-950/80 border border-indigo-500/50 text-indigo-300 hover:text-white text-xs font-bold font-mono-sg flex items-center justify-center gap-1.5 transition">
+                <span>🛠️ Admin Command</span>
             </a>
         ` : "";
         if (adminSlot) adminSlot.innerHTML = adminBtn;
         if (adminSlotDash) adminSlotDash.innerHTML = adminBtn;
 
+        switchStudentTab(currentStudentTab);
         renderMemberDashboard(session);
     }
 }
@@ -141,7 +177,7 @@ function setupLoginForm() {
         const origHtml = submitBtn ? submitBtn.innerHTML : "";
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span>Inahakiki akaunti...</span>`;
+            submitBtn.innerHTML = `<span>Inafungua Dashboard...</span>`;
         }
 
         try {
@@ -152,7 +188,7 @@ function setupLoginForm() {
                 action: "MEMBER_LOGIN",
                 actor: member.username,
                 target: member.member_id || "PENDING",
-                details: `Login kwenye Student Portal. Status: ${member.status}.`
+                details: `Login kwenye Student Dashboard. Status: ${member.status}.`
             });
 
             await SGStore.flushPendingWrites();
@@ -182,26 +218,93 @@ window.handleMemberLogout = function () {
 };
 
 window.refreshMemberStatusNow = async function () {
+    const syncBtn = document.getElementById("btn-sync-dashboard");
+    const orig = syncBtn ? syncBtn.innerHTML : "";
+    if (syncBtn) syncBtn.innerHTML = `<span>⏳ Inasawazisha...</span>`;
     await SGStore.syncWithSupabase(true);
     const s = SGStore.getCurrentSession();
     if (s) renderMemberDashboard(s);
+    if (syncBtn) {
+        syncBtn.innerHTML = `<span class="text-emerald-400">✓ Tayari</span>`;
+        setTimeout(() => { syncBtn.innerHTML = orig; }, 1200);
+    }
+};
+
+window.copyStudentId = function () {
+    const s = SGStore.getCurrentSession();
+    if (!s || !s.member_id) {
+        alert("SG-ID yako bado inasubiri uthibitisho wa Admin.");
+        return;
+    }
+    navigator.clipboard.writeText(s.member_id).then(() => {
+        alert(`✓ SG-ID imenakiliwa: ${s.member_id}`);
+    }).catch(() => {});
+};
+
+window.copyWhatsAppIntro = function () {
+    const el = document.getElementById("wa-intro-template");
+    if (!el) return;
+    navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+        alert("✓ Ujumbe wa utambulisho umenakiliwa! Unaweza kuubandika (Paste) ndani ya WhatsApp Group.");
+    }).catch(() => {});
+};
+
+window.quickOverviewCheckin = function () {
+    const s = SGStore.getCurrentSession();
+    if (!s || !s.member_id) return;
+    const settings = SGStore.getPlatformSettings();
+    const sessionTitle = settings.active_session_title || "Kipindi cha Pamoja cha Wanafunzi";
+    try {
+        SGStore.recordPlannedAttendance(s.member_id, sessionTitle);
+        renderMemberDashboard(s);
+        alert(`✓ Check-in yako kwenye "${sessionTitle}" imerekodiwa!`);
+    } catch (err) {
+        alert("Taarifa: " + err.message);
+    }
 };
 
 // -----------------------------------------------------------------------
-// DASHBOARD RENDERING
+// MASTER DASHBOARD RENDERER
 // -----------------------------------------------------------------------
 function renderMemberDashboard(session) {
     const member = SGStore.findMemberById(session.id) || SGStore.findMemberByCredential(session.username) || session;
 
-    renderMemberIdentity(member);
+    renderGreetingAndIdentity(member);
+    renderKpiCards(member);
     renderWhatsAppGate(member);
+    renderOverviewSessionWidget(member);
+    renderDigitalStudentIdCard(member);
+    renderOnboardingProgress(member);
     renderAnnouncements();
     renderActiveWorkspace(member);
-    renderMemberTickets(member);
+    renderPortalCourses();
+    renderProfileAndTickets(member);
 }
 
-function renderMemberIdentity(member) {
+function renderGreetingAndIdentity(member) {
     const el = (id) => document.getElementById(id);
+    const firstName = (member.full_name || "Mwanafunzi").split(" ")[0];
+
+    const hour = new Date().getHours();
+    let swGreeting = "Habari";
+    if (hour >= 5 && hour < 12) swGreeting = "Habari za asubuhi";
+    else if (hour >= 12 && hour < 17) swGreeting = "Habari za mchana";
+    else if (hour >= 17 && hour < 22) swGreeting = "Habari za jioni";
+    else swGreeting = "Habari za wakati huu";
+
+    if (el("dash-greeting-title")) {
+        el("dash-greeting-title").textContent = `${swGreeting}, ${firstName}! 👋`;
+    }
+    if (el("dash-today-date")) {
+        try {
+            el("dash-today-date").textContent = "STUDENT DASHBOARD · " + new Date().toLocaleDateString("sw-TZ", {
+                weekday: "long",
+                year: "numeric",
+                month: "short",
+                day: "numeric"
+            });
+        } catch (e) {}
+    }
 
     const initials = (member.full_name || "SG")
         .split(" ")
@@ -211,7 +314,6 @@ function renderMemberIdentity(member) {
         .join("")
         .toUpperCase();
     if (el("dash-avatar")) el("dash-avatar").textContent = initials || "SG";
-
     if (el("dash-full-name")) el("dash-full-name").textContent = member.full_name || "...";
     if (el("dash-username")) el("dash-username").textContent = "@" + (member.username || "...");
 
@@ -221,7 +323,7 @@ function renderMemberIdentity(member) {
             el("dash-member-id").textContent = member.member_id;
             el("dash-member-id").classList.add("text-blue-400");
         } else {
-            el("dash-member-id").textContent = "Inasubiri Idhini";
+            el("dash-member-id").textContent = "Pending SG-ID";
             el("dash-member-id").classList.add("text-amber-400");
         }
     }
@@ -244,124 +346,273 @@ function renderMemberIdentity(member) {
     }
 }
 
+function renderKpiCards(member) {
+    const el = (id) => document.getElementById(id);
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
+    const attRecords = member.member_id ? SGStore.getAttendanceRecords(member.member_id) : [];
+    const verifiedAtt = attRecords.filter(a => a.is_verified).length;
+    const announcements = SGStore.getAnnouncements();
+
+    if (el("kpi-member-id")) {
+        el("kpi-member-id").textContent = member.member_id || "Inasubiri";
+        el("kpi-member-id").className = `text-base sm:text-lg font-extrabold font-mono-sg truncate ${member.member_id ? "text-white" : "text-amber-400"}`;
+    }
+    if (el("kpi-member-role")) {
+        el("kpi-member-role").textContent = member.role === "Applicant" ? "Mwanafunzi Mwombaji" : (member.role || "Student Member");
+    }
+
+    if (el("kpi-wa-status")) {
+        el("kpi-wa-status").textContent = isActive ? "Funguliwa ✓" : "Imefungwa";
+        el("kpi-wa-status").className = `text-base sm:text-lg font-extrabold ${isActive ? "text-emerald-400" : "text-amber-400"}`;
+    }
+    if (el("kpi-wa-sub")) {
+        el("kpi-wa-sub").textContent = isActive ? "Jiunge kwenye kundi &rarr;" : "Inasubiri idhini ya Admin";
+    }
+    if (el("nav-wa-indicator")) {
+        el("nav-wa-indicator").className = `w-2 h-2 rounded-full ${isActive ? "bg-emerald-400" : "bg-amber-400"}`;
+    }
+
+    if (el("kpi-att-count")) el("kpi-att-count").textContent = `${attRecords.length} Vipindi`;
+    if (el("kpi-att-sub")) el("kpi-att-sub").textContent = `${verifiedAtt} Imethibitishwa`;
+
+    if (el("kpi-updates-count")) el("kpi-updates-count").textContent = announcements.length;
+    if (el("nav-updates-count")) el("nav-updates-count").textContent = announcements.length;
+}
+
 // -----------------------------------------------------------------------
-// WHATSAPP ACCESS GATE (PRIMARY STUDENT PORTAL FEATURE)
+// WHATSAPP ACCESS GATE (OVERVIEW + WHATSAPP TAB)
 // -----------------------------------------------------------------------
 function renderWhatsAppGate(member) {
-    const container = document.getElementById("whatsapp-gate-card");
-    if (!container) return;
+    const overviewCard = document.getElementById("whatsapp-gate-card");
+    const tabCard = document.getElementById("whatsapp-tab-card");
+    const introBox = document.getElementById("wa-intro-template");
 
     const status = member.status;
-    const safeName = _esc(member.full_name || "");
+    const safeName = _esc(member.full_name || "Mwanafunzi");
     const safeFirst = _esc((member.full_name || "Mwanafunzi").split(" ")[0]);
-    const safeMemberId = _esc(member.member_id || "SG-xxxxxx");
+    const safeMemberId = _esc(member.member_id || "SG-PENDING");
+
+    if (introBox) {
+        const interest = member.learning_interest || member.motivation || "kujifunza teknolojia na wenzangu";
+        introBox.textContent = `Habari wanafunzi wenzangu! Mimi ni ${member.full_name || ""} (${member.member_id || "Mwanafunzi Mpya"}), nimefurahi kujiunga na SILLYGER Student Community. Napenda ${interest}. Tujifunze pamoja!`;
+    }
+
+    let cardHtml = "";
 
     if (status === "ACTIVE") {
         const waLink = _esc(SG_CONFIG.privateWhatsAppInvite);
-        container.innerHTML = `
-            <div class="sg-glass p-7 md:p-9 rounded-3xl border border-emerald-500/45 bg-gradient-to-br from-emerald-950/35 via-slate-900/90 to-slate-950 shadow-2xl">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div class="flex items-start gap-5">
-                        <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-                            <svg class="w-7 h-7 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                            </svg>
-                        </div>
-                        <div>
-                            <div class="inline-block px-2.5 py-0.5 rounded-full badge-active text-[10px] font-mono-sg font-bold uppercase mb-2">
-                                ✓ UMEIDHINISHWA — WHATSAPP ACCESS IMEFUNGULIWA
-                            </div>
-                            <h2 class="text-xl md:text-2xl font-extrabold text-white mb-2">Karibu Kwenye Kundi Rasmi la SILLYGER!</h2>
-                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl">
-                                Hongera ${safeName}! Namba yako ya mwanafunzi ni <strong class="text-emerald-400">${safeMemberId}</strong>. Bofya kitufe hapa kulia kuingia moja kwa moja kwenye <strong>WhatsApp Group</strong> ambapo tunajifunza na kupashana updates zote.
-                            </p>
-                        </div>
+        cardHtml = `
+            <div class="sg-glass p-6 sm:p-7 rounded-3xl border border-emerald-500/45 bg-gradient-to-br from-emerald-950/35 via-slate-900/90 to-slate-950 shadow-xl space-y-5">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                        <svg class="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                        </svg>
                     </div>
-                    <div class="flex flex-col items-center md:items-end gap-2.5 shrink-0">
-                        <a href="${waLink}" target="_blank" rel="noopener noreferrer"
-                            class="w-full md:w-auto px-8 py-4 rounded-2xl btn-sg-emerald text-sm flex items-center justify-center gap-3 whitespace-nowrap">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            <span>Jiunge na WhatsApp Group</span>
-                        </a>
-                        <span class="text-[10px] text-emerald-400/80 font-mono-sg">Official SILLYGER Student Group</span>
+                    <div>
+                        <span class="inline-block px-2.5 py-0.5 rounded-full badge-active text-[10px] font-mono-sg font-bold uppercase mb-1.5">
+                            ✓ WHATSAPP GATEWAY UNLOCKED
+                        </span>
+                        <h3 class="text-lg sm:text-xl font-extrabold text-white">Kundi Rasmi la Wanafunzi wa SILLYGER</h3>
+                        <p class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                            Hongera ${safeName} (<strong class="text-emerald-400 font-mono-sg">${safeMemberId}</strong>)! Kiungo rasmi cha kujiunga na WhatsApp Group letu la wanafunzi kiko wazi sasa.
+                        </p>
                     </div>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-emerald-900/40">
+                    <span class="text-[11px] font-mono-sg text-emerald-300/80">Official Student Learning Group</span>
+                    <a href="${waLink}" target="_blank" rel="noopener noreferrer"
+                        class="px-6 py-3 rounded-2xl btn-sg-emerald text-xs sm:text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                        <span>Jiunge na WhatsApp Group Sasa</span>
+                        <span>&rarr;</span>
+                    </a>
                 </div>
             </div>
         `;
     } else if (status === "PENDING") {
-        container.innerHTML = `
-            <div class="sg-glass p-7 md:p-9 rounded-3xl border border-amber-500/35 bg-gradient-to-br from-amber-950/15 via-slate-900/90 to-slate-950 shadow-xl">
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div class="flex items-start gap-5">
-                        <div class="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
-                            <svg class="w-7 h-7 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                        </div>
-                        <div>
-                            <div class="inline-block px-2.5 py-0.5 rounded-full badge-pending text-[10px] font-mono-sg font-bold uppercase mb-2">
-                                ⏳ INASUBIRI UTHIBITISHO WA ADMIN
-                            </div>
-                            <h2 class="text-xl md:text-2xl font-extrabold text-white mb-2">
-                                Maombi yako yamefika salama, ${safeFirst}!
-                            </h2>
-                            <p class="text-xs sm:text-sm text-slate-300 max-w-lg leading-relaxed">
-                                Admin anakagua usajili wako. Mara ukishaidhinishwa, namba yako ya mwanafunzi (<strong>SG-ID</strong>) na kiungo cha <strong>WhatsApp Group</strong> vitafunguka <strong class="text-amber-300">moja kwa moja hapa</strong>.
-                            </p>
-                            <div class="mt-4 flex flex-wrap gap-3 text-xs font-mono-sg">
-                                <span class="text-emerald-400">✓ Usajili umekamilika</span>
-                                <span class="text-amber-400">● Inasubiri Approve ya Admin</span>
-                                <span class="text-slate-500">🔒 WhatsApp Group</span>
-                            </div>
-                        </div>
+        cardHtml = `
+            <div class="sg-glass p-6 sm:p-7 rounded-3xl border border-amber-500/35 bg-gradient-to-br from-amber-950/15 via-slate-900/90 to-slate-950 space-y-4">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-400 text-lg">
+                        🔒
                     </div>
-                    <div class="shrink-0 flex flex-col gap-2.5">
-                        <button disabled
-                            class="px-7 py-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-500 font-extrabold text-xs sm:text-sm cursor-not-allowed flex items-center justify-center gap-2.5 opacity-75">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            <span>WhatsApp Group (Locked)</span>
-                        </button>
-                        <button onclick="refreshMemberStatusNow()" class="w-full px-4 py-2.5 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-900/50 text-xs text-blue-300 hover:text-white transition font-mono-sg font-semibold">
-                            🔄 Angalia Hali Mpya Sasa
-                        </button>
+                    <div>
+                        <span class="inline-block px-2.5 py-0.5 rounded-full badge-pending text-[10px] font-mono-sg font-bold uppercase mb-1.5">
+                            ⏳ INASUBIRI UTHIBITISHO WA ADMIN
+                        </span>
+                        <h3 class="text-lg font-extrabold text-white">WhatsApp Group Itafunguka Hapa Hivi Karibuni, ${safeFirst}!</h3>
+                        <p class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
+                            Maombi yako yako kwenye foleni ya Admin. Mara tu ukishaidhinishwa, namba yako ya <strong>SG-ID</strong> na kitufe cha kuingia WhatsApp Group vitatokea hapa kiotomatiki.
+                        </p>
                     </div>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+                    <span class="text-[11px] font-mono-sg text-slate-400">Inajisasisha kila sekunde 8</span>
+                    <button onclick="refreshMemberStatusNow()" class="px-5 py-2.5 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-900/50 text-xs text-blue-300 hover:text-white font-semibold transition">
+                        🔄 Angalia Hali Mpya Sasa
+                    </button>
                 </div>
             </div>
         `;
     } else {
-        container.innerHTML = `
-            <div class="sg-glass p-7 rounded-3xl border border-red-500/40 bg-red-950/20">
-                <div class="flex items-start gap-4 text-red-400">
-                    <svg class="w-7 h-7 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    <div>
-                        <p class="font-bold text-white text-base mb-1">Akaunti Iko Kwenye Mapitio (${_esc(status)})</p>
-                        <p class="text-xs sm:text-sm text-slate-300">Wasiliana na uongozi kupitia kitufe cha <strong>Msaada / Uliza Swali</strong> hapo juu kwa maelezo zaidi.</p>
-                    </div>
-                </div>
+        cardHtml = `
+            <div class="sg-glass p-6 rounded-3xl border border-red-500/40 bg-red-950/20 text-xs sm:text-sm text-slate-200">
+                ⚠️ Akaunti yako iko kwenye hali ya <strong>${_esc(status)}</strong>. Tafadhali tuma ujumbe kwenye kichupo cha <strong>Wasifu & Msaada</strong> ili kuwasiliana na Admin.
             </div>
         `;
     }
+
+    if (overviewCard) overviewCard.innerHTML = cardHtml;
+    if (tabCard) tabCard.innerHTML = cardHtml;
 }
 
 // -----------------------------------------------------------------------
-// ANNOUNCEMENTS & UPDATES FEED
+// OVERVIEW: CURRENT SESSION WIDGET, DIGITAL ID CARD & CHECKLIST
 // -----------------------------------------------------------------------
-function renderAnnouncements() {
-    const slot = document.getElementById("member-announcements-slot");
+function renderOverviewSessionWidget(member) {
+    const box = document.getElementById("overview-session-widget");
+    if (!box) return;
+
+    const settings = SGStore.getPlatformSettings();
+    const activeTitle = settings.active_session_title || "Misingi ya Teknolojia & Mafunzo ya Pamoja";
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
+
+    const today = new Date().toISOString().split("T")[0];
+    const alreadyCheckedIn = isActive && SGStore.getAttendanceRecords(member.member_id).some(
+        a => (a.date === today || a.session_date === today)
+    );
+
+    box.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <span class="text-[10px] font-mono-sg text-emerald-400 font-bold uppercase block">MADA / KIPINDI CHA SASA</span>
+                <h3 class="text-sm sm:text-base font-bold text-white">${_esc(activeTitle)}</h3>
+                <p class="text-xs text-slate-400">
+                    ${isActive
+                        ? (alreadyCheckedIn ? "✓ Umeshafanya check-in ya leo!" : "Bofya hapa kurekodi ushiriki wako wa leo.")
+                        : "Check-in itafunguka ukishapata idhini ya SG-ID."}
+                </p>
+            </div>
+            ${isActive ? (
+                alreadyCheckedIn
+                    ? `<span class="px-4 py-2 rounded-xl badge-active text-xs font-mono-sg font-bold shrink-0">✓ Checked-in Leo</span>`
+                    : `<button type="button" onclick="quickOverviewCheckin()" class="px-5 py-2.5 rounded-xl btn-sg-primary text-xs shrink-0">✓ Check-in Leo</button>`
+            ) : `<span class="px-3.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[11px] font-mono-sg text-slate-500 shrink-0">Locked</span>`}
+        </div>
+    `;
+}
+
+function renderDigitalStudentIdCard(member) {
+    const slot = document.getElementById("digital-student-id-card");
     if (!slot) return;
 
-    const list = SGStore.getAnnouncements();
-    if (!list || list.length === 0) {
-        slot.innerHTML = `
-            <div class="p-5 rounded-2xl bg-slate-950/50 border border-slate-800/80 text-center text-xs text-slate-400 font-mono-sg">
-                Hakuna tangazo jipya lililowekwa kwa sasa. Updates mpya zitaonekana hapa na kwenye WhatsApp Group.
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
+    const joinedDate = SGUtils.formatDateSw(member.created_at);
+
+    slot.innerHTML = `
+        <div class="p-6 rounded-3xl border ${isActive ? "border-blue-500/45 bg-gradient-to-br from-blue-950/60 via-slate-900 to-indigo-950/50" : "border-slate-700/80 bg-gradient-to-br from-slate-900 to-slate-950"} shadow-2xl relative overflow-hidden space-y-5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white text-xs">
+                        SG
+                    </div>
+                    <div>
+                        <span class="text-xs font-extrabold text-white tracking-wider block leading-none">SILLYGER</span>
+                        <span class="text-[9px] font-mono-sg text-blue-300 uppercase tracking-widest">Digital Student ID</span>
+                    </div>
+                </div>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold ${isActive ? "badge-active" : "badge-pending"}">
+                    ${isActive ? "VERIFIED STUDENT" : "PENDING ID"}
+                </span>
             </div>
-        `;
+
+            <div class="space-y-1 pt-1">
+                <span class="text-[10px] font-mono-sg text-slate-400 uppercase block">Jina la Mwanafunzi</span>
+                <p class="text-base sm:text-lg font-extrabold text-white tracking-tight truncate">${_esc(member.full_name)}</p>
+                <p class="text-xs font-mono-sg text-blue-400">@${_esc(member.username)}</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 text-xs font-mono-sg">
+                <div>
+                    <span class="text-[10px] text-slate-400 block">SG-ID Number</span>
+                    <span class="font-bold ${isActive ? "text-emerald-400" : "text-amber-400"}">${_esc(member.member_id || "SG-PENDING")}</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-400 block">Tarehe ya Kujiunga</span>
+                    <span class="text-slate-200">${_esc(joinedDate)}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderOnboardingProgress(member) {
+    const slot = document.getElementById("onboarding-progress-card");
+    if (!slot) return;
+
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
+    const hasCheckin = isActive && SGStore.getAttendanceRecords(member.member_id).length > 0;
+
+    const steps = [
+        { label: "Kufungua Akaunti ya Mwanafunzi", done: true },
+        { label: "Kukubali Kanuni & PDPA 2022", done: true },
+        { label: "Kuidhinishwa & Kupewa SG-ID", done: isActive },
+        { label: "Kuingia WhatsApp & Check-in ya Kwanza", done: hasCheckin }
+    ];
+    const doneCount = steps.filter(s => s.done).length;
+    const pct = Math.round((doneCount / steps.length) * 100);
+
+    slot.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-[10px] font-mono-sg text-blue-400 font-bold uppercase block">HATUA ZAKO</span>
+                <h3 class="text-sm font-bold text-white">Maendeleo ya Kujiunga</h3>
+            </div>
+            <span class="text-xs font-mono-sg font-extrabold text-emerald-400">${pct}%</span>
+        </div>
+
+        <div class="w-full h-2 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+            <div class="h-full bg-gradient-to-r from-blue-500 to-emerald-400 transition-all duration-500" style="width: ${pct}%"></div>
+        </div>
+
+        <div class="space-y-2.5 pt-1 text-xs">
+            ${steps.map(st => `
+                <div class="flex items-center gap-2.5 ${st.done ? "text-slate-200" : "text-slate-500"}">
+                    <span class="w-5 h-5 rounded-md flex items-center justify-center text-[11px] font-bold ${st.done ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-slate-900 text-slate-600 border border-slate-800"}">
+                        ${st.done ? "✓" : "•"}
+                    </span>
+                    <span>${_esc(st.label)}</span>
+                </div>
+            `).join("")}
+        </div>
+    `;
+}
+
+// -----------------------------------------------------------------------
+// ANNOUNCEMENTS & UPDATES FEED (OVERVIEW PREVIEW + FULL TAB)
+// -----------------------------------------------------------------------
+function renderAnnouncements() {
+    const fullSlot = document.getElementById("member-announcements-slot");
+    const previewSlot = document.getElementById("overview-updates-preview");
+
+    const list = SGStore.getAnnouncements();
+
+    const emptyHtml = `
+        <div class="p-5 rounded-2xl bg-slate-950/50 border border-slate-800/80 text-center text-xs text-slate-400 font-mono-sg">
+            Hakuna tangazo jipya lililowekwa kwa sasa. Updates mpya zitaonekana hapa na kwenye WhatsApp Group.
+        </div>
+    `;
+
+    if (!list || list.length === 0) {
+        if (fullSlot) fullSlot.innerHTML = emptyHtml;
+        if (previewSlot) previewSlot.innerHTML = emptyHtml;
         return;
     }
 
-    slot.innerHTML = list.slice(0, 5).map(a => {
+    const renderItem = (a) => {
         const isHigh = a.priority === "HIGH";
         return `
-            <div class="p-4 sm:p-5 rounded-2xl border ${isHigh ? "border-blue-500/40 bg-blue-950/20" : "border-slate-800/90 bg-slate-950/50"} flex items-start gap-3.5">
+            <div class="p-4 rounded-2xl border ${isHigh ? "border-blue-500/40 bg-blue-950/20" : "border-slate-800/90 bg-slate-950/50"} flex items-start gap-3.5">
                 <div class="w-8 h-8 rounded-xl ${isHigh ? "bg-blue-600/20 text-blue-300 border border-blue-500/35" : "bg-slate-800/80 text-slate-300"} flex items-center justify-center shrink-0 text-sm">
                     ${isHigh ? "📢" : "📌"}
                 </div>
@@ -373,26 +624,33 @@ function renderAnnouncements() {
                         <span class="text-[10px] font-mono-sg text-slate-500">${_esc(a.author || "SG Admin")}</span>
                     </div>
                     <p class="text-sm font-bold text-white">${_esc(a.title)}</p>
-                    <p class="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed whitespace-pre-line">${_esc(a.content)}</p>
+                    <p class="text-xs text-slate-300 mt-1 leading-relaxed whitespace-pre-line">${_esc(a.content)}</p>
                 </div>
             </div>
         `;
-    }).join("");
+    };
+
+    if (fullSlot) fullSlot.innerHTML = list.map(renderItem).join("");
+    if (previewSlot) previewSlot.innerHTML = list.slice(0, 2).map(renderItem).join("");
 }
 
 // -----------------------------------------------------------------------
-// ACTIVE STUDENT WORKSPACE (SESSION CHECK-IN & LEAVE REQUESTS)
+// CHECK-IN & LEAVE REQUESTS TAB
 // -----------------------------------------------------------------------
 function renderActiveWorkspace(member) {
     const workspace = document.getElementById("active-member-workspace");
+    const lockedNotice = document.getElementById("attendance-locked-notice");
     if (!workspace) return;
 
-    if (member.status !== "ACTIVE" || !member.member_id) {
-        workspace.classList.add("hidden");
-        return;
-    }
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
 
-    workspace.classList.remove("hidden");
+    if (!isActive) {
+        workspace.classList.add("opacity-50", "pointer-events-none");
+        if (lockedNotice) lockedNotice.classList.remove("hidden");
+    } else {
+        workspace.classList.remove("opacity-50", "pointer-events-none");
+        if (lockedNotice) lockedNotice.classList.add("hidden");
+    }
 
     const sessionInput = document.getElementById("checkin-session-input");
     const settings = SGStore.getPlatformSettings();
@@ -400,8 +658,7 @@ function renderActiveWorkspace(member) {
         sessionInput.value = settings.active_session_title;
     }
 
-    // 1. Attendance list
-    const attRecords = SGStore.getAttendanceRecords(member.member_id);
+    const attRecords = member.member_id ? SGStore.getAttendanceRecords(member.member_id) : [];
     const verifiedCount = attRecords.filter(a => a.is_verified).length;
     const summaryEl = document.getElementById("member-att-summary");
     if (summaryEl) {
@@ -413,7 +670,7 @@ function renderActiveWorkspace(member) {
         if (attRecords.length === 0) {
             attListEl.innerHTML = `<div class="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 text-center text-xs text-slate-500 font-mono-sg">Bado hujarekodi check-in ya kipindi chochote.</div>`;
         } else {
-            attListEl.innerHTML = attRecords.slice(0, 8).map(a => `
+            attListEl.innerHTML = attRecords.slice(0, 10).map(a => `
                 <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-2 text-xs">
                     <div class="min-w-0">
                         <span class="font-semibold text-white block truncate">${_esc(a.session_title)}</span>
@@ -428,14 +685,13 @@ function renderActiveWorkspace(member) {
         }
     }
 
-    // 2. Leave requests list
-    const leaves = SGStore.getLeaveRequests(member.member_id);
+    const leaves = member.member_id ? SGStore.getLeaveRequests(member.member_id) : [];
     const leavesListEl = document.getElementById("member-leaves-list");
     if (leavesListEl) {
         if (leaves.length === 0) {
             leavesListEl.innerHTML = `<div class="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 text-center text-xs text-slate-500 font-mono-sg">Hakuna ombi la ruhusa ulilotuma.</div>`;
         } else {
-            leavesListEl.innerHTML = leaves.slice(0, 6).map(l => {
+            leavesListEl.innerHTML = leaves.slice(0, 8).map(l => {
                 const badge = l.status === "APPROVED"
                     ? "badge-active"
                     : (l.status === "REJECTED" ? "badge-suspended" : "badge-pending");
@@ -454,12 +710,60 @@ function renderActiveWorkspace(member) {
 }
 
 // -----------------------------------------------------------------------
-// SUPPORT TICKETS SECTION
+// IN-DASHBOARD POSSIBLE COURSES EXPLORER
 // -----------------------------------------------------------------------
-function renderMemberTickets(member) {
-    const section = document.getElementById("member-tickets-section");
+function renderPortalCourses() {
+    const grid = document.getElementById("portal-courses-grid");
+    if (!grid || typeof SG_CONFIG === "undefined") return;
+
+    grid.innerHTML = SG_CONFIG.CURRICULUM.map(c => {
+        const num = String(c.level).padStart(2, "0");
+        return `
+            <div class="sg-glass p-5 rounded-2xl space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="px-2.5 py-0.5 rounded-md badge-future font-mono-sg text-[11px] font-bold">TOPIC ${_esc(num)}</span>
+                    <span class="text-[10px] font-mono-sg uppercase text-slate-400">${_esc(c.category || "Core")}</span>
+                </div>
+                <h3 class="text-sm sm:text-base font-bold text-white">${_esc(c.title)}</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">${_esc(c.desc)}</p>
+            </div>
+        `;
+    }).join("");
+}
+
+// -----------------------------------------------------------------------
+// PROFILE DETAILS & SUPPORT TICKETS TAB
+// -----------------------------------------------------------------------
+function renderProfileAndTickets(member) {
+    const profileGrid = document.getElementById("profile-details-grid");
+    if (profileGrid) {
+        const note = member.learning_interest || member.motivation || "Hakuna maelezo ya ziada";
+        profileGrid.innerHTML = `
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <span class="text-slate-500 block mb-0.5">Jina Kamili</span>
+                <span class="font-bold text-white text-sm">${_esc(member.full_name)}</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <span class="text-slate-500 block mb-0.5">Username & SG-ID</span>
+                <span class="font-mono-sg font-bold text-blue-400">@${_esc(member.username)} · ${_esc(member.member_id || "PENDING")}</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <span class="text-slate-500 block mb-0.5">Barua Pepe (Email)</span>
+                <span class="text-slate-200 font-mono-sg">${_esc(member.email)}</span>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <span class="text-slate-500 block mb-0.5">Namba ya WhatsApp</span>
+                <span class="text-emerald-400 font-mono-sg font-bold">${_esc(member.phone)}</span>
+            </div>
+            <div class="sm:col-span-2 p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80">
+                <span class="text-slate-500 block mb-0.5">Mada Unayopenda / Ujumbe Wako</span>
+                <span class="text-slate-300">${_esc(note)}</span>
+            </div>
+        `;
+    }
+
     const listEl = document.getElementById("member-tickets-list");
-    if (!section || !listEl) return;
+    if (!listEl) return;
 
     const identifier = member.member_id || member.username;
     const tickets = SGStore.getSupportTickets().filter(
@@ -467,20 +771,23 @@ function renderMemberTickets(member) {
     );
 
     if (tickets.length === 0) {
-        section.classList.add("hidden");
+        listEl.innerHTML = `
+            <div class="p-5 rounded-2xl bg-slate-950/50 border border-slate-800/80 text-center text-xs text-slate-500 font-mono-sg">
+                Hujatuma swali au tiketi yoyote bado. Bofya "+ Tuma Swali / Ombi" ukiwa na uhitaji.
+            </div>
+        `;
         return;
     }
 
-    section.classList.remove("hidden");
     listEl.innerHTML = tickets.map(t => `
-        <div class="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5 text-xs">
+        <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-1.5 text-xs">
             <div class="flex items-center justify-between gap-2">
                 <span class="font-bold text-white">${_esc(t.subject)} <span class="text-slate-500 font-mono-sg text-[10px]">(${_esc(t.category)})</span></span>
                 <span class="px-2 py-0.5 rounded font-mono-sg text-[10px] font-bold ${t.status === "RESOLVED" ? "badge-active" : "badge-pending"}">${_esc(t.status)}</span>
             </div>
             <p class="text-slate-300 text-[11px]">${_esc(t.message)}</p>
             ${t.response ? `
-                <div class="mt-1.5 pt-1.5 border-t border-slate-800 text-[11px] text-emerald-300">
+                <div class="mt-2 pt-2 border-t border-slate-800 text-[11px] text-emerald-300">
                     <strong>Jibu la Admin (${_esc(t.responded_by || "Admin")}):</strong> ${_esc(t.response)}
                 </div>
             ` : ""}
@@ -547,8 +854,9 @@ function setupPortalForms() {
                 });
                 ticketForm.reset();
                 closeModal("modal-support-ticket");
+                switchStudentTab("profile");
                 renderMemberDashboard(session);
-                alert("✓ Ujumbe wako umetumwa! Utapata jibu hapa kwenye Portal.");
+                alert("✓ Ujumbe wako umetumwa! Utapata jibu hapa kwenye Dashboard.");
             } catch (err) {
                 alert("Hitilafu: " + err.message);
             }

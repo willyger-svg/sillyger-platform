@@ -25,16 +25,128 @@
 </head>
 <body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
-    <!-- Top App Header -->
-    <header class="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-3 group">
-                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-extrabold text-white text-base shadow-lg shadow-blue-600/25 group-hover:scale-105 transition">SG</div>
-                <div>
-                    <span class="font-extrabold text-white text-base sm:text-lg tracking-wide block leading-none">SILLYGER</span>
-                    <span class="text-[10px] font-mono-sg text-blue-400 block uppercase tracking-widest mt-0.5">Student Dashboard</span>
+    <!-- ============================================================== -->
+    <!-- SLIDE-OVER SIDE DRAWER (OFF-CANVAS MENU)                       -->
+    <!-- ============================================================== -->
+    <div id="sg-drawer-overlay" class="fixed inset-0 z-50 transition-opacity duration-300 ease-in-out opacity-0 pointer-events-none bg-black/75 backdrop-blur-sm" onclick="toggleSideDrawer(false)"></div>
+
+    <aside id="sg-side-drawer" class="fixed top-0 left-0 bottom-0 z-50 w-80 sm:w-88 max-w-[85vw] bg-slate-950 border-r border-slate-800/80 shadow-2xl transform -translate-x-full transition-transform duration-300 ease-in-out flex flex-col overflow-hidden">
+        <!-- Drawer Header with Student Identity & Close Button -->
+        <div class="p-5 border-b border-slate-800/80 bg-gradient-to-br from-blue-950/50 via-slate-950 to-slate-950 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div id="drawer-avatar" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg text-base font-bold text-white shrink-0 overflow-hidden shadow-md">
+                    SG
                 </div>
-            </a>
+                <div class="min-w-0">
+                    <h3 id="drawer-name" class="text-sm font-bold text-white truncate">Mwanafunzi</h3>
+                    <p id="drawer-id-role" class="text-[11px] font-mono-sg text-blue-400 truncate">SG-ID · Student</p>
+                </div>
+            </div>
+            <button type="button" onclick="toggleSideDrawer(false)" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition" aria-label="Funga Menyu">
+                ✕
+            </button>
+        </div>
+
+        <!-- Drawer Scrollable Navigation Links -->
+        <div class="flex-grow overflow-y-auto p-4 space-y-5">
+            <!-- Group 1: Student Dashboard Panes -->
+            <div class="space-y-1">
+                <span class="px-3 text-[10px] font-mono-sg font-bold uppercase tracking-wider text-slate-500 block mb-1">DASHBOARD WORKSPACE</span>
+                <button type="button" onclick="navToTab('overview')" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition text-left">
+                    <span class="text-base">📊</span>
+                    <span>Muhtasari (Overview)</span>
+                </button>
+                <button type="button" onclick="navToTab('whatsapp')" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-900 hover:text-white flex items-center justify-between gap-3 transition text-left">
+                    <div class="flex items-center gap-3">
+                        <span class="text-base">💬</span>
+                        <span>WhatsApp Group</span>
+                    </div>
+                    <span id="drawer-wa-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                </button>
+                <button type="button" onclick="navToTab('updates')" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition text-left">
+                    <span class="text-base">📢</span>
+                    <span>Updates & Ratiba</span>
+                </button>
+                <button type="button" onclick="navToTab('attendance')" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition text-left">
+                    <span class="text-base">✅</span>
+                    <span>Check-in & Ruhusa</span>
+                </button>
+                <button type="button" onclick="navToTab('profile')" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition text-left">
+                    <span class="text-base">👤</span>
+                    <span>Wasifu & Kitambulisho</span>
+                </button>
+                <button type="button" onclick="navToTab('settings')" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-200 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition text-left">
+                    <span class="text-base">⚙️</span>
+                    <span>Mipangilio (Settings)</span>
+                </button>
+            </div>
+
+            <!-- Group 2: Public Platform Pages -->
+            <div class="space-y-1 pt-2 border-t border-slate-800/80">
+                <span class="px-3 text-[10px] font-mono-sg font-bold uppercase tracking-wider text-slate-500 block mb-1">KURASA ZA JUMUIYA</span>
+                <a href="index.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition">
+                    <span class="text-base">🏠</span>
+                    <span>Tovuti Kuu (Homepage)</span>
+                </a>
+                <a href="courses.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition">
+                    <span class="text-base">📚</span>
+                    <span>Mtaala wa Masomo (Possible Courses)</span>
+                </a>
+                <a href="future-divisions.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition">
+                    <span class="text-base">🚀</span>
+                    <span>Dira ya Baadaye (Future Roadmap)</span>
+                </a>
+                <a href="constitution.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:text-white flex items-center gap-3 transition">
+                    <span class="text-base">📜</span>
+                    <span>Katiba ya SILLYGER (Charter v1.4)</span>
+                </a>
+            </div>
+
+            <!-- Group 3: Admin Command (Visible to Admin only) -->
+            <div id="drawer-admin-section" class="hidden space-y-1 pt-2 border-t border-slate-800/80">
+                <span class="px-3 text-[10px] font-mono-sg font-bold uppercase tracking-wider text-indigo-400 block mb-1">UTAWALA (ADMIN)</span>
+                <a href="admin-portal.html" class="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-indigo-300 bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-500/30 flex items-center gap-3 transition">
+                    <span class="text-base">🛠️</span>
+                    <span>Super Admin Command</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Drawer Footer: Quick Support & Logout -->
+        <div class="p-4 border-t border-slate-800/80 bg-slate-950 space-y-2">
+            <button type="button" onclick="toggleSideDrawer(false); openModal('modal-support-ticket')" class="w-full py-2.5 px-3 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-900/50 text-xs font-semibold text-blue-300 hover:text-white flex items-center justify-center gap-2 transition">
+                <span>💬</span>
+                <span>Uliza Msaada kwa Admin</span>
+            </button>
+            <button type="button" onclick="handleMemberLogout()" class="w-full py-2 px-3 rounded-xl border border-slate-800 hover:border-red-500/40 hover:bg-red-950/30 text-xs font-semibold text-slate-400 hover:text-red-400 flex items-center justify-center gap-2 transition">
+                <span>🚪</span>
+                <span>Ondoka kwenye Akaunti</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Top App Header -->
+    <header class="sticky top-0 z-40 sg-glass border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2.5 sm:gap-3.5">
+                <!-- Hamburger Button (Opens Slide-over Drawer) -->
+                <button type="button" onclick="toggleSideDrawer(true)" id="btn-open-drawer"
+                    class="p-2 sm:p-2.5 rounded-2xl border border-slate-700/80 bg-slate-900/90 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-sm"
+                    aria-label="Fungua Menyu ya Pembeni">
+                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    </svg>
+                    <span class="text-xs font-bold font-mono-sg hidden sm:inline text-slate-200">Menyu</span>
+                </button>
+
+                <a href="index.html" class="flex items-center gap-2.5 sm:gap-3 group">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-extrabold text-white text-base shadow-lg shadow-blue-600/25 group-hover:scale-105 transition">SG</div>
+                    <div>
+                        <span class="font-extrabold text-white text-base sm:text-lg tracking-wide block leading-none">SILLYGER</span>
+                        <span class="text-[10px] font-mono-sg text-blue-400 block uppercase tracking-widest mt-0.5">Student Dashboard</span>
+                    </div>
+                </a>
+            </div>
 
             <div class="flex items-center gap-2 sm:gap-2.5">
                 <span id="live-sync-pill" class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-[10px] font-mono-sg text-emerald-400">
@@ -42,10 +154,10 @@
                     <span>Cloud Sync Active</span>
                 </span>
                 <div id="admin-link-slot"></div>
-                <button onclick="openModal('modal-change-password')" id="btn-security-header"
+                <button onclick="switchStudentTab('settings')" id="btn-settings-header"
                     class="hidden text-xs px-3 py-1.5 rounded-xl border border-slate-700 hover:border-blue-500/50 hover:bg-blue-950/30 text-slate-300 hover:text-blue-300 transition items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                    <span class="hidden sm:inline">Nenosiri</span>
+                    <span>⚙️</span>
+                    <span class="hidden sm:inline">Mipangilio</span>
                 </button>
                 <button onclick="handleMemberLogout()" id="btn-logout-header"
                     class="hidden text-xs px-3 py-1.5 rounded-xl border border-slate-700 hover:border-red-500/50 hover:bg-red-950/30 text-slate-400 hover:text-red-400 transition items-center gap-1.5">
@@ -176,7 +288,11 @@
                         </button>
                         <button type="button" data-student-tab="profile" class="student-nav-btn w-full px-3.5 py-2.5 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-800/70 text-xs font-semibold flex items-center gap-2.5 whitespace-nowrap text-left transition">
                             <span>👤</span>
-                            <span>Wasifu & Msaada</span>
+                            <span>Wasifu & Kitambulisho</span>
+                        </button>
+                        <button type="button" data-student-tab="settings" class="student-nav-btn w-full px-3.5 py-2.5 rounded-2xl text-slate-300 hover:text-white hover:bg-slate-800/70 text-xs font-semibold flex items-center gap-2.5 whitespace-nowrap text-left transition">
+                            <span>⚙️</span>
+                            <span>Mipangilio (Settings)</span>
                         </button>
                     </nav>
 
@@ -511,6 +627,132 @@
 
                     </div>
 
+                    <!-- ================================================== -->
+                    <!-- PANE 7: ⚙️ MIPANGILIO YA AKAUNTI (SETTINGS)        -->
+                    <!-- ================================================== -->
+                    <div id="student-pane-settings" class="student-tab-pane hidden space-y-6">
+
+                        <!-- Settings Top Header -->
+                        <div class="sg-glass p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <span class="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block">MIPANGILIO YA AKAUNTI</span>
+                                <h2 class="text-xl font-bold text-white">Mipangilio, Usalama & Faragha</h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Dhibiti taarifa zako binafsi, picha, nenosiri, faragha ya data (PDPA 2022) na vikao vyako.</p>
+                            </div>
+                            <button type="button" onclick="openEditProfileModal()" class="px-4 py-2.5 rounded-2xl btn-sg-primary text-xs flex items-center gap-1.5 shrink-0">
+                                <span>✏️</span>
+                                <span>Hariri Wasifu & Picha</span>
+                            </button>
+                        </div>
+
+                        <!-- 4 Settings Grid Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                            <!-- Card 1: Wasifu & Picha ya Wasifu -->
+                            <div class="sg-glass p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3 pb-2 border-b border-slate-800/80">
+                                        <div class="w-10 h-10 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center text-lg shrink-0">
+                                            👤
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-white">Taarifa Binafsi & Picha</h3>
+                                            <p class="text-[11px] text-slate-400">Jina, simu ya WhatsApp na picha ya wasifu</p>
+                                        </div>
+                                    </div>
+                                    <div id="settings-profile-preview" class="space-y-2 text-xs"></div>
+                                </div>
+                                <button type="button" onclick="openEditProfileModal()" class="w-full py-2.5 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 hover:text-white font-semibold text-xs transition">
+                                    Badili Taarifa au Picha &rarr;
+                                </button>
+                            </div>
+
+                            <!-- Card 2: Nenosiri & Usalama -->
+                            <div class="sg-glass p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3 pb-2 border-b border-slate-800/80">
+                                        <div class="w-10 h-10 rounded-xl bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-lg shrink-0">
+                                            🔒
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-white">Nenosiri la Kuingia (Password)</h3>
+                                            <p class="text-[11px] text-slate-400">Ulinzi wa cryptographic salted SHA-256</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-slate-300 leading-relaxed">
+                                        Nenosiri lako linahifadhiwa kwa hash salama ya SHA-256 yenye salt. Hakuna mtu anayeweza kuliona wala kulisoma.
+                                    </p>
+                                    <div class="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-[11px] text-emerald-300 flex items-center gap-2">
+                                        <span>✓</span>
+                                        <span>Nenosiri limeimarishwa kiusalama</span>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="openModal('modal-change-password')" class="w-full py-2.5 rounded-xl btn-sg-primary text-xs flex items-center justify-center gap-2">
+                                    <span>🔒</span>
+                                    <span>Badili Nenosiri Lako Sasa</span>
+                                </button>
+                            </div>
+
+                            <!-- Card 3: Sheria ya Faragha & Ulinzi wa Taarifa (PDPA 2022) -->
+                            <div class="sg-glass p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3 pb-2 border-b border-slate-800/80">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-lg shrink-0">
+                                            📜
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-white">Faragha ya Data (PDPA 2022)</h3>
+                                            <p class="text-[11px] text-slate-400">Haki zako za kisheria za taarifa binafsi</p>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-slate-300 leading-relaxed">
+                                        Mfumo wa SILLYGER unaheshimu Sheria ya Ulinzi wa Taarifa Binafsi Tanzania. Una haki ya kupata nakala ya data zako au kuomba zifutwe.
+                                    </p>
+                                    <div class="flex items-center gap-2 pt-1">
+                                        <button type="button" onclick="exportMyData()" class="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-mono-sg text-slate-200 hover:text-white transition flex items-center gap-1.5">
+                                            <span>📥</span>
+                                            <span>Pakua Data Zangu (Export JSON)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="openModal('modal-support-ticket')" class="text-left text-[11px] text-red-400 hover:underline pt-2">
+                                    Unataka kufuta akaunti? Tuma ombi rasmi la msaada hapa &rarr;
+                                </button>
+                            </div>
+
+                            <!-- Card 4: Kikao & Vifaa (Active Session Shield) -->
+                            <div class="sg-glass p-6 rounded-3xl space-y-4 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center gap-3 pb-2 border-b border-slate-800/80">
+                                        <div class="w-10 h-10 rounded-xl bg-amber-600/20 text-amber-400 border border-amber-500/30 flex items-center justify-center text-lg shrink-0">
+                                            🛡️
+                                        </div>
+                                        <div>
+                                            <h3 class="text-sm font-bold text-white">Kikao cha Sasa (Session Shield)</h3>
+                                            <p class="text-[11px] text-slate-400">Hali ya muunganisho wa seva salama</p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2 text-xs">
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                                            <span class="text-slate-400">Hadhi ya Kikao:</span>
+                                            <span class="text-emerald-400 font-mono-sg font-bold">● Active & Guarded</span>
+                                        </div>
+                                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                                            <span class="text-slate-400">Kifaa:</span>
+                                            <span class="text-slate-200 font-mono-sg">Kivinjari cha Sasa</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="handleMemberLogout()" class="w-full py-2.5 rounded-xl border border-red-500/40 bg-red-950/30 hover:bg-red-900/50 text-red-300 hover:text-white font-semibold text-xs transition flex items-center justify-center gap-2">
+                                    <span>🚪</span>
+                                    <span>Ondoka kwenye Kifaa Hiki (Sign Out)</span>
+                                </button>
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div><!-- /lg:col-span-9 -->
 
             </div>
@@ -693,8 +935,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js?v=2.5"></script>
-    <script src="js/store.js?v=2.5"></script>
-    <script src="js/member-portal.js?v=2.5"></script>
+    <script src="js/config.js?v=2.6"></script>
+    <script src="js/store.js?v=2.6"></script>
+    <script src="js/member-portal.js?v=2.6"></script>
 </body>
 </html>

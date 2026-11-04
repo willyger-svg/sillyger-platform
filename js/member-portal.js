@@ -91,6 +91,52 @@ window.switchStudentTab = function (tabName) {
     }
 };
 
+// -----------------------------------------------------------------------
+// SLIDE-OVER SIDE DRAWER (OFF-CANVAS NAVIGATION)
+// -----------------------------------------------------------------------
+window.toggleSideDrawer = function (forceState) {
+    const overlay = document.getElementById("sg-drawer-overlay");
+    const drawer = document.getElementById("sg-side-drawer");
+    if (!drawer || !overlay) return;
+
+    const isCurrentlyOpen = !drawer.classList.contains("-translate-x-full");
+    const shouldOpen = (typeof forceState === "boolean") ? forceState : !isCurrentlyOpen;
+
+    if (shouldOpen) {
+        overlay.classList.remove("opacity-0", "pointer-events-none");
+        overlay.classList.add("opacity-100", "pointer-events-auto");
+        drawer.classList.remove("-translate-x-full");
+        drawer.classList.add("translate-x-0");
+        if (typeof document !== "undefined" && document.body) {
+            document.body.classList.add("overflow-hidden");
+        }
+    } else {
+        overlay.classList.remove("opacity-100", "pointer-events-auto");
+        overlay.classList.add("opacity-0", "pointer-events-none");
+        drawer.classList.remove("translate-x-0");
+        drawer.classList.add("-translate-x-full");
+        if (typeof document !== "undefined" && document.body) {
+            document.body.classList.remove("overflow-hidden");
+        }
+    }
+};
+
+window.navToTab = function (tabName) {
+    if (window.switchStudentTab) {
+        window.switchStudentTab(tabName);
+    }
+    window.toggleSideDrawer(false);
+};
+
+// Close drawer on Escape key press
+if (typeof document !== "undefined") {
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+            window.toggleSideDrawer(false);
+        }
+    });
+}
+
 function handleUrlAlertBanner() {
     const alertBox = document.getElementById("portal-url-alert");
     if (!alertBox) return;
@@ -130,7 +176,7 @@ function initMemberPortal() {
     const loginView = document.getElementById("login-view");
     const dashboardView = document.getElementById("dashboard-view");
     const logoutBtn = document.getElementById("btn-logout-header");
-    const securityBtn = document.getElementById("btn-security-header");
+    const settingsBtn = document.getElementById("btn-settings-header") || document.getElementById("btn-security-header");
 
     if (!session) {
         if (loginView) loginView.classList.remove("hidden");
@@ -139,9 +185,9 @@ function initMemberPortal() {
             logoutBtn.classList.add("hidden");
             logoutBtn.classList.remove("flex");
         }
-        if (securityBtn) {
-            securityBtn.classList.add("hidden");
-            securityBtn.classList.remove("flex");
+        if (settingsBtn) {
+            settingsBtn.classList.add("hidden");
+            settingsBtn.classList.remove("flex", "inline-flex");
         }
         setupLoginForm();
     } else {
@@ -151,9 +197,9 @@ function initMemberPortal() {
             logoutBtn.classList.remove("hidden");
             logoutBtn.classList.add("flex");
         }
-        if (securityBtn) {
-            securityBtn.classList.remove("hidden");
-            securityBtn.classList.add("flex");
+        if (settingsBtn) {
+            settingsBtn.classList.remove("hidden");
+            settingsBtn.classList.add("inline-flex");
         }
 
         const isAdmin = SGStore.isAdminUser(session);
@@ -299,6 +345,7 @@ function renderMemberDashboard(session) {
     renderActiveWorkspace(member);
     renderPortalCourses();
     renderProfileAndTickets(member);
+    renderSettingsPane(member);
 }
 
 function renderGreetingAndIdentity(member) {
@@ -369,6 +416,33 @@ function renderGreetingAndIdentity(member) {
                 ${_esc(s)}
             </span>
         `;
+    }
+
+    // Populate Slide-Over Side Drawer Identity
+    if (el("drawer-avatar")) {
+        if (member.avatar_url) {
+            el("drawer-avatar").innerHTML = `<img src="${_esc(member.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-2xl">`;
+        } else {
+            el("drawer-avatar").textContent = initials || "SG";
+        }
+    }
+    if (el("drawer-name")) el("drawer-name").textContent = member.full_name || "Mwanafunzi";
+    if (el("drawer-id-role")) {
+        const idText = member.member_id || "SG-PENDING";
+        const roleText = member.role === "Applicant" ? "Mwanafunzi Mwombaji" : (member.role || "Student Member");
+        el("drawer-id-role").textContent = `${idText} · ${roleText}`;
+    }
+    if (el("drawer-wa-dot")) {
+        const isActive = member.status === "ACTIVE" && !!member.member_id;
+        el("drawer-wa-dot").className = `w-2 h-2 rounded-full ${isActive ? "bg-emerald-400" : "bg-amber-400"}`;
+    }
+    if (el("drawer-admin-section")) {
+        const isAdmin = SGStore.isAdminUser(member);
+        if (isAdmin) {
+            el("drawer-admin-section").classList.remove("hidden");
+        } else {
+            el("drawer-admin-section").classList.add("hidden");
+        }
     }
 }
 
@@ -1060,6 +1134,122 @@ function renderProfileAndTickets(member) {
         </div>
     `).join("");
 }
+
+// -----------------------------------------------------------------------
+// SETTINGS PANE & PERSONAL DATA EXPORT (PDPA 2022)
+// -----------------------------------------------------------------------
+function renderSettingsPane(member) {
+    const el = (id) => document.getElementById(id);
+    const previewSlot = el("settings-profile-preview");
+    if (!previewSlot) return;
+
+    const isActive = member.status === "ACTIVE" && !!member.member_id;
+    const safeName = _esc(member.full_name || "Mwanafunzi");
+    const safeUsername = _esc(member.username || "mwanafunzi");
+    const safeId = _esc(member.member_id || "SG-PENDING");
+    const safeEmail = _esc(member.email || "—");
+    const safePhone = _esc(member.phone || "—");
+    const safeRole = _esc(member.role === "Applicant" ? "Mwanafunzi Mwombaji" : (member.role || "Student Member"));
+    const joinedDate = SGUtils.formatDateSw(member.created_at, true);
+
+    const initials = (member.full_name || "SG")
+        .split(" ")
+        .filter(Boolean)
+        .map(w => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+
+    const avatarHtml = member.avatar_url
+        ? `<img src="${_esc(member.avatar_url)}" alt="Avatar" class="w-12 h-12 rounded-2xl object-cover border border-blue-500/40 shrink-0">`
+        : `<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white shrink-0 shadow-md">${_esc(initials)}</div>`;
+
+    previewSlot.innerHTML = `
+        <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 mb-3">
+            ${avatarHtml}
+            <div class="min-w-0">
+                <span class="font-bold text-white text-sm block truncate">${safeName}</span>
+                <span class="text-blue-400 font-mono-sg text-xs block truncate">@${safeUsername} · ${safeRole}</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono-sg">
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span class="text-slate-500 block text-[10px] uppercase">Kitambulisho</span>
+                <span class="font-bold ${isActive ? "text-emerald-400" : "text-amber-400"}">${safeId}</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span class="text-slate-500 block text-[10px] uppercase">WhatsApp</span>
+                <span class="text-slate-200 font-bold">${safePhone}</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span class="text-slate-500 block text-[10px] uppercase">Barua Pepe</span>
+                <span class="text-slate-300 truncate block">${safeEmail}</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
+                <span class="text-slate-500 block text-[10px] uppercase">Tarehe ya Kujiunga</span>
+                <span class="text-slate-300">${joinedDate}</span>
+            </div>
+        </div>
+    `;
+}
+
+window.exportMyData = function () {
+    const session = SGStore.getCurrentSession();
+    if (!session) {
+        alert("Tafadhali ingia kwanza kwenye akaunti yako ili kupakua data.");
+        return;
+    }
+
+    const member = SGStore.findMemberById(session.id) || SGStore.findMemberByCredential(session.username) || session;
+    const attRecords = member.member_id ? SGStore.getAttendanceRecords(member.member_id) : [];
+    const leaves = member.member_id ? SGStore.getLeaves().filter(l => l.member_id === member.member_id) : [];
+    const tickets = SGStore.getSupportTickets().filter(t => t.member_id === member.member_id || t.username === member.username);
+
+    // Personal data package compliant with Tanzania PDPA 2022
+    const exportPackage = {
+        meta: {
+            system: "SILLYGER Student Community Learning Platform",
+            version: "v2.6",
+            export_timestamp: new Date().toISOString(),
+            legal_compliance: "United Republic of Tanzania Personal Data Protection Act (PDPA 2022) / Sheria ya Ulinzi wa Taarifa Binafsi Na. 11 ya Mwaka 2022",
+            notice: "Hii ni nakala rasmi ya kidijitali ya taarifa zako zilizohifadhiwa kwenye mfumo wa SILLYGER."
+        },
+        profile: {
+            id: member.id,
+            member_id: member.member_id || null,
+            full_name: member.full_name || null,
+            username: member.username || null,
+            email: member.email || null,
+            phone: member.phone || null,
+            role: member.role || "Applicant",
+            status: member.status || "PENDING",
+            avatar_url: member.avatar_url || null,
+            learning_interest: member.learning_interest || null,
+            motivation: member.motivation || null,
+            created_at: member.created_at || null,
+            updated_at: member.updated_at || null
+        },
+        attendance_records: attRecords,
+        leave_requests: leaves,
+        support_tickets: tickets
+    };
+
+    const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPackage, null, 2));
+    const dlAnchor = document.createElement("a");
+    const safeUser = (member.username || "student").toLowerCase().replace(/[^a-z0-9]/g, "_");
+    const dateStr = new Date().toISOString().split("T")[0];
+    dlAnchor.setAttribute("href", jsonString);
+    dlAnchor.setAttribute("download", `sillyger_pdpa_data_${safeUser}_${dateStr}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+
+    if (typeof SGUtils !== "undefined" && SGUtils.showToast) {
+        SGUtils.showToast("Data zako zimepakuliwa kikamilifu (JSON)! 📥", "success");
+    } else {
+        alert("Data zako zimepakuliwa kikamilifu (JSON file)! 📥");
+    }
+};
 
 // -----------------------------------------------------------------------
 // EDIT PROFILE, AVATAR UPLOAD & PRINT ID HELPERS

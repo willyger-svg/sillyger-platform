@@ -384,7 +384,7 @@ function renderGreetingAndIdentity(member) {
         if (member.avatar_url) {
             el("dash-avatar").innerHTML = `<img src="${_esc(member.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-2xl">`;
         } else {
-            el("dash-avatar").textContent = initials || "SG";
+            el("dash-avatar").innerHTML = `<img src="assets/sillyger-logo-icon.svg" alt="SG" class="w-full h-full object-contain p-1.5">`;
         }
     }
     if (el("dash-full-name")) el("dash-full-name").textContent = member.full_name || "...";
@@ -423,7 +423,7 @@ function renderGreetingAndIdentity(member) {
         if (member.avatar_url) {
             el("drawer-avatar").innerHTML = `<img src="${_esc(member.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-2xl">`;
         } else {
-            el("drawer-avatar").textContent = initials || "SG";
+            el("drawer-avatar").innerHTML = `<img src="assets/sillyger-logo-icon.svg" alt="SG" class="w-full h-full object-contain p-1.5">`;
         }
     }
     if (el("drawer-name")) el("drawer-name").textContent = member.full_name || "Mwanafunzi";
@@ -618,7 +618,10 @@ function renderDigitalStudentIdCard(member) {
 
     slot.innerHTML = `
         <div class="p-6 rounded-3xl border ${isActive ? "border-blue-500/45 bg-gradient-to-br from-blue-950/60 via-slate-900 to-indigo-950/50" : "border-slate-700/80 bg-gradient-to-br from-slate-900 to-slate-950"} shadow-2xl relative overflow-hidden space-y-5">
-            <div class="flex items-center justify-between">
+            <!-- Background Watermark Hologram Logo -->
+            <img src="assets/sillyger-logo-icon.svg" class="absolute -right-8 -bottom-8 w-44 h-44 opacity-10 pointer-events-none" alt="">
+
+            <div class="flex items-center justify-between relative z-10">
                 <div class="flex items-center gap-2.5">
                     <img src="assets/sillyger-logo-icon.svg" class="w-8 h-8 rounded-lg shadow-sm" alt="SG">
                     <div>
@@ -631,11 +634,11 @@ function renderDigitalStudentIdCard(member) {
                 </span>
             </div>
 
-            <div class="flex items-center gap-3.5 pt-1">
-                <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center font-mono-sg text-base font-black text-blue-300 shrink-0 overflow-hidden shadow-inner">
+            <div class="flex items-center gap-3.5 pt-1 relative z-10">
+                <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden shadow-inner p-0.5">
                     ${member.avatar_url
-                        ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover">`
-                        : `<span>${_esc(initials)}</span>`}
+                        ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover rounded-xl">`
+                        : `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-1.5">`}
                 </div>
                 <div class="space-y-0.5 min-w-0">
                     <span class="text-[9px] font-mono-sg text-slate-400 uppercase block">Jina la Mwanafunzi</span>
@@ -644,7 +647,7 @@ function renderDigitalStudentIdCard(member) {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 text-xs font-mono-sg">
+            <div class="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/80 text-xs font-mono-sg relative z-10">
                 <div>
                     <span class="text-[10px] text-slate-400 block">SG-ID Number</span>
                     <span class="font-bold ${isActive ? "text-emerald-400" : "text-amber-400"}">${_esc(member.member_id || "SG-PENDING")}</span>
@@ -872,7 +875,7 @@ function renderProfileAndTickets(member) {
     if (heroSlot) {
         const avatarImageHtml = member.avatar_url
             ? `<img src="${_esc(member.avatar_url)}" alt="${safeName}" class="w-full h-full object-cover rounded-[22px]">`
-            : `<span>${_esc(initials)}</span>`;
+            : `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-2.5">`;
 
         heroSlot.innerHTML = `
             <div class="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/35 bg-gradient-to-br from-blue-950/40 via-slate-900/90 to-slate-950 shadow-2xl relative overflow-hidden space-y-6">
@@ -1033,9 +1036,9 @@ function renderProfileAndTickets(member) {
         idSlot.innerHTML = `
             <div id="sg-printable-id-card" class="p-5 sm:p-6 rounded-3xl border ${isActive ? "border-blue-500/50 bg-gradient-to-br from-blue-950/80 via-slate-900 to-indigo-950/70" : "border-slate-700 bg-slate-900"} shadow-2xl relative overflow-hidden space-y-4">
                 <!-- Watermark Logo -->
-                <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none font-mono-sg text-9xl font-black text-white">SG</div>
+                <img src="assets/sillyger-logo-icon.svg" class="absolute -right-8 -bottom-8 w-44 h-44 opacity-15 pointer-events-none" alt="">
 
-                <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+                <div class="flex items-center justify-between pb-2 border-b border-slate-800 relative z-10">
                     <div class="flex items-center gap-2.5">
                         <img src="assets/sillyger-logo-icon.svg" class="w-9 h-9 rounded-xl shadow-md" alt="SG">
                         <div>
@@ -1048,9 +1051,11 @@ function renderProfileAndTickets(member) {
                     </span>
                 </div>
 
-                <div class="flex items-center gap-3.5 pt-1">
-                    <div class="w-12 h-12 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center font-mono-sg text-base font-black text-blue-300 shrink-0">
-                        ${_esc(initials)}
+                <div class="flex items-center gap-3.5 pt-1 relative z-10">
+                    <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden shadow-inner p-0.5">
+                        ${member.avatar_url
+                            ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover rounded-xl">`
+                            : `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-1.5">`}
                     </div>
                     <div class="min-w-0">
                         <h4 class="text-sm font-extrabold text-white truncate">${safeName}</h4>
@@ -1058,7 +1063,7 @@ function renderProfileAndTickets(member) {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono-sg">
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono-sg relative z-10">
                     <div>
                         <span class="text-[9px] text-slate-400 block uppercase">Student ID</span>
                         <span class="font-extrabold ${isActive ? "text-emerald-400" : "text-amber-400"}">${safeId}</span>
@@ -1158,7 +1163,7 @@ function renderSettingsPane(member) {
 
     const avatarHtml = member.avatar_url
         ? `<img src="${_esc(member.avatar_url)}" alt="Avatar" class="w-12 h-12 rounded-2xl object-cover border border-blue-500/40 shrink-0">`
-        : `<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white shrink-0 shadow-md">${_esc(initials)}</div>`;
+        : `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-12 h-12 rounded-2xl object-contain border border-blue-500/40 shrink-0 bg-slate-950 p-1.5">`;
 
     previewSlot.innerHTML = `
         <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-950/70 border border-slate-800/80 mb-3">
@@ -1300,14 +1305,7 @@ function renderModalAvatarPreview(avatarUrl, fullName = "") {
         previewInner.innerHTML = `<img src="${_esc(avatarUrl)}" alt="Avatar Preview" class="w-full h-full object-cover">`;
         if (removeBtn) removeBtn.classList.remove("hidden");
     } else {
-        const initials = (fullName || "SG")
-            .split(" ")
-            .filter(Boolean)
-            .map(w => w[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase();
-        previewInner.innerHTML = `<span>${_esc(initials || "SG")}</span>`;
+        previewInner.innerHTML = `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-2">`;
         if (removeBtn) removeBtn.classList.add("hidden");
     }
 }

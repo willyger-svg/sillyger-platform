@@ -28,7 +28,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="css/custom.css?v=2.3">
+    <link rel="stylesheet" href="css/custom.css?v=2.8">
 </head>
 <body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
@@ -161,9 +161,24 @@
         </div>
     </div>
 
-    <script src="js/config.js?v=2.3"></script>
-    <script src="js/store.js?v=2.3"></script>
-    <script src="js/constitution-data.js?v=2.3"></script>
+    <footer class="border-t border-slate-800/80 bg-slate-950/90 text-slate-400 text-xs py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2.5">
+                <img src="assets/sillyger-logo-icon.svg" alt="SG" class="w-6 h-6 rounded-md">
+                <span class="font-semibold text-slate-300">SILLYGER (SG) — Katiba ya Jumuiya (Charter v1.4)</span>
+            </div>
+            <div class="flex items-center gap-5">
+                <a href="index.html" class="hover:text-white transition">Nyumbani</a>
+                <a href="courses.html" class="hover:text-white transition">Possible Courses</a>
+                <a href="future-divisions.html" class="hover:text-white transition">Future Vision</a>
+                <a href="member-portal.html" class="hover:text-white transition">Student Portal</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/config.js?v=2.8"></script>
+    <script src="js/store.js?v=2.8"></script>
+    <script src="js/constitution-data.js?v=2.8"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             SGUtils.bindMobileMenu("mobile-menu-btn", "mobile-menu");

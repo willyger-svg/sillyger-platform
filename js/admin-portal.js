@@ -240,8 +240,12 @@ function renderSuperAdminDashboard(adminUser) {
     if (elAdminName) elAdminName.textContent = adminUser.full_name;
     if (elAdminRole) elAdminRole.textContent = adminUser.role;
     if (elAdminId) elAdminId.textContent = adminUser.member_id || "SG-000001";
-    if (elInitials && adminUser.full_name) {
-        elInitials.textContent = adminUser.full_name.split(" ").filter(Boolean).map(w => w[0]).slice(0, 2).join("").toUpperCase() || "SG";
+    if (elInitials) {
+        if (adminUser.avatar_url) {
+            elInitials.innerHTML = `<img src="${_esc(adminUser.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-xl">`;
+        } else {
+            elInitials.innerHTML = `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-1">`;
+        }
     }
 
     refreshAdminTelemetry();

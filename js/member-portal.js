@@ -620,9 +620,7 @@ function renderDigitalStudentIdCard(member) {
         <div class="p-6 rounded-3xl border ${isActive ? "border-blue-500/45 bg-gradient-to-br from-blue-950/60 via-slate-900 to-indigo-950/50" : "border-slate-700/80 bg-gradient-to-br from-slate-900 to-slate-950"} shadow-2xl relative overflow-hidden space-y-5">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white text-xs">
-                        SG
-                    </div>
+                    <img src="assets/sillyger-logo-icon.svg" class="w-8 h-8 rounded-lg shadow-sm" alt="SG">
                     <div>
                         <span class="text-xs font-extrabold text-white tracking-wider block leading-none">SILLYGER</span>
                         <span class="text-[9px] font-mono-sg text-blue-300 uppercase tracking-widest">Digital Student ID</span>
@@ -1039,9 +1037,7 @@ function renderProfileAndTickets(member) {
 
                 <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center font-mono-sg font-black text-white text-sm shadow-md">
-                            SG
-                        </div>
+                        <img src="assets/sillyger-logo-icon.svg" class="w-9 h-9 rounded-xl shadow-md" alt="SG">
                         <div>
                             <span class="text-xs font-black text-white tracking-widest block leading-none">SILLYGER</span>
                             <span class="text-[9px] font-mono-sg text-blue-300 uppercase tracking-widest">Student Community ID</span>

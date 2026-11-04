@@ -28,7 +28,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="css/custom.css?v=2.8">
+    <link rel="stylesheet" href="css/custom.css?v=2.9">
 </head>
 <body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
@@ -585,15 +585,21 @@
                             <div class="xl:col-span-5 space-y-6">
                                 <!-- Printable & Downloadable Digital Student ID -->
                                 <div class="sg-glass p-6 rounded-3xl space-y-4">
-                                    <div class="flex items-center justify-between pb-3 border-b border-slate-800/80">
+                                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800/80">
                                         <div>
                                             <span class="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block">KITAMBULISHO CHA KIDIJITALI</span>
                                             <h3 class="text-base font-bold text-white">Digital Student ID Card</h3>
                                         </div>
-                                        <button type="button" onclick="printStudentIdBadge()" class="px-3 py-1.5 rounded-xl btn-sg-primary text-xs flex items-center gap-1.5 shadow-md" title="Chapisha au Hifadhi Kitambulisho kama PDF au Picha">
-                                            <span>🖨️</span>
-                                            <span>Pakua / Print</span>
-                                        </button>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <button type="button" id="btn-download-id-card" onclick="downloadStudentIdBadge()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/25 transition active:scale-95" title="Pakua Kitambulisho hiki kama picha (PNG)">
+                                                <span>📥</span>
+                                                <span id="btn-download-id-text">Pakua ID (PNG)</span>
+                                            </button>
+                                            <button type="button" onclick="printStudentIdBadge()" class="px-3.5 py-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition active:scale-95" title="Chapisha au Hifadhi Kitambulisho kama PDF">
+                                                <span>🖨️</span>
+                                                <span>Print / PDF</span>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div id="profile-student-id-slot"></div>
                                 </div>
@@ -940,8 +946,10 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js?v=2.8"></script>
-    <script src="js/store.js?v=2.8"></script>
-    <script src="js/member-portal.js?v=2.8"></script>
+    <script src="js/qrcode.min.js"></script>
+    <script src="js/html2canvas.min.js"></script>
+    <script src="js/config.js?v=2.9"></script>
+    <script src="js/store.js?v=2.9"></script>
+    <script src="js/member-portal.js?v=2.9"></script>
 </body>
 </html>

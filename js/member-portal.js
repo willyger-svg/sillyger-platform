@@ -615,15 +615,16 @@ function renderDigitalStudentIdCard(member) {
 
     const isActive = member.status === "ACTIVE" && !!member.member_id;
     const joinedDate = SGUtils.formatDateSw(member.created_at);
+    const safePhone = _esc(member.phone || "—");
 
     slot.innerHTML = `
         <div class="p-6 rounded-3xl border ${isActive ? "border-blue-500/45 bg-gradient-to-br from-blue-950/60 via-slate-900 to-indigo-950/50" : "border-slate-700/80 bg-gradient-to-br from-slate-900 to-slate-950"} shadow-2xl relative overflow-hidden space-y-5">
             <!-- Background Watermark Hologram Logo -->
-            <img src="assets/sillyger-logo-icon.svg" class="absolute -right-8 -bottom-8 w-44 h-44 opacity-10 pointer-events-none" alt="">
+            <img src="assets/sillyger-logo-icon.png" class="absolute -right-8 -bottom-8 w-44 h-44 opacity-10 pointer-events-none select-none" alt="" crossorigin="anonymous">
 
             <div class="flex items-center justify-between relative z-10">
                 <div class="flex items-center gap-2.5">
-                    <img src="assets/sillyger-logo-icon.svg" class="w-8 h-8 rounded-lg shadow-sm" alt="SG">
+                    <img src="assets/sillyger-logo-icon.png" class="w-8 h-8 rounded-lg shadow-sm border border-blue-400/30" alt="SG" crossorigin="anonymous">
                     <div>
                         <span class="text-xs font-extrabold text-white tracking-wider block leading-none">SILLYGER</span>
                         <span class="text-[9px] font-mono-sg text-blue-300 uppercase tracking-widest">Digital Student ID</span>
@@ -637,8 +638,8 @@ function renderDigitalStudentIdCard(member) {
             <div class="flex items-center gap-3.5 pt-1 relative z-10">
                 <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden shadow-inner p-0.5">
                     ${member.avatar_url
-                        ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover rounded-xl">`
-                        : `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-1.5">`}
+                        ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover rounded-xl" crossorigin="anonymous">`
+                        : `<img src="assets/sillyger-logo-icon.png" alt="SG Logo" class="w-full h-full object-contain p-1.5" crossorigin="anonymous">`}
                 </div>
                 <div class="space-y-0.5 min-w-0">
                     <span class="text-[9px] font-mono-sg text-slate-400 uppercase block">Jina la Mwanafunzi</span>
@@ -653,9 +654,20 @@ function renderDigitalStudentIdCard(member) {
                     <span class="font-bold ${isActive ? "text-emerald-400" : "text-amber-400"}">${_esc(member.member_id || "SG-PENDING")}</span>
                 </div>
                 <div>
-                    <span class="text-[10px] text-slate-400 block">Tarehe ya Kujiunga</span>
-                    <span class="text-slate-200">${_esc(joinedDate)}</span>
+                    <span class="text-[10px] text-slate-400 block">Simu ya Mwanafunzi</span>
+                    <span class="text-slate-200 font-bold">${safePhone}</span>
                 </div>
+            </div>
+
+            <div class="pt-2 flex items-center justify-between gap-2 relative z-10 border-t border-slate-800/60">
+                <button type="button" onclick="downloadStudentIdBadge()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition active:scale-95" title="Pakua Kitambulisho kama Picha (PNG)">
+                    <span>📥</span>
+                    <span>Pakua ID (PNG)</span>
+                </button>
+                <button type="button" onclick="switchStudentTab('profile')" class="text-xs font-mono-sg text-blue-400 hover:text-blue-300 underline flex items-center gap-1">
+                    <span>Smart ID Kamili</span>
+                    <span>&rarr;</span>
+                </button>
             </div>
         </div>
     `;
@@ -1030,56 +1042,93 @@ function renderProfileAndTickets(member) {
         `;
     }
 
-    // 4. Digital Student ID Printable Showcase Slot
+    // 4. Digital Student ID Printable & Downloadable Showcase Slot
     const idSlot = document.getElementById("profile-student-id-slot");
     if (idSlot) {
         idSlot.innerHTML = `
-            <div id="sg-printable-id-card" class="p-5 sm:p-6 rounded-3xl border ${isActive ? "border-blue-500/50 bg-gradient-to-br from-blue-950/80 via-slate-900 to-indigo-950/70" : "border-slate-700 bg-slate-900"} shadow-2xl relative overflow-hidden space-y-4">
-                <!-- Watermark Logo -->
-                <img src="assets/sillyger-logo-icon.svg" class="absolute -right-8 -bottom-8 w-44 h-44 opacity-15 pointer-events-none" alt="">
+            <div id="sg-printable-id-card" class="p-5 sm:p-6 rounded-3xl border ${isActive ? "border-blue-500/50 bg-gradient-to-br from-[#0c1427] via-[#090d1a] to-[#040711]" : "border-slate-700 bg-slate-900"} shadow-2xl relative overflow-hidden space-y-4">
+                <!-- Background Watermark Logo -->
+                <img src="assets/sillyger-logo-icon.png" class="absolute -right-6 -bottom-6 w-44 h-44 opacity-10 pointer-events-none select-none" alt="" crossorigin="anonymous">
 
-                <div class="flex items-center justify-between pb-2 border-b border-slate-800 relative z-10">
+                <!-- Header: SILLYGER Logo & Verification Status -->
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800/80 relative z-10">
                     <div class="flex items-center gap-2.5">
-                        <img src="assets/sillyger-logo-icon.svg" class="w-9 h-9 rounded-xl shadow-md" alt="SG">
+                        <img src="assets/sillyger-logo-icon.png" class="w-10 h-10 rounded-xl shadow-md border border-blue-400/30 shrink-0" alt="SG" crossorigin="anonymous">
                         <div>
-                            <span class="text-xs font-black text-white tracking-widest block leading-none">SILLYGER</span>
+                            <span class="text-xs sm:text-sm font-black text-white tracking-widest block leading-none">SILLYGER</span>
                             <span class="text-[9px] font-mono-sg text-blue-300 uppercase tracking-widest">Student Community ID</span>
                         </div>
                     </div>
-                    <span class="px-2 py-0.5 rounded-full text-[9px] font-mono-sg font-bold ${isActive ? "badge-active" : "badge-pending"}">
-                        ${isActive ? "VERIFIED MEMBER" : "PENDING"}
+                    <span class="px-2.5 py-1 rounded-full text-[9px] font-mono-sg font-bold ${isActive ? "badge-active" : "badge-pending"}">
+                        ${isActive ? "● VERIFIED MEMBER" : "○ PENDING"}
                     </span>
                 </div>
 
-                <div class="flex items-center gap-3.5 pt-1 relative z-10">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-950 border border-blue-500/30 flex items-center justify-center shrink-0 overflow-hidden shadow-inner p-0.5">
-                        ${member.avatar_url
-                            ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover rounded-xl">`
-                            : `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-1.5">`}
+                <!-- Body: Photo, Student Details, and Scannable Dynamic QR Code -->
+                <div class="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 pt-1 relative z-10">
+                    <div class="flex items-center sm:items-start gap-3.5 w-full sm:w-auto min-w-0">
+                        <!-- Profile Photo -->
+                        <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-950 border-2 border-blue-400/40 flex items-center justify-center shrink-0 overflow-hidden shadow-lg p-0.5">
+                            ${member.avatar_url
+                                ? `<img src="${_esc(member.avatar_url)}" alt="Photo" class="w-full h-full object-cover rounded-xl" crossorigin="anonymous">`
+                                : `<img src="assets/sillyger-logo-icon.png" alt="SG Logo" class="w-full h-full object-contain p-2" crossorigin="anonymous">`}
+                        </div>
+                        <!-- Student Text Info -->
+                        <div class="space-y-1 min-w-0">
+                            <h4 class="text-sm sm:text-base font-extrabold text-white truncate leading-tight">${safeName}</h4>
+                            <span class="text-xs font-mono-sg text-cyan-400 font-semibold block">@${safeUsername}</span>
+                            <div class="pt-1 space-y-0.5 text-[11px] font-mono-sg">
+                                <div class="flex items-center gap-1.5 text-slate-300">
+                                    <span class="text-[9px] text-slate-400 uppercase tracking-wider">Reg No:</span>
+                                    <span class="font-extrabold ${isActive ? "text-emerald-400" : "text-amber-400"}">${safeId}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-slate-300">
+                                    <span class="text-[9px] text-slate-400 uppercase tracking-wider">Simu:</span>
+                                    <span class="font-bold text-slate-100">${safePhone}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="min-w-0">
-                        <h4 class="text-sm font-extrabold text-white truncate">${safeName}</h4>
-                        <span class="text-xs font-mono-sg text-blue-400 block">@${safeUsername}</span>
+
+                    <!-- Scannable Dynamic QR Code -->
+                    <div class="flex flex-col items-center justify-center shrink-0 self-center sm:self-start bg-white p-2 rounded-2xl shadow-lg border border-slate-200">
+                        <div id="sg-card-qr-box" class="w-20 h-20 flex items-center justify-center overflow-hidden"></div>
+                        <span class="text-[8px] font-mono-sg text-slate-800 font-bold uppercase tracking-wider mt-1 text-center">Scan to Verify</span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono-sg relative z-10">
-                    <div>
-                        <span class="text-[9px] text-slate-400 block uppercase">Student ID</span>
-                        <span class="font-extrabold ${isActive ? "text-emerald-400" : "text-amber-400"}">${safeId}</span>
-                    </div>
-                    <div>
-                        <span class="text-[9px] text-slate-400 block uppercase">Toleo la Katiba</span>
-                        <span class="text-slate-200">Charter v1.4</span>
-                    </div>
-                </div>
-
-                <div class="pt-2 flex items-center justify-between text-[10px] font-mono-sg text-slate-400 border-t border-slate-800/60">
-                    <span>Tanzania · PDPA 2022</span>
-                    <span class="text-emerald-400 font-bold">● Active 2026/27</span>
+                <!-- Footer: Community & Legal Compliance Badges -->
+                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono-sg text-slate-400 relative z-10">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-blue-400"></span>
+                        Tanzania · PDPA 2022
+                    </span>
+                    <span class="text-slate-300">Charter v1.4</span>
+                    <span class="${isActive ? "text-emerald-400 font-bold" : "text-amber-400"}">
+                        ${isActive ? "Active 2026/27" : "Pending Approval"}
+                    </span>
                 </div>
             </div>
         `;
+
+        // Generate Dynamic Scannable QR Code into the card
+        const qrContainer = document.getElementById("sg-card-qr-box");
+        if (qrContainer && typeof QRCode !== "undefined") {
+            try {
+                qrContainer.innerHTML = "";
+                const verifyUrl = `https://sillyger.netlify.app/index.html?verify_id=${encodeURIComponent(safeId)}&name=${encodeURIComponent(safeName)}`;
+                new QRCode(qrContainer, {
+                    text: verifyUrl,
+                    width: 80,
+                    height: 80,
+                    colorDark: "#050b14",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (err) {
+                console.error("QR Code Generation Error:", err);
+            }
+        }
     }
 
     // 5. Direct Super Admin WhatsApp CTA
@@ -1352,6 +1401,79 @@ window.openEditProfileModal = function () {
 
 window.printStudentIdBadge = function () {
     window.print();
+};
+
+window.downloadStudentIdBadge = async function () {
+    const origCard = document.getElementById("sg-printable-id-card");
+    if (!origCard) {
+        if (typeof SGUtils !== "undefined" && SGUtils.showToast) {
+            SGUtils.showToast("Kitambulisho hakipatikani kwa sasa.", "error");
+        } else {
+            alert("Kitambulisho hakipatikani kwa sasa.");
+        }
+        return;
+    }
+
+    const btn = document.getElementById("btn-download-id-card");
+    const textEl = document.getElementById("btn-download-id-text");
+    const origHtml = textEl ? textEl.innerHTML : "";
+
+    if (btn) btn.disabled = true;
+    if (textEl) textEl.innerHTML = "⏳ Inatengeneza ID...";
+
+    try {
+        if (typeof html2canvas === "undefined") {
+            throw new Error("Maktaba ya kupakua (html2canvas) haijapakiwa bado.");
+        }
+
+        const session = (typeof SGStore !== "undefined" && SGStore.getCurrentSession)
+            ? SGStore.getCurrentSession()
+            : null;
+        const rawId = (session && session.member_id) ? session.member_id : "STUDENT";
+        const cleanId = String(rawId).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+        // If card is inside a hidden tab, temporarily show the profile pane to render canvas cleanly
+        const profilePane = document.getElementById("student-pane-profile");
+        const wasHidden = profilePane && profilePane.classList.contains("hidden");
+        if (wasHidden) {
+            profilePane.classList.remove("hidden");
+        }
+
+        const canvas = await html2canvas(origCard, {
+            scale: 3, // Sharp 3x resolution for crisp download
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: "#0b1120",
+            logging: false
+        });
+
+        if (wasHidden) {
+            profilePane.classList.add("hidden");
+        }
+
+        const imageUri = canvas.toDataURL("image/png");
+        const downloadLink = document.createElement("a");
+        downloadLink.download = `SILLYGER-ID-${cleanId}.png`;
+        downloadLink.href = imageUri;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        if (typeof SGUtils !== "undefined" && SGUtils.showToast) {
+            SGUtils.showToast("✓ Kitambulisho chako kimepakuliwa kikamilifu kama picha (PNG)!", "success");
+        } else {
+            alert("✓ Kitambulisho chako kimepakuliwa kikamilifu kama picha (PNG)!");
+        }
+    } catch (err) {
+        console.error("Hitilafu wakati wa kupakua ID card:", err);
+        if (typeof SGUtils !== "undefined" && SGUtils.showToast) {
+            SGUtils.showToast("Inafungua dirisha la kuchapisha au kuhifadhi kama PDF...", "info");
+        }
+        window.print();
+    } finally {
+        if (btn) btn.disabled = false;
+        if (textEl) textEl.innerHTML = origHtml || "Pakua ID (PNG)";
+    }
 };
 
 // -----------------------------------------------------------------------

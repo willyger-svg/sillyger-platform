@@ -167,6 +167,10 @@ body {
  * PRINT OPTIMIZATION FOR DIGITAL STUDENT ID BADGE
  * ========================================================================== */
 @media print {
+    #student-pane-profile,
+    .student-tab-pane {
+        display: block !important;
+    }
     body * {
         visibility: hidden !important;
     }
@@ -179,8 +183,8 @@ body {
         left: 50% !important;
         top: 40% !important;
         transform: translate(-50%, -50%) !important;
-        width: 90mm !important;
-        max-width: 90mm !important;
+        width: 92mm !important;
+        max-width: 92mm !important;
         margin: 0 auto !important;
         background: #0b1120 !important;
         color: #ffffff !important;

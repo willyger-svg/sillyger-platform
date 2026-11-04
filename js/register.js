@@ -62,8 +62,6 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             try {
-                await SGStore.syncWithSupabase(true);
-
                 const fullName = document.getElementById("reg-name").value.trim();
                 const username = document.getElementById("reg-username").value.trim();
                 const email = document.getElementById("reg-email").value.trim();
@@ -106,29 +104,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     throw new Error("Manenosiri (Passwords) hayafanani. Hakiki tena.");
                 }
 
-                const newApplicant = SGStore.registerApplicant({
-                    full_name: fullName,
-                    username,
-                    email,
-                    phone: normalizedPhone,
-                    password,
-                    track: "SG Student Community",
-                    experience: "Student",
-                    learning_interest: motivation,
-                    motivation,
-                    agreed_constitution: agreeConst,
-                    agreed_ethics: agreeEthics,
-                    agreed_pdpa: agreePdpa
-                });
-
-                await SGStore.flushPendingWrites();
-
                 const currentSession = SGStore.getCurrentSession();
                 const isAdmin = SGStore.isAdminUser(currentSession);
 
-                if (!isAdmin) {
-                    SGStore.setCurrentSession(newApplicant);
-                }
+                const newApplicant = await SGStore.registerApplicantAsync(
+                    {
+                        full_name: fullName,
+                        username,
+                        email,
+                        phone: normalizedPhone,
+                        password,
+                        track: "SG Student Community",
+                        experience: "Student",
+                        learning_interest: motivation,
+                        motivation,
+                        agreed_constitution: agreeConst,
+                        agreed_ethics: agreeEthics,
+                        agreed_pdpa: agreePdpa
+                    },
+                    { issueSession: !isAdmin }
+                );
+
+                await SGStore.flushPendingWrites();
 
                 displaySuccessScreen(newApplicant, isAdmin, currentSession);
 

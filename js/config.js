@@ -9,19 +9,8 @@
 const DEFAULT_SUPABASE_URL = "https://inxmxykulzaqxrnpbvwd.supabase.co";
 const DEFAULT_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlueG14eWt1bHphcXhybnBidndkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3NDA5ODAsImV4cCI6MjEwOTMxNjk4MH0.1C_qsHrA8322rFYBXvhndhoNlU7-ekJDC-HCFi0FVZE";
 
-// Encoded official community invite fallback (can be rotated anytime via Admin Portal)
-const _OFFICIAL_WA_ENCODED = "aHR0cHM6Ly9jaGF0LndoYXRzYXBwLmNvbS9LUnh5YVNvVmNVQ0dMcTBQZE95NkpiP3M9Y2wmcD1hJmlhbT0y";
-
-function _decodeBase64(b64) {
-    try {
-        if (typeof atob === "function") return atob(b64);
-        if (typeof Buffer !== "undefined") return Buffer.from(b64, "base64").toString("utf8");
-    } catch (e) {}
-    return "";
-}
-
 /**
- * Security, Formatting & Shared Navigation Utilities (XSS Prevention)
+ * Security, Formatting, Toast Notifications & Shared Navigation Utilities (XSS Prevention)
  */
 const SGUtils = {
     escapeHtml(value) {
@@ -43,6 +32,62 @@ const SGUtils = {
         } catch (e) {
             return String(isoStr);
         }
+    },
+
+    showToast(message, variant = "success") {
+        if (typeof document === "undefined") return;
+        let container = document.getElementById("admin-toast-container") || document.getElementById("sg-global-toast-container");
+        if (!container) {
+            container = document.createElement("div");
+            container.id = "sg-global-toast-container";
+            container.className = "fixed top-20 right-4 z-[80] flex flex-col gap-2.5 max-w-sm w-[calc(100%-2rem)] pointer-events-none";
+            document.body.appendChild(container);
+        }
+
+        const palette = variant === "error"
+            ? "border-red-500/60 bg-red-950/95 text-red-100"
+            : (variant === "info" || variant === "warning"
+                ? "border-blue-500/60 bg-slate-900/95 text-blue-100"
+                : "border-emerald-500/60 bg-emerald-950/95 text-emerald-100");
+
+        const toast = document.createElement("div");
+        toast.className = `pointer-events-auto p-4 rounded-2xl border shadow-2xl text-xs font-semibold leading-relaxed flex items-start justify-between gap-3 transition duration-200 ${palette}`;
+        toast.innerHTML = `
+            <div class="whitespace-pre-line">${this.escapeHtml(message)}</div>
+            <button type="button" class="text-slate-400 hover:text-white shrink-0 font-bold" aria-label="Funga">✕</button>
+        `;
+        const closeBtn = toast.querySelector("button");
+        if (closeBtn) closeBtn.onclick = () => toast.remove();
+        container.appendChild(toast);
+        setTimeout(() => {
+            if (toast.parentNode) toast.remove();
+        }, 5000);
+    },
+
+    async copyText(text, successMessage = "✓ Imenakiliwa kikamilifu!") {
+        if (!text) return false;
+        try {
+            if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+                await navigator.clipboard.writeText(String(text));
+                this.showToast(successMessage, "success");
+                return true;
+            }
+        } catch (_) {}
+        if (typeof document !== "undefined") {
+            try {
+                const ta = document.createElement("textarea");
+                ta.value = String(text);
+                ta.style.position = "fixed";
+                ta.style.opacity = "0";
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                this.showToast(successMessage, "success");
+                return true;
+            } catch (_) {}
+        }
+        return false;
     },
 
     renderPublicSessionSlot(slotId = "header-session-slot") {
@@ -114,10 +159,17 @@ const SG_CONFIG = {
     memberPlural: "Sillygerians",
     communityFundName: "SG Community Fund",
 
-    // Dynamic getter for WhatsApp Invite (supports live rotation via Admin Portal / Supabase)
+    // Server-gated getter for WhatsApp Invite (Populated ONLY by Supabase RPC when member is ACTIVE or Admin)
     get privateWhatsAppInvite() {
         try {
             if (typeof localStorage !== "undefined") {
+                const rawSession = localStorage.getItem("sg_session_v1_4");
+                if (rawSession) {
+                    const sess = JSON.parse(rawSession);
+                    if (sess && sess.whatsapp_invite_url && sess.status === "ACTIVE") {
+                        return sess.whatsapp_invite_url;
+                    }
+                }
                 const rawSettings = localStorage.getItem("sg_settings_v1_4");
                 if (rawSettings) {
                     const parsed = JSON.parse(rawSettings);
@@ -127,7 +179,7 @@ const SG_CONFIG = {
                 }
             }
         } catch (e) {}
-        return _decodeBase64(_OFFICIAL_WA_ENCODED);
+        return "";
     },
 
     // Storage keys for local-first / hybrid persistence
@@ -135,6 +187,7 @@ const SG_CONFIG = {
         APPLICANTS: "sg_applicants_v1_4",
         ACTIVE_SESSION: "sg_session_v1_4",
         SETTINGS: "sg_settings_v1_4",
+        PUBLIC_STATS: "sg_public_stats_v1_4",
         AUDIT_LOGS: "sg_audit_logs_v1_4",
         ATTENDANCE: "sg_attendance_v1_4",
         LEAVE_REQUESTS: "sg_leaves_v1_4",

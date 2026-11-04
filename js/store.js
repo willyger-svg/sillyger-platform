@@ -1,10 +1,11 @@
 /**
- * SILLYGER (SG) Hybrid LocalStorage + Supabase Cloud State Engine (v1.4)
- * Features:
- * - Salted SHA-256 Password Hashing (Katiba Art. 6.13 & PDPA 2022 Art. 15)
- * - Sequential Atomic SG-xxxxxx Member ID Generation
- * - Full Cloud Sync with Supabase PostgreSQL (Members, Announcements, Fund, Attendance, Leaves, Tickets, Settings, Audit Logs)
- * - Cross-Tab BroadcastChannel Real-Time Sync
+ * SILLYGER (SG) Secure Cloud + Local Hybrid State Engine (v2.3)
+ * Security & Architecture (Katiba v1.4 & Tanzania PDPA 2022):
+ * - Server-Verified Cryptographic Session Shield (`sgs_...` tokens via PostgreSQL SECURITY DEFINER RPCs)
+ * - Zero `password_hash` or cross-member personal data exposure in browser LocalStorage
+ * - Server-Gated WhatsApp Invite Link (unlocked strictly for ACTIVE members & Administrators)
+ * - Single-RPC Role-Scoped Sync (1 lightweight request instead of 8 full-table pulls)
+ * - Offline Local Fallback for pure local testing when Supabase is disconnected
  */
 
 if (typeof SG_CONFIG === "undefined" && typeof require === "function") {
@@ -13,7 +14,6 @@ if (typeof SG_CONFIG === "undefined" && typeof require === "function") {
     global.SGUtils = cfg.SGUtils;
 }
 
-// Safe storage abstraction (browser localStorage with in-memory fallback for headless/Node testing)
 const _sgStorage = (typeof localStorage !== "undefined") ? localStorage : {
     _data: {},
     getItem(k) { return Object.prototype.hasOwnProperty.call(this._data, k) ? this._data[k] : null; },
@@ -21,7 +21,7 @@ const _sgStorage = (typeof localStorage !== "undefined") ? localStorage : {
     removeItem(k) { delete this._data[k]; }
 };
 
-// Pure-JS UTF-8 SHA-256 (works identically on HTTPS, HTTP, file://, and Node.js)
+// Pure-JS UTF-8 SHA-256 (used only for offline local-mode fallback)
 function _sha256Utf8(str) {
     function rightRotate(value, amount) {
         return (value >>> amount) | (value << (32 - amount));
@@ -106,38 +106,15 @@ function _randomSaltHex(len = 16) {
     return out;
 }
 
-// Precomputed salted SHA-256 hash for initial Super Administrator bootstrap
 const _FOUNDER_INITIAL_HASH = "sha256$sg_founder_v14$7720a68116abeee3a59cbb401ecdb701739d19b567a7d28031c6880d6ae8c1ac";
 
-let _supabaseClient = null;
-let _supabaseCacheKey = "";
 let _isInitialized = false;
 let _syncInFlight = null;
 let _lastSyncAt = 0;
-let _mutationSeq = 0;
 const _pendingWrites = new Set();
-
-function _bumpMutation() {
-    _mutationSeq += 1;
-    return _mutationSeq;
-}
 
 function _trackWrite(promiseLike) {
     if (!promiseLike || typeof promiseLike.then !== "function") return Promise.resolve();
-    _bumpMutation();
-    const tracked = Promise.resolve(promiseLike)
-        .catch(err => {
-            console.warn("Supabase write notice:", err);
-        })
-        .finally(() => {
-            _pendingWrites.delete(tracked);
-        });
-    _pendingWrites.add(tracked);
-    return tracked;
-}
-
-function _trackStrictWrite(promiseLike) {
-    _bumpMutation();
     const tracked = Promise.resolve(promiseLike).finally(() => {
         _pendingWrites.delete(tracked);
     });
@@ -146,31 +123,38 @@ function _trackStrictWrite(promiseLike) {
 }
 
 function _isCloudConfigured() {
-    return !!(typeof SG_CONFIG !== "undefined" && SG_CONFIG.SUPABASE && SG_CONFIG.SUPABASE.isConfigured);
+    return !!(typeof SG_CONFIG !== "undefined" && SG_CONFIG.SUPABASE && SG_CONFIG.SUPABASE.isConfigured && typeof fetch === "function");
+}
+
+function _cleanRpcError(rawMsg) {
+    if (!rawMsg) return "Hitilafu imetokea kwenye mfumo.";
+    return String(rawMsg)
+        .replace(/^P0001:\s*/i, "")
+        .replace(/^ERROR:\s*/i, "")
+        .trim();
 }
 
 /**
- * Zero-dependency PostgREST & RPC fetch helper.
- * Guarantees cloud approval & sync work even if cdn.jsdelivr.net (@supabase/supabase-js) fails to load!
+ * Direct Zero-Dependency Supabase PostgREST RPC Caller.
+ * Works reliably even if external CDN scripts are slow or blocked on mobile networks.
  */
-async function _directRestRequest(method, restPath, body = undefined, extraHeaders = {}) {
-    if (!_isCloudConfigured() || typeof fetch !== "function") {
-        throw new Error("Supabase Cloud haijaunganishwa au fetch haipo.");
+async function _callCloudRpc(rpcName, params = {}) {
+    if (!_isCloudConfigured()) {
+        throw new Error("Supabase Cloud haijaunganishwa.");
     }
     const baseUrl = String(SG_CONFIG.SUPABASE.url || "").replace(/\/+$/, "");
     const anonKey = SG_CONFIG.SUPABASE.anonKey;
-    const headers = {
-        apikey: anonKey,
-        Authorization: `Bearer ${anonKey}`,
-        Accept: "application/json",
-        ...extraHeaders
-    };
-    const opts = { method, headers };
-    if (body !== undefined) {
-        headers["Content-Type"] = "application/json";
-        opts.body = JSON.stringify(body);
-    }
-    const res = await fetch(`${baseUrl}/rest/v1${restPath}`, opts);
+    const res = await fetch(`${baseUrl}/rest/v1/rpc/${rpcName}`, {
+        method: "POST",
+        headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+            "Content-Type": "application/json",
+            Accept: "application/json"
+        },
+        body: JSON.stringify(params || {})
+    });
+
     const rawText = await res.text();
     let parsed = null;
     try {
@@ -178,30 +162,22 @@ async function _directRestRequest(method, restPath, body = undefined, extraHeade
     } catch (_) {
         parsed = rawText;
     }
+
     if (!res.ok) {
         const msg = (parsed && typeof parsed === "object" && (parsed.message || parsed.error || parsed.details))
             ? (parsed.message || parsed.error || parsed.details)
             : `HTTP ${res.status}`;
-        throw new Error(msg);
-    }
-    return parsed;
-}
+        const cleaned = _cleanRpcError(msg);
 
-function getSupabaseClient() {
-    if (typeof supabase !== "undefined" && _isCloudConfigured()) {
-        const key = `${SG_CONFIG.SUPABASE.url}::${SG_CONFIG.SUPABASE.anonKey}`;
-        if (_supabaseClient && _supabaseCacheKey === key) {
-            return _supabaseClient;
+        if (cleaned.includes("SESSION_EXPIRED")) {
+            _clearSensitiveLocalCaches();
+            _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            _notifyBroadcast({ type: "SESSION_EXPIRED" });
         }
-        try {
-            _supabaseClient = supabase.createClient(SG_CONFIG.SUPABASE.url, SG_CONFIG.SUPABASE.anonKey);
-            _supabaseCacheKey = key;
-            return _supabaseClient;
-        } catch (e) {
-            console.warn("Supabase init error:", e);
-        }
+        throw new Error(cleaned.replace(/^SESSION_EXPIRED:\s*/i, "").replace(/^FORBIDDEN:\s*/i, ""));
     }
-    return null;
+
+    return parsed;
 }
 
 function _notifyBroadcast(payload) {
@@ -211,16 +187,42 @@ function _notifyBroadcast(payload) {
             bc.postMessage(payload);
             bc.close();
         }
-    } catch (e) {}
+    } catch (_) {}
     try {
         if (typeof window !== "undefined" && typeof CustomEvent === "function") {
             window.dispatchEvent(new CustomEvent("sg:synced", { detail: payload }));
         }
-    } catch (e) {}
+    } catch (_) {}
+}
+
+function _clearSensitiveLocalCaches(keepPublicOverview = true) {
+    _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
+    _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
+    _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS);
+    _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS);
+    _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
+    _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS);
+
+    // Strip private WhatsApp link from settings cache when unauthenticated
+    try {
+        const rawSettings = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SETTINGS);
+        if (rawSettings) {
+            const parsed = JSON.parse(rawSettings);
+            if (parsed && parsed.whatsapp_invite_url) {
+                delete parsed.whatsapp_invite_url;
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(parsed));
+            }
+        }
+    } catch (_) {}
+
+    if (!keepPublicOverview) {
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS);
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.PUBLIC_STATS);
+    }
 }
 
 const SGStore = {
-    // Cryptographic password helpers
+    // Offline fallback cryptographic helpers
     hashPassword(plainPassword, customSalt = null) {
         const salt = customSalt || ("sg_" + _randomSaltHex(12));
         const digest = _sha256Utf8(`${salt}:${String(plainPassword)}`);
@@ -235,12 +237,8 @@ const SGStore = {
         if (!storedHash) return false;
         if (this.isHashedPassword(storedHash)) {
             const parts = storedHash.split("$");
-            const salt = parts[1];
-            const expected = parts[2];
-            const actual = _sha256Utf8(`${salt}:${String(plainPassword)}`);
-            return actual === expected;
+            return _sha256Utf8(`${parts[1]}:${String(plainPassword)}`) === parts[2];
         }
-        // Legacy fallback for pre-migration local entries
         return String(plainPassword) === String(storedHash);
     },
 
@@ -261,13 +259,12 @@ const SGStore = {
     isAdminUser(member) {
         if (!member) return false;
         if (this.isSuperAdmin(member)) return true;
-        const adminRoles = [
+        return [
             "Administrator",
             "Membership Administrator",
             "Education Administrator",
             "Finance Administrator"
-        ];
-        return adminRoles.includes(member.role);
+        ].includes(member.role);
     },
 
     async flushPendingWrites() {
@@ -275,43 +272,75 @@ const SGStore = {
         await Promise.allSettled(Array.from(_pendingWrites));
     },
 
-    // Initialize clean store & upgrade any legacy plaintext hashes
+    /**
+     * Initialize Store & Enforce PDPA 2022 Browser Privacy Hygiene
+     */
     init(force = false) {
         if (_isInitialized && !force) return;
         _isInitialized = true;
 
+        if (_isCloudConfigured()) {
+            // Check if pre-upgrade session exists without cryptographic server session_token
+            try {
+                const rawSess = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+                if (rawSess) {
+                    const parsedSess = JSON.parse(rawSess);
+                    if (!parsedSess || !parsedSess.session_token) {
+                        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+                        _sgStorage.setItem("sg_reauth_notice", "1");
+                    }
+                }
+            } catch (_) {
+                _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            }
+
+            const activeSession = this.getCurrentSession();
+            if (!activeSession) {
+                // Unauthenticated browser: purge any legacy cached member data or hashes immediately
+                _clearSensitiveLocalCaches(true);
+            } else if (!this.isAdminUser(activeSession)) {
+                // Regular student: never hold full members directory, fund ledger, or admin audit logs
+                _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
+                _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
+                _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS);
+                if (activeSession.status !== "ACTIVE") {
+                    try {
+                        const rawSettings = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SETTINGS);
+                        if (rawSettings) {
+                            const s = JSON.parse(rawSettings);
+                            delete s.whatsapp_invite_url;
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(s));
+                        }
+                    } catch (_) {}
+                }
+            } else {
+                // Admin session: ensure any cached member list never contains password_hash
+                try {
+                    const rawMembers = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
+                    if (rawMembers) {
+                        const cleaned = (JSON.parse(rawMembers) || []).map(m => {
+                            const copy = { ...m };
+                            delete copy.password_hash;
+                            return copy;
+                        });
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(cleaned));
+                    }
+                } catch (_) {}
+            }
+
+            this.syncWithSupabase();
+            return;
+        }
+
+        // Pure local offline fallback initialization (when Supabase URL/Key are removed)
         let members = [];
         try {
             const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
             members = raw ? JSON.parse(raw) : [];
-        } catch (e) {
+        } catch (_) {
             members = [];
         }
 
-        // 1. Purge any mock / test users
-        members = members.filter(m => {
-            if (!m) return false;
-            const u = (m.username || "").toLowerCase();
-            const e = (m.email || "").toLowerCase();
-            const id = (m.id || "");
-            if (u === "baraka_dev" || u === "amina_ai" || u === "test_user") return false;
-            if (e === "baraka@example.com" || e === "amina@example.com" || e === "admin@sillyger.org" || e === "test@example.com") return false;
-            if (id.startsWith("usr_mock")) return false;
-            return true;
-        });
-
-        // 2. Auto-upgrade any legacy plaintext passwords to salted SHA-256
-        members = members.map(m => {
-            if (m.password_hash && !this.isHashedPassword(m.password_hash)) {
-                return {
-                    ...m,
-                    password_hash: this.hashPassword(m.password_hash)
-                };
-            }
-            return m;
-        });
-
-        // 3. Ensure William Gerishom William (Founder & Super Administrator) is strictly present
         const founderTemplate = {
             id: "usr_admin_001",
             member_id: "SG-000001",
@@ -335,190 +364,162 @@ const SGStore = {
         const adminIdx = members.findIndex(m => this.isFounderMember(m));
         if (adminIdx === -1) {
             members.unshift(founderTemplate);
-        } else {
-            // Preserve custom password hash if founder changed their password!
-            const existingHash = members[adminIdx].password_hash;
-            members[adminIdx] = {
-                ...founderTemplate,
-                ...members[adminIdx],
-                member_id: "SG-000001",
-                username: "willyger",
-                role: "Super Administrator",
-                status: "ACTIVE",
-                password_hash: (existingHash && this.isHashedPassword(existingHash)) ? existingHash : _FOUNDER_INITIAL_HASH
-            };
         }
-
         _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
-
-        // 4. Purge legacy mock attendance & fund records
-        try {
-            const rawAtt = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
-            if (rawAtt) {
-                const attList = (JSON.parse(rawAtt) || []).filter(a => a && !["att_001", "att_002", "att_003"].includes(a.id));
-                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(attList));
-            }
-        } catch (e) {}
-
-        try {
-            const rawFund = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
-            if (rawFund) {
-                const fundList = (JSON.parse(rawFund) || []).filter(tx => tx && !["tx_001", "tx_002"].includes(tx.id));
-                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(fundList));
-            }
-        } catch (e) {}
-
-        // 5. Initialize clean audit log if missing
-        if (!_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) {
-            const initialAudit = [
-                {
-                    id: "log_001",
-                    action: "SYSTEM_INITIALIZATION",
-                    actor: "willyger (SG-000001)",
-                    target: "SILLYGER Governance Engine v1.4",
-                    details: "Initialized clean SG Community Platform with 11 Divisions and 10 Curriculum Levels under Super Administrator William Gerishom William.",
-                    timestamp: new Date().toISOString()
-                }
-            ];
-            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(initialAudit));
-        }
-
-        // Trigger initial cloud sync if Supabase is configured
-        this.syncWithSupabase();
     },
 
-    // Full Bi-Directional / Pull Cloud Sync with Supabase (supports SDK + direct REST fallback)
+    /**
+     * Role-Scoped Single-RPC Cloud Synchronization:
+     * - Public Visitor -> `sg_get_public_overview` (counts + announcements only)
+     * - Student Session -> `sg_get_my_portal_state` (own profile + own records + gated WhatsApp link)
+     * - Admin Session   -> `sg_admin_get_full_state` (sanitized governance tables, zero password_hash)
+     */
     async syncWithSupabase(force = false) {
-        const client = getSupabaseClient();
-        const canDirectFetch = !client && _isCloudConfigured() && typeof fetch === "function";
-        if (!client && !canDirectFetch) return false;
+        if (!_isCloudConfigured()) return false;
+
+        // Skip background tab polling unless explicitly forced
+        if (!force && typeof document !== "undefined" && document.visibilityState === "hidden") {
+            return false;
+        }
 
         const now = Date.now();
-        if (!force && (now - _lastSyncAt < 2500)) return false;
+        if (!force && (now - _lastSyncAt < 3000)) return false;
         if (_syncInFlight) return _syncInFlight;
 
         _lastSyncAt = now;
         _syncInFlight = (async () => {
             try {
-                // Ensure any in-flight writes commit to Supabase before pulling
                 await this.flushPendingWrites();
-                const seqBeforePull = _mutationSeq;
+                const session = this.getCurrentSession();
+                const token = session && session.session_token ? session.session_token : "";
 
-                const pullTable = async (sdkPromiseFactory, restQuery) => {
-                    if (client) {
-                        return await sdkPromiseFactory();
-                    }
-                    try {
-                        const data = await _directRestRequest("GET", restQuery);
-                        return { data, error: null };
-                    } catch (err) {
-                        return { data: null, error: err };
-                    }
-                };
+                // 1. ADMIN FULL GOVERNANCE SYNC
+                if (token && this.isAdminUser(session)) {
+                    const data = await _callCloudRpc("sg_admin_get_full_state", { p_session_token: token });
+                    if (data && typeof data === "object") {
+                        const members = Array.isArray(data.members) ? data.members : [];
+                        this.saveMembers(members);
 
-                const [mRes, aRes, fRes, attRes, lRes, tRes, logRes, sRes] = await Promise.all([
-                    pullTable(() => client.from("members").select("*").order("created_at", { ascending: true }), "/members?select=*&order=created_at.asc"),
-                    pullTable(() => client.from("announcements").select("*").order("created_at", { ascending: false }), "/announcements?select=*&order=created_at.desc"),
-                    pullTable(() => client.from("fund_ledger").select("*").order("created_at", { ascending: false }), "/fund_ledger?select=*&order=created_at.desc"),
-                    pullTable(() => client.from("attendance").select("*").order("created_at", { ascending: false }), "/attendance?select=*&order=created_at.desc"),
-                    pullTable(() => client.from("leave_requests").select("*").order("created_at", { ascending: false }), "/leave_requests?select=*&order=created_at.desc"),
-                    pullTable(() => client.from("support_tickets").select("*").order("created_at", { ascending: false }), "/support_tickets?select=*&order=created_at.desc"),
-                    pullTable(() => client.from("audit_logs").select("*").order("timestamp", { ascending: false }).limit(300), "/audit_logs?select=*&order=timestamp.desc&limit=300"),
-                    pullTable(() => client.from("platform_settings").select("*"), "/platform_settings?select=*")
-                ]);
+                        const stats = {
+                            totalRegistered: members.length,
+                            activeMembers: members.filter(m => m.status === "ACTIVE").length,
+                            pendingApplicants: members.filter(m => m.status === "PENDING").length
+                        };
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.PUBLIC_STATS, JSON.stringify(stats));
 
-                // Guard against race condition: if an approval/mutation happened while network pull was in flight,
-                // do NOT overwrite fresh local state with a stale cloud snapshot!
-                const staleForMembers = (_mutationSeq !== seqBeforePull) || (_pendingWrites.size > 0);
-
-                if (!staleForMembers && !mRes.error && Array.isArray(mRes.data) && mRes.data.length > 0) {
-                    const localBefore = this.getMembers();
-                    const normalizedMembers = mRes.data.map(m => ({
-                        ...m,
-                        password_hash: this.isHashedPassword(m.password_hash)
-                            ? m.password_hash
-                            : (m.password_hash ? this.hashPassword(m.password_hash) : _FOUNDER_INITIAL_HASH)
-                    }));
-
-                    // Push & merge any local-only applicants registered before Supabase was connected
-                    const cloudUsernames = new Set(normalizedMembers.map(m => (m.username || "").toLowerCase()));
-                    const cloudEmails = new Set(normalizedMembers.map(m => (m.email || "").toLowerCase()));
-                    const unsyncedLocals = localBefore.filter(
-                        lm => lm && lm._unsynced_cloud && !cloudUsernames.has((lm.username || "").toLowerCase()) && !cloudEmails.has((lm.email || "").toLowerCase())
-                    );
-
-                    for (const lm of unsyncedLocals) {
-                        const cleanRecord = { ...lm };
-                        delete cleanRecord._unsynced_cloud;
-                        normalizedMembers.push(cleanRecord);
-                        if (client) {
-                            _trackWrite(client.from("members").insert([cleanRecord]));
-                        } else {
-                            _trackWrite(_directRestRequest("POST", "/members", [cleanRecord]));
+                        if (Array.isArray(data.announcements)) {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(data.announcements));
+                        }
+                        if (Array.isArray(data.fund_ledger)) {
+                            const normFund = data.fund_ledger.map(tx => ({
+                                ...tx,
+                                amount: parseFloat(tx.amount) || 0,
+                                date: tx.date || tx.tx_date || (tx.created_at ? tx.created_at.split("T")[0] : "")
+                            }));
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(normFund));
+                        }
+                        if (Array.isArray(data.attendance)) {
+                            const normAtt = data.attendance.map(a => ({
+                                ...a,
+                                date: a.date || a.session_date || (a.created_at ? a.created_at.split("T")[0] : "")
+                            }));
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(normAtt));
+                        }
+                        if (Array.isArray(data.leave_requests)) {
+                            const normLeaves = data.leave_requests.map(l => ({
+                                ...l,
+                                submitted_at: l.submitted_at || l.created_at
+                            }));
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(normLeaves));
+                        }
+                        if (Array.isArray(data.support_tickets)) {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(data.support_tickets));
+                        }
+                        if (Array.isArray(data.audit_logs)) {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(data.audit_logs));
+                        }
+                        if (data.settings && typeof data.settings === "object") {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
+                        }
+                        if (data.admin) {
+                            this.setCurrentSession({
+                                ...data.admin,
+                                session_token: token,
+                                whatsapp_invite_url: (data.settings && data.settings.whatsapp_invite_url) || ""
+                            });
                         }
                     }
+                    _notifyBroadcast({ type: "CLOUD_SYNC_COMPLETE", scope: "admin" });
+                    return true;
+                }
 
-                    this.saveMembers(normalizedMembers);
+                // 2. AUTHENTICATED STUDENT PORTAL SYNC
+                if (token) {
+                    const data = await _callCloudRpc("sg_get_my_portal_state", { p_session_token: token });
+                    if (data && typeof data === "object") {
+                        if (data.stats) {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.PUBLIC_STATS, JSON.stringify(data.stats));
+                        }
+                        if (Array.isArray(data.announcements)) {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(data.announcements));
+                        }
+                        if (Array.isArray(data.attendance)) {
+                            const normAtt = data.attendance.map(a => ({
+                                ...a,
+                                date: a.date || a.session_date || (a.created_at ? a.created_at.split("T")[0] : "")
+                            }));
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(normAtt));
+                        }
+                        if (Array.isArray(data.leave_requests)) {
+                            const normLeaves = data.leave_requests.map(l => ({
+                                ...l,
+                                submitted_at: l.submitted_at || l.created_at
+                            }));
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(normLeaves));
+                        }
+                        if (Array.isArray(data.support_tickets)) {
+                            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(data.support_tickets));
+                        }
 
-                    // Keep current logged-in session status fresh (e.g. PENDING -> ACTIVE)
-                    const cur = this.getCurrentSession();
-                    if (cur) {
-                        const updatedSelf = normalizedMembers.find(
-                            m => m.id === cur.id || m.username === cur.username || m.email === cur.email
-                        );
-                        if (updatedSelf) this.setCurrentSession(updatedSelf);
+                        const nextSettings = {
+                            active_session_title: data.active_session_title || ""
+                        };
+                        if (data.whatsapp_invite_url) {
+                            nextSettings.whatsapp_invite_url = data.whatsapp_invite_url;
+                        }
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(nextSettings));
+
+                        if (data.member) {
+                            this.setCurrentSession({
+                                ...data.member,
+                                session_token: token,
+                                whatsapp_invite_url: data.whatsapp_invite_url || ""
+                            });
+                        }
+                    }
+                    _notifyBroadcast({ type: "CLOUD_SYNC_COMPLETE", scope: "student" });
+                    return true;
+                }
+
+                // 3. PUBLIC OVERVIEW SYNC (Zero personal data)
+                const pub = await _callCloudRpc("sg_get_public_overview", {});
+                if (pub && typeof pub === "object") {
+                    if (pub.stats) {
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.PUBLIC_STATS, JSON.stringify(pub.stats));
+                    }
+                    if (Array.isArray(pub.announcements)) {
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(pub.announcements));
+                    }
+                    if (typeof pub.active_session_title === "string") {
+                        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify({
+                            active_session_title: pub.active_session_title
+                        }));
                     }
                 }
-
-                if (!aRes.error && Array.isArray(aRes.data)) {
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(aRes.data));
-                }
-
-                if (!fRes.error && Array.isArray(fRes.data)) {
-                    const normFund = fRes.data.map(tx => ({
-                        ...tx,
-                        amount: parseFloat(tx.amount) || 0,
-                        date: tx.date || tx.tx_date || (tx.created_at ? tx.created_at.split("T")[0] : "")
-                    }));
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(normFund));
-                }
-
-                if (!attRes.error && Array.isArray(attRes.data)) {
-                    const normAtt = attRes.data.map(a => ({
-                        ...a,
-                        date: a.date || a.session_date || (a.created_at ? a.created_at.split("T")[0] : "")
-                    }));
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(normAtt));
-                }
-
-                if (!lRes.error && Array.isArray(lRes.data)) {
-                    const normLeaves = lRes.data.map(l => ({
-                        ...l,
-                        submitted_at: l.submitted_at || l.created_at
-                    }));
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(normLeaves));
-                }
-
-                if (!tRes.error && Array.isArray(tRes.data)) {
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(tRes.data));
-                }
-
-                if (!logRes.error && Array.isArray(logRes.data) && logRes.data.length > 0) {
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(logRes.data));
-                }
-
-                if (!sRes.error && Array.isArray(sRes.data) && sRes.data.length > 0) {
-                    const currentSettings = this.getPlatformSettings();
-                    sRes.data.forEach(row => {
-                        if (row && row.key) currentSettings[row.key] = row.value;
-                    });
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(currentSettings));
-                }
-
-                _notifyBroadcast({ type: "CLOUD_SYNC_COMPLETE" });
+                _notifyBroadcast({ type: "CLOUD_SYNC_COMPLETE", scope: "public" });
                 return true;
-            } catch (e) {
-                console.warn("Supabase sync notice:", e);
+            } catch (err) {
+                console.warn("Supabase sync notice:", err.message || err);
                 return false;
             } finally {
                 _syncInFlight = null;
@@ -528,80 +529,42 @@ const SGStore = {
         return _syncInFlight;
     },
 
-    // Platform Settings (WhatsApp Invite Link, Active Session Name, etc.)
-    getPlatformSettings() {
-        try {
-            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SETTINGS);
-            return raw ? JSON.parse(raw) : {};
-        } catch (e) {
-            return {};
+    // =========================================================================
+    // AUTHENTICATION & SESSION MANAGEMENT
+    // =========================================================================
+    async loginAsync(credential, plainPassword) {
+        if (_isCloudConfigured()) {
+            const res = await _callCloudRpc("sg_login", {
+                p_credential: String(credential || "").trim(),
+                p_password: String(plainPassword || "")
+            });
+            if (!res || !res.member || !res.session_token) {
+                throw new Error("Imeshindikana kuthibitisha akaunti kwenye Cloud.");
+            }
+            const settingsObj = {
+                active_session_title: res.active_session_title || ""
+            };
+            if (res.whatsapp_invite_url) {
+                settingsObj.whatsapp_invite_url = res.whatsapp_invite_url;
+            }
+            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(settingsObj));
+
+            const sessionPayload = {
+                ...res.member,
+                session_token: res.session_token,
+                whatsapp_invite_url: res.whatsapp_invite_url || ""
+            };
+            this.setCurrentSession(sessionPayload);
+            _sgStorage.removeItem("sg_reauth_notice");
+            return sessionPayload;
         }
+
+        // Offline local fallback
+        const member = this.authenticateMember(credential, plainPassword);
+        this.setCurrentSession(member);
+        return member;
     },
 
-    updatePlatformSettings(updates, adminActor = "willyger") {
-        const current = this.getPlatformSettings();
-        const next = { ...current, ...updates, updated_at: new Date().toISOString() };
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(next));
-
-        const client = getSupabaseClient();
-        if (client) {
-            const rows = Object.keys(updates).map(key => ({
-                key,
-                value: String(updates[key]),
-                updated_by: adminActor,
-                updated_at: new Date().toISOString()
-            }));
-            _trackWrite(
-                client.from("platform_settings").upsert(rows, { onConflict: "key" }).then(({ error }) => {
-                    if (error) console.warn("Supabase settings upsert notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "PLATFORM_SETTINGS_UPDATED",
-            actor: adminActor,
-            target: Object.keys(updates).join(", "),
-            details: "Super Administrator updated official platform configuration."
-        });
-
-        _notifyBroadcast({ type: "SETTINGS_UPDATED" });
-        return next;
-    },
-
-    // Get all members / applicants
-    getMembers() {
-        this.init();
-        try {
-            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) || [];
-        } catch (e) {
-            console.error("Error reading applicants store", e);
-            return [];
-        }
-    },
-
-    saveMembers(members) {
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
-    },
-
-    // Find member by email, username, SG-ID, or phone (with auto-normalization)
-    findMemberByCredential(credential) {
-        const members = this.getMembers();
-        const search = (credential || "").trim().toLowerCase();
-        if (!search) return null;
-        const normalizedPhone = this.normalizePhone(search);
-        const digitsSearch = search.replace(/[\s\-+]/g, "");
-
-        return members.find(m =>
-            (m.email && m.email.toLowerCase() === search) ||
-            (m.username && m.username.toLowerCase() === search) ||
-            (m.member_id && m.member_id.toLowerCase() === search) ||
-            (m.phone && m.phone === normalizedPhone) ||
-            (digitsSearch.length >= 9 && m.phone && m.phone.replace(/[\s\-+]/g, "") === digitsSearch)
-        ) || null;
-    },
-
-    // Authenticate member securely (auto-upgrades legacy hash if needed)
     authenticateMember(credential, plainPassword) {
         const member = this.findMemberByCredential(credential);
         if (!member) {
@@ -610,869 +573,9 @@ const SGStore = {
         if (!this.verifyPassword(plainPassword, member.password_hash)) {
             throw new Error("Nenosiri (Password) si sahihi. Tafadhali hakiki na ujaribu tena.");
         }
-
-        // Upgrade legacy unhashed password if encountered
-        if (!this.isHashedPassword(member.password_hash)) {
-            const members = this.getMembers();
-            const idx = members.findIndex(m => m.id === member.id);
-            if (idx !== -1) {
-                members[idx].password_hash = this.hashPassword(plainPassword);
-                this.saveMembers(members);
-                member.password_hash = members[idx].password_hash;
-            }
-        }
-
         return member;
     },
 
-    // Change own password (Member or Admin)
-    changePassword(memberId, currentPassword, newPassword) {
-        if (!newPassword || String(newPassword).length < 6) {
-            throw new Error("Nenosiri jipya lazima liwe na angalau herufi 6.");
-        }
-        const members = this.getMembers();
-        const idx = members.findIndex(m => m.id === memberId);
-        if (idx === -1) throw new Error("Akaunti haikupatikana.");
-
-        const member = members[idx];
-        if (!this.verifyPassword(currentPassword, member.password_hash)) {
-            throw new Error("Nenosiri la sasa si sahihi.");
-        }
-
-        const newHash = this.hashPassword(newPassword);
-        members[idx].password_hash = newHash;
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("members").update({ password_hash: newHash }).eq("username", member.username).then(({ error }) => {
-                    if (error) console.warn("Supabase password update notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "PASSWORD_CHANGED",
-            actor: member.username,
-            target: member.member_id || member.username,
-            details: "Account password updated with salted SHA-256 hash."
-        });
-
-        return true;
-    },
-
-    // Super Administrator password reset for member support
-    adminResetPassword(memberId, newPassword, adminActor = "willyger") {
-        if (!newPassword || String(newPassword).length < 6) {
-            throw new Error("Nenosiri jipya lazima liwe na angalau herufi 6.");
-        }
-        const members = this.getMembers();
-        const idx = members.findIndex(m => m.id === memberId);
-        if (idx === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const newHash = this.hashPassword(newPassword);
-        members[idx].password_hash = newHash;
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("members").update({ password_hash: newHash }).eq("username", members[idx].username));
-        }
-
-        this.addAuditLog({
-            action: "ADMIN_PASSWORD_RESET",
-            actor: adminActor,
-            target: `${members[idx].username} (${members[idx].member_id || "PENDING"})`,
-            details: "Password reset performed upon member verification."
-        });
-
-        return true;
-    },
-
-    findMemberById(id) {
-        return this.getMembers().find(m => m.id === id) || null;
-    },
-
-    // Register a new Applicant (Default status = 'PENDING', member_id = null)
-    registerApplicant(data) {
-        this.init();
-        const members = this.getMembers();
-
-        const normalizedEmail = (data.email || "").trim().toLowerCase();
-        const normalizedUsername = (data.username || "").trim().toLowerCase();
-        const normalizedPhone = this.normalizePhone(data.phone);
-
-        if (!normalizedEmail || !normalizedEmail.includes("@")) {
-            throw new Error("Tafadhali weka barua pepe (Email) sahihi.");
-        }
-        if (!normalizedUsername || normalizedUsername.length < 3 || !/^[a-z0-9_]+$/.test(normalizedUsername)) {
-            throw new Error("Username lazima iwe na herufi/nambari pekee bila nafasi (angalau herufi 3).");
-        }
-        if (!this.isValidTzPhone(normalizedPhone)) {
-            throw new Error("Namba ya WhatsApp si sahihi kwa Tanzania. Weka muundo wa +2557XXXXXXXX au 07XXXXXXXX.");
-        }
-        if (!data.password || String(data.password).length < 6) {
-            throw new Error("Nenosiri (Password) lazima liwe na angalau herufi 6.");
-        }
-
-        if (members.some(m => m.email && m.email.toLowerCase() === normalizedEmail)) {
-            throw new Error("Barua pepe hii (Email) tayari imesajiliwa. Tafadhali ingia au tumia barua pepe nyingine.");
-        }
-        if (members.some(m => m.username && m.username.toLowerCase() === normalizedUsername)) {
-            throw new Error("Jina la mtumiaji (Username) hili tayari limetumika. Tafadhali chagua jina jingine.");
-        }
-        if (members.some(m => m.phone === normalizedPhone)) {
-            throw new Error("Namba hii ya WhatsApp tayari imesajiliwa. Tumia namba yako halisi au ingia kwenye Portal.");
-        }
-
-        const passwordHash = this.hashPassword(data.password);
-        const interestNote = (data.learning_interest || data.motivation || "").trim();
-        const unifiedTrack = (data.track && String(data.track).trim()) || "SG Student Community";
-
-        const newApplicant = {
-            id: "usr_" + Date.now().toString(36) + "_" + _randomSaltHex(6),
-            member_id: null, // Strict null while PENDING
-            full_name: (data.full_name || "").trim(),
-            username: normalizedUsername,
-            email: normalizedEmail,
-            phone: normalizedPhone,
-            password_hash: passwordHash,
-            track: unifiedTrack,
-            experience: data.experience || "Student",
-            learning_interest: interestNote,
-            motivation: interestNote,
-            role: "Applicant",
-            status: "PENDING",
-            agreed_constitution: !!data.agreed_constitution,
-            agreed_ethics: !!data.agreed_ethics,
-            agreed_pdpa: !!data.agreed_pdpa,
-            created_at: new Date().toISOString(),
-            approved_at: null,
-            approved_by: null
-        };
-
-        const client = getSupabaseClient();
-        if (!client) {
-            newApplicant._unsynced_cloud = true;
-        }
-
-        members.push(newApplicant);
-        this.saveMembers(members);
-
-        if (client) {
-            _trackWrite(
-                client.from("members").insert([{
-                    id: newApplicant.id,
-                    full_name: newApplicant.full_name,
-                    username: newApplicant.username,
-                    email: newApplicant.email,
-                    phone: newApplicant.phone,
-                    password_hash: newApplicant.password_hash,
-                    track: newApplicant.track,
-                    experience: newApplicant.experience,
-                    learning_interest: newApplicant.learning_interest,
-                    motivation: newApplicant.motivation,
-                    role: "Applicant",
-                    status: "PENDING",
-                    member_id: null,
-                    agreed_constitution: newApplicant.agreed_constitution,
-                    agreed_ethics: newApplicant.agreed_ethics,
-                    agreed_pdpa: newApplicant.agreed_pdpa,
-                    created_at: newApplicant.created_at
-                }]).then(({ error }) => {
-                    if (error) {
-                        console.error("Supabase insert error:", error);
-                        const curMembers = this.getMembers();
-                        const mIdx = curMembers.findIndex(x => x.id === newApplicant.id);
-                        if (mIdx !== -1) {
-                            curMembers[mIdx]._unsynced_cloud = true;
-                            this.saveMembers(curMembers);
-                        }
-                    }
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "APPLICANT_REGISTERED",
-            actor: newApplicant.username,
-            target: newApplicant.full_name,
-            details: `New student registration received from ${newApplicant.phone} (${newApplicant.track}). Status: PENDING review.`
-        });
-
-        _notifyBroadcast({ type: "APPLICANT_REGISTERED", applicant: { id: newApplicant.id, username: newApplicant.username } });
-        return newApplicant;
-    },
-
-    // Generate Next Sequential SG-xxxxxx ID
-    getNextMemberId() {
-        const members = this.getMembers();
-        let maxNum = 0;
-        members.forEach(m => {
-            if (m.member_id && m.member_id.startsWith("SG-")) {
-                const numPart = parseInt(m.member_id.replace("SG-", ""), 10);
-                if (!isNaN(numPart) && numPart > maxNum) {
-                    maxNum = numPart;
-                }
-            }
-        });
-        const nextNum = maxNum + 1;
-        return "SG-" + String(nextNum).padStart(6, "0");
-    },
-
-    // Admin Approves Member (Synchronous local + tracked background cloud sync)
-    approveMember(applicantId, adminActor = "ADMIN") {
-        _bumpMutation();
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        if (member.status === "ACTIVE" && member.member_id) {
-            return member;
-        }
-
-        if (!member.member_id) {
-            member.member_id = this.getNextMemberId();
-        }
-
-        member.status = "ACTIVE";
-        member.role = (!member.role || member.role === "Applicant") ? "Member" : member.role;
-        member.approved_at = new Date().toISOString();
-        member.approved_by = adminActor;
-        delete member._unsynced_cloud;
-
-        members[index] = member;
-        this.saveMembers(members);
-
-        if (_isCloudConfigured()) {
-            _trackWrite(this._commitApprovalToCloud(member, adminActor));
-        } else {
-            this.addAuditLog({
-                action: "MEMBER_APPROVED",
-                actor: adminActor,
-                target: `${member.username} (${member.member_id})`,
-                details: `Application approved locally. Assigned Unique Member ID: ${member.member_id}.`
-            });
-        }
-
-        _notifyBroadcast({ type: "MEMBER_APPROVED", id: member.id, member_id: member.member_id });
-        return member;
-    },
-
-    /**
-     * Internal Cloud Commit for Member Approval:
-     * 1. Calls atomic PostgreSQL RPC `approve_member_and_assign_id` (SDK or direct REST fallback)
-     * 2. If record was only local (not in cloud yet), inserts as PENDING Applicant first (passes RLS)
-     *    and immediately invokes `approve_member_and_assign_id`!
-     * 3. Falls back to direct PATCH on `members` if RPC is unavailable.
-     */
-    async _commitApprovalToCloud(memberSnapshot, adminActor = "willyger") {
-        const callRpc = async (targetId) => {
-            const client = getSupabaseClient();
-            if (client) {
-                const { data, error } = await client.rpc("approve_member_and_assign_id", {
-                    target_user_id: targetId,
-                    admin_identifier: adminActor
-                });
-                if (error) throw new Error(error.message || JSON.stringify(error));
-                return data;
-            }
-            return await _directRestRequest("POST", "/rpc/approve_member_and_assign_id", {
-                target_user_id: targetId,
-                admin_identifier: adminActor
-            });
-        };
-
-        let cloudRecord = null;
-        try {
-            cloudRecord = await callRpc(memberSnapshot.id);
-        } catch (rpcErr) {
-            const errMsg = String((rpcErr && rpcErr.message) || rpcErr || "");
-            // If applicant wasn't pushed to cloud yet, insert as PENDING Applicant first, then run RPC
-            if (errMsg.includes("hakupatikana") || errMsg.toLowerCase().includes("not found")) {
-                try {
-                    const seedRow = {
-                        id: memberSnapshot.id,
-                        full_name: memberSnapshot.full_name,
-                        username: memberSnapshot.username,
-                        email: memberSnapshot.email,
-                        phone: memberSnapshot.phone,
-                        password_hash: memberSnapshot.password_hash,
-                        track: memberSnapshot.track || "SG Student Community",
-                        learning_interest: memberSnapshot.learning_interest || memberSnapshot.motivation || "",
-                        motivation: memberSnapshot.motivation || memberSnapshot.learning_interest || "",
-                        experience: memberSnapshot.experience || "Student",
-                        role: "Applicant",
-                        status: "PENDING",
-                        member_id: null,
-                        agreed_constitution: true,
-                        agreed_ethics: true,
-                        agreed_pdpa: true,
-                        created_at: memberSnapshot.created_at || new Date().toISOString()
-                    };
-                    await _directRestRequest("POST", "/members?on_conflict=username", [seedRow], {
-                        Prefer: "resolution=ignore-duplicates"
-                    });
-                    cloudRecord = await callRpc(memberSnapshot.username);
-                } catch (_) {}
-            }
-
-            // Final direct PATCH fallback
-            if (!cloudRecord) {
-                const patchPayload = {
-                    member_id: memberSnapshot.member_id || this.getNextMemberId(),
-                    status: "ACTIVE",
-                    role: (!memberSnapshot.role || memberSnapshot.role === "Applicant") ? "Member" : memberSnapshot.role,
-                    approved_at: memberSnapshot.approved_at || new Date().toISOString(),
-                    approved_by: adminActor
-                };
-                const patched = await _directRestRequest(
-                    "PATCH",
-                    `/members?username=eq.${encodeURIComponent(memberSnapshot.username)}`,
-                    patchPayload,
-                    { Prefer: "return=representation" }
-                );
-                if (Array.isArray(patched) && patched.length > 0) {
-                    cloudRecord = patched[0];
-                } else {
-                    throw rpcErr;
-                }
-            }
-        }
-
-        if (cloudRecord && cloudRecord.member_id) {
-            _bumpMutation();
-            const latest = this.getMembers();
-            const lIdx = latest.findIndex(
-                x => x.id === memberSnapshot.id || (x.username && x.username === memberSnapshot.username)
-            );
-            if (lIdx !== -1) {
-                latest[lIdx] = {
-                    ...latest[lIdx],
-                    ...cloudRecord,
-                    status: "ACTIVE",
-                    password_hash: latest[lIdx].password_hash || cloudRecord.password_hash
-                };
-                delete latest[lIdx]._unsynced_cloud;
-                this.saveMembers(latest);
-                return latest[lIdx];
-            }
-        }
-        return cloudRecord || memberSnapshot;
-    },
-
-    /**
-     * Cloud-Verified Async Member Approval (Recommended for Admin Portal UI):
-     * Awaits real PostgreSQL persistence before returning so Admin gets 100% accurate confirmation!
-     */
-    async approveMemberAsync(applicantId, adminActor = "willyger") {
-        _bumpMutation();
-        let members = this.getMembers();
-        let index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
-
-        if (index === -1 && _isCloudConfigured()) {
-            await this.syncWithSupabase(true);
-            members = this.getMembers();
-            index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
-        }
-
-        if (index === -1) {
-            throw new Error("Mwombaji huyu hakupatikana. Tafadhali bonyeza 'Onyesha Upya (Refresh Queue)' kisha jaribu tena.");
-        }
-
-        const targetSnapshot = { ...members[index] };
-        if (targetSnapshot.status === "ACTIVE" && targetSnapshot.member_id) {
-            return targetSnapshot;
-        }
-
-        const provisionalId = targetSnapshot.member_id || this.getNextMemberId();
-        const nowIso = new Date().toISOString();
-
-        if (_isCloudConfigured() && typeof fetch === "function") {
-            const committed = await _trackStrictWrite(
-                this._commitApprovalToCloud(
-                    {
-                        ...targetSnapshot,
-                        member_id: provisionalId,
-                        status: "ACTIVE",
-                        role: (!targetSnapshot.role || targetSnapshot.role === "Applicant") ? "Member" : targetSnapshot.role,
-                        approved_at: nowIso,
-                        approved_by: adminActor
-                    },
-                    adminActor
-                )
-            );
-
-            // Mirror audit entry in local cache immediately (RPC already saved it to Supabase)
-            try {
-                const logs = this.getAuditLogs();
-                const finalId = (committed && committed.member_id) || provisionalId;
-                const targetLabel = `${targetSnapshot.username} (${finalId})`;
-                if (!logs.some(l => l.action === "MEMBER_APPROVED" && l.target === targetLabel)) {
-                    logs.unshift({
-                        id: "log_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-                        action: "MEMBER_APPROVED",
-                        actor: adminActor,
-                        target: targetLabel,
-                        details: `Application approved. Assigned Unique Member ID: ${finalId}. WhatsApp Community gate unlocked.`,
-                        timestamp: nowIso
-                    });
-                    _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 500)));
-                }
-            } catch (_) {}
-
-            const fresh = this.findMemberById(targetSnapshot.id) || committed;
-            _notifyBroadcast({ type: "MEMBER_APPROVED", id: fresh.id, member_id: fresh.member_id });
-            return fresh;
-        }
-
-        // Pure local offline mode fallback
-        return this.approveMember(applicantId, adminActor);
-    },
-
-    async approveAllPendingAsync(adminActor = "willyger") {
-        const pending = this.getMembers().filter(m => m.status === "PENDING");
-        const approvedList = [];
-        for (const applicant of pending) {
-            const res = await this.approveMemberAsync(applicant.id, adminActor);
-            approvedList.push(res);
-        }
-        return approvedList;
-    },
-
-    async deleteMemberAsync(applicantId, adminActor = "willyger") {
-        _bumpMutation();
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId || m.username === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        if (this.isFounderMember(member)) {
-            throw new Error("Huwezi kufuta akaunti ya Mwanzilishi / Super Administrator!");
-        }
-
-        if (_isCloudConfigured() && typeof fetch === "function") {
-            const client = getSupabaseClient();
-            if (client) {
-                const { error } = await client.from("members").delete().eq("username", member.username);
-                if (error) throw new Error(error.message || "Imeshindikana kufuta kwenye Cloud Database.");
-            } else {
-                await _directRestRequest("DELETE", `/members?username=eq.${encodeURIComponent(member.username)}`);
-            }
-        }
-
-        const latest = this.getMembers().filter(m => m.id !== member.id && m.username !== member.username);
-        this.saveMembers(latest);
-
-        this.addAuditLog({
-            action: "MEMBER_DELETED",
-            actor: adminActor,
-            target: `${member.username} (${member.full_name})`,
-            details: `Record deleted from system by ${adminActor}.`
-        });
-
-        _notifyBroadcast({ type: "MEMBER_DELETED", id: applicantId });
-        return true;
-    },
-
-    // Update status (e.g. ACTIVE, ON_HOLD, SUSPENDED, INACTIVE, TERMINATED)
-    updateMemberStatus(applicantId, newStatus, reason = "", adminActor = "ADMIN") {
-        const validStatuses = ["PENDING", "ACTIVE", "ON_HOLD", "SUSPENDED", "INACTIVE", "TERMINATED"];
-        if (!validStatuses.includes(newStatus)) {
-            throw new Error(`Hali batili: ${newStatus}`);
-        }
-
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        if (this.isFounderMember(member) && newStatus !== "ACTIVE") {
-            throw new Error("Huwezi kusimamisha au kubadili hadhi ya akaunti ya Mwanzilishi / Super Administrator!");
-        }
-
-        const oldStatus = member.status;
-        member.status = newStatus;
-
-        // Auto-assign sequential SG-ID if promoted to ACTIVE without an ID!
-        if (newStatus === "ACTIVE" && !member.member_id) {
-            member.member_id = this.getNextMemberId();
-            if (member.role === "Applicant") member.role = "Member";
-            member.approved_at = member.approved_at || new Date().toISOString();
-            member.approved_by = member.approved_by || adminActor;
-        }
-
-        members[index] = member;
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("members").update({
-                    status: member.status,
-                    member_id: member.member_id,
-                    role: member.role,
-                    approved_at: member.approved_at,
-                    approved_by: member.approved_by
-                }).eq("username", member.username)
-            );
-        }
-
-        this.addAuditLog({
-            action: `STATUS_CHANGE_${newStatus}`,
-            actor: adminActor,
-            target: `${member.username} (${member.member_id || "NO-ID"})`,
-            details: `Status altered from ${oldStatus} to ${newStatus}. Reason: ${reason || "Administrative action"}.`
-        });
-
-        _notifyBroadcast({ type: "MEMBER_UPDATED", id: member.id });
-        return member;
-    },
-
-    // SUPER ADMINISTRATOR: Role-Based Access Control (RBAC - Article 7.4 & Appendix A4)
-    updateMemberRole(applicantId, newRole, reason = "", adminActor = "SUPER_ADMIN") {
-        const validRoles = [
-            "Applicant",
-            "Member",
-            "Instructor",
-            "Project Lead",
-            "Community Moderator",
-            "Membership Administrator",
-            "Education Administrator",
-            "Finance Administrator",
-            "Administrator",
-            "Super Administrator"
-        ];
-        if (!validRoles.includes(newRole)) {
-            throw new Error(`Jukumu batili: ${newRole}`);
-        }
-
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        if (this.isFounderMember(member) && newRole !== "Super Administrator") {
-            throw new Error("Huwezi kushusha cheo cha Mwanzilishi / Super Administrator (SG-000001)!");
-        }
-
-        const oldRole = member.role;
-        member.role = newRole;
-        members[index] = member;
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("members").update({ role: newRole }).eq("username", member.username));
-        }
-
-        this.addAuditLog({
-            action: `ROLE_CHANGE_${newRole.toUpperCase().replace(/\s+/g, "_")}`,
-            actor: adminActor,
-            target: `${member.username} (${member.member_id || "NO-ID"})`,
-            details: `Role updated from ${oldRole} to ${newRole}. Reason: ${reason || "Executive assignment"}.`
-        });
-
-        _notifyBroadcast({ type: "MEMBER_UPDATED", id: member.id });
-        return member;
-    },
-
-    // SUPER ADMINISTRATOR: Full Member Record Editor
-    updateMemberFullRecord(applicantId, updates, adminActor = "SUPER_ADMIN") {
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        const safeUpdates = { ...updates };
-        delete safeUpdates.password_hash;
-        if (this.isFounderMember(member)) {
-            delete safeUpdates.role;
-            delete safeUpdates.status;
-            delete safeUpdates.member_id;
-        }
-
-        Object.assign(member, safeUpdates);
-        members[index] = member;
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("members").update(safeUpdates).eq("username", member.username));
-        }
-
-        this.addAuditLog({
-            action: "MEMBER_DOSSIER_UPDATED",
-            actor: adminActor,
-            target: `${member.username} (${member.member_id || "NO-ID"})`,
-            details: "Super Administrator updated dossier parameters."
-        });
-
-        return member;
-    },
-
-    // SUPER ADMINISTRATOR: Manual or Regenerated Member ID
-    assignCustomMemberId(applicantId, customId, reason = "", adminActor = "SUPER_ADMIN") {
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        const formattedId = (customId || "").trim().toUpperCase();
-        if (this.isFounderMember(member) && formattedId !== "SG-000001") {
-            throw new Error("Member ID ya Mwanzilishi (SG-000001) haiwezi kubadilishwa!");
-        }
-        if (!/^SG-\d{6}$/.test(formattedId)) {
-            throw new Error("Muundo wa Member ID lazima uwe SG-XXXXXX (mfano: SG-000002).");
-        }
-        if (members.some((m, idx) => idx !== index && m.member_id === formattedId)) {
-            throw new Error(`Namba ya mwanachama ${formattedId} tayari inatumiwa na mtu mwingine.`);
-        }
-
-        const oldId = member.member_id;
-        member.member_id = formattedId;
-        members[index] = member;
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("members").update({ member_id: formattedId }).eq("username", member.username));
-        }
-
-        this.addAuditLog({
-            action: "MEMBER_ID_OVERRIDE",
-            actor: adminActor,
-            target: member.username,
-            details: `Member ID changed from ${oldId || "NULL"} to ${formattedId}. Reason: ${reason || "Administrative adjustment"}.`
-        });
-
-        return member;
-    },
-
-    // SUPER ADMINISTRATOR: Reject / Delete Member or Applicant
-    deleteMember(applicantId, adminActor = "SUPER_ADMIN") {
-        const members = this.getMembers();
-        const index = members.findIndex(m => m.id === applicantId);
-        if (index === -1) throw new Error("Mwanachama hakupatikana.");
-
-        const member = members[index];
-        if (this.isFounderMember(member)) {
-            throw new Error("Huwezi kufuta akaunti ya Mwanzilishi / Super Administrator!");
-        }
-
-        members.splice(index, 1);
-        this.saveMembers(members);
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("members").delete().eq("username", member.username));
-        }
-
-        this.addAuditLog({
-            action: "MEMBER_DELETED",
-            actor: adminActor,
-            target: `${member.username} (${member.full_name})`,
-            details: `Record deleted from system by ${adminActor}.`
-        });
-
-        _notifyBroadcast({ type: "MEMBER_DELETED", id: applicantId });
-        return true;
-    },
-
-    // Factory Reset: Clean all stored caches and keep strictly William Gerishom William as Super Admin
-    resetToPristine() {
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS);
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS);
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS);
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS);
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS);
-        this.init(true);
-    },
-
-    // OFFICIAL ANNOUNCEMENTS (Article 6.8 & 11)
-    getAnnouncements() {
-        try {
-            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS);
-            if (raw) return JSON.parse(raw) || [];
-            return [
-                {
-                    id: "anc_001",
-                    title: "Karibu SILLYGER Student Community — Kujiunga & WhatsApp Group",
-                    content: "Karibuni wanafunzi wote! Kwa sasa tunajifunza teknolojia kwa pamoja kama jumuiya moja. Ukishajisajili na kuidhinishwa, ingia kwenye Student Portal ili kufungua kiungo cha WhatsApp Group rasmi na kufuatilia updates za vipindi.",
-                    priority: "HIGH",
-                    author: "William Gerishom William (Super Admin)",
-                    created_at: new Date(Date.now() - 86400000).toISOString()
-                }
-            ];
-        } catch (e) {
-            return [];
-        }
-    },
-
-    createAnnouncement({ title, content, priority = "NORMAL", author = "Super Administrator" }) {
-        const list = this.getAnnouncements();
-        const anc = {
-            id: "anc_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-            title: String(title || "").trim(),
-            content: String(content || "").trim(),
-            priority: priority === "HIGH" ? "HIGH" : "NORMAL",
-            author,
-            created_at: new Date().toISOString()
-        };
-        list.unshift(anc);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("announcements").insert([anc]).then(({ error }) => {
-                    if (error) console.warn("Supabase announcement insert notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "ANNOUNCEMENT_PUBLISHED",
-            actor: author,
-            target: anc.title,
-            details: "Official announcement broadcasted to all Sillygerians."
-        });
-
-        _notifyBroadcast({ type: "ANNOUNCEMENT_PUBLISHED" });
-        return anc;
-    },
-
-    deleteAnnouncement(ancId, adminActor = "willyger") {
-        const list = this.getAnnouncements();
-        const idx = list.findIndex(a => a.id === ancId);
-        if (idx === -1) return false;
-        const removed = list[idx];
-        list.splice(idx, 1);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("announcements").delete().eq("id", ancId));
-        }
-
-        this.addAuditLog({
-            action: "ANNOUNCEMENT_REMOVED",
-            actor: adminActor,
-            target: removed.title,
-            details: "Announcement removed from member feed."
-        });
-
-        _notifyBroadcast({ type: "ANNOUNCEMENT_REMOVED" });
-        return true;
-    },
-
-    // SG COMMUNITY FUND LEDGER (Article 13)
-    getFundLedger() {
-        try {
-            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
-            const list = raw ? JSON.parse(raw) : [];
-            return list.filter(tx => tx && !["tx_001", "tx_002"].includes(tx.id));
-        } catch (e) {
-            return [];
-        }
-    },
-
-    addFundTransaction({ type, amount, category, description, actor = "willyger" }) {
-        const parsedAmount = parseFloat(amount);
-        if (isNaN(parsedAmount) || parsedAmount <= 0) {
-            throw new Error("Kiasi cha muamala lazima kiwe kikubwa kuliko sifuri (0).");
-        }
-
-        const list = this.getFundLedger();
-        const txDate = new Date().toISOString().split("T")[0];
-        const tx = {
-            id: "tx_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-            type: type === "INCOME" ? "INCOME" : "EXPENSE",
-            amount: parsedAmount,
-            category: String(category || "Infrastructure").trim(),
-            description: String(description || "").trim(),
-            actor,
-            date: txDate
-        };
-        list.unshift(tx);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("fund_ledger").insert([{
-                    id: tx.id,
-                    type: tx.type,
-                    amount: tx.amount,
-                    category: tx.category,
-                    description: tx.description,
-                    actor: tx.actor,
-                    tx_date: txDate
-                }]).then(({ error }) => {
-                    if (error) console.warn("Supabase fund insert notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: `FUND_TRANSACTION_${tx.type}`,
-            actor,
-            target: `TZS ${tx.amount.toLocaleString()} (${tx.category})`,
-            details: tx.description
-        });
-
-        _notifyBroadcast({ type: "FUND_UPDATED" });
-        return tx;
-    },
-
-    getFundBalance() {
-        const list = this.getFundLedger();
-        return list.reduce((total, tx) => {
-            const amt = parseFloat(tx.amount) || 0;
-            return tx.type === "INCOME" ? total + amt : total - amt;
-        }, 0);
-    },
-
-    // IMMUTABLE AUDIT LOGS (Article 7.7)
-    getAuditLogs() {
-        this.init();
-        try {
-            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) || [];
-        } catch (e) {
-            return [];
-        }
-    },
-
-    addAuditLog({ action, actor, target, details }) {
-        const logs = this.getAuditLogs();
-        const entry = {
-            id: "log_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-            action: String(action || "EVENT"),
-            actor: String(actor || "SYSTEM"),
-            target: String(target || "N/A"),
-            details: String(details || ""),
-            timestamp: new Date().toISOString()
-        };
-        logs.unshift(entry);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(logs.slice(0, 500)));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("audit_logs").insert([entry]).then(({ error }) => {
-                    if (error) console.warn("Supabase audit insert notice:", error);
-                })
-            );
-        }
-
-        return entry;
-    },
-
-    // SESSION MANAGEMENT
     setCurrentSession(user) {
         if (!user) {
             _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
@@ -1489,35 +592,776 @@ const SGStore = {
             const data = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
             if (!data) return null;
             const parsed = JSON.parse(data);
-            // Always hydrate latest member state if present in store
-            if (parsed && parsed.id) {
+            if (!parsed || !parsed.id) return null;
+
+            if (_isCloudConfigured() && !parsed.session_token) {
+                return null;
+            }
+
+            if (this.isAdminUser(parsed)) {
                 const live = this.getMembers().find(m => m.id === parsed.id || (m.username && m.username === parsed.username));
                 if (live) {
-                    const fresh = { ...live };
-                    delete fresh.password_hash;
-                    return fresh;
+                    const merged = { ...live, session_token: parsed.session_token, whatsapp_invite_url: parsed.whatsapp_invite_url };
+                    delete merged.password_hash;
+                    return merged;
                 }
             }
             return parsed;
-        } catch (e) {
+        } catch (_) {
             return null;
         }
     },
 
-    logout() {
-        const user = this.getCurrentSession();
-        if (user) {
-            this.addAuditLog({
-                action: "USER_LOGOUT",
-                actor: user.username,
-                target: user.full_name,
-                details: "Member signed out from portal session."
-            });
+    consumeReauthNotice() {
+        const val = _sgStorage.getItem("sg_reauth_notice");
+        if (val) {
+            _sgStorage.removeItem("sg_reauth_notice");
+            return true;
         }
-        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+        return false;
     },
 
-    // TANZANIA PHONE NORMALIZATION & VALIDATION
+    logout() {
+        let token = "";
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                token = (parsed && parsed.session_token) || "";
+            }
+        } catch (_) {}
+
+        _sgStorage.removeItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+        _clearSensitiveLocalCaches(true);
+
+        if (_isCloudConfigured() && token) {
+            _trackWrite(_callCloudRpc("sg_logout", { p_session_token: token }).catch(() => {}));
+        }
+        _notifyBroadcast({ type: "USER_LOGOUT" });
+    },
+
+    // =========================================================================
+    // REGISTRATION & PASSWORD MANAGEMENT
+    // =========================================================================
+    async registerApplicantAsync(data, opts = { issueSession: true }) {
+        const normalizedEmail = (data.email || "").trim().toLowerCase();
+        const normalizedUsername = (data.username || "").trim().toLowerCase();
+        const normalizedPhone = this.normalizePhone(data.phone);
+        const interestNote = (data.learning_interest || data.motivation || "").trim();
+        const shouldIssueSession = opts && opts.issueSession !== false;
+
+        if (_isCloudConfigured()) {
+            const res = await _trackWrite(
+                _callCloudRpc("sg_register_applicant", {
+                    p_full_name: (data.full_name || "").trim(),
+                    p_username: normalizedUsername,
+                    p_email: normalizedEmail,
+                    p_phone: normalizedPhone,
+                    p_password: String(data.password || ""),
+                    p_learning_interest: interestNote,
+                    p_issue_session: shouldIssueSession
+                })
+            );
+
+            if (!res || !res.member) {
+                throw new Error("Imeshindikana kukamilisha usajili kwenye Cloud Database.");
+            }
+
+            if (shouldIssueSession && res.session_token) {
+                this.setCurrentSession({
+                    ...res.member,
+                    session_token: res.session_token,
+                    whatsapp_invite_url: ""
+                });
+            }
+
+            // Refresh stats / admin list
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "APPLICANT_REGISTERED", applicant: { id: res.member.id, username: res.member.username } });
+            return res.member;
+        }
+
+        // Offline fallback
+        const localApplicant = this.registerApplicant(data);
+        if (shouldIssueSession) {
+            this.setCurrentSession(localApplicant);
+        }
+        return localApplicant;
+    },
+
+    registerApplicant(data) {
+        this.init();
+        const members = this.getMembers();
+        const normalizedEmail = (data.email || "").trim().toLowerCase();
+        const normalizedUsername = (data.username || "").trim().toLowerCase();
+        const normalizedPhone = this.normalizePhone(data.phone);
+
+        if (!normalizedEmail || !normalizedEmail.includes("@")) {
+            throw new Error("Tafadhali weka barua pepe (Email) sahihi.");
+        }
+        if (!normalizedUsername || normalizedUsername.length < 3 || !/^[a-z0-9_]+$/.test(normalizedUsername)) {
+            throw new Error("Username lazima iwe na herufi/nambari pekee bila nafasi (angalau herufi 3).");
+        }
+        if (!this.isValidTzPhone(normalizedPhone)) {
+            throw new Error("Namba ya WhatsApp si sahihi kwa Tanzania. Weka muundo wa +2557XXXXXXXX au 07XXXXXXXX.");
+        }
+        if (!data.password || String(data.password).length < 6) {
+            throw new Error("Nenosiri (Password) lazima liwe na angalau herufi 6.");
+        }
+        if (members.some(m => m.email && m.email.toLowerCase() === normalizedEmail)) {
+            throw new Error("Barua pepe hii (Email) tayari imesajiliwa.");
+        }
+        if (members.some(m => m.username && m.username.toLowerCase() === normalizedUsername)) {
+            throw new Error("Jina la mtumiaji (Username) hili tayari limetumika.");
+        }
+        if (members.some(m => m.phone === normalizedPhone)) {
+            throw new Error("Namba hii ya WhatsApp tayari imesajiliwa.");
+        }
+
+        const interestNote = (data.learning_interest || data.motivation || "").trim();
+        const newApplicant = {
+            id: "usr_" + Date.now().toString(36) + "_" + _randomSaltHex(6),
+            member_id: null,
+            full_name: (data.full_name || "").trim(),
+            username: normalizedUsername,
+            email: normalizedEmail,
+            phone: normalizedPhone,
+            password_hash: this.hashPassword(data.password),
+            track: "SG Student Community",
+            experience: "Student",
+            learning_interest: interestNote,
+            motivation: interestNote,
+            role: "Applicant",
+            status: "PENDING",
+            agreed_constitution: true,
+            agreed_ethics: true,
+            agreed_pdpa: true,
+            created_at: new Date().toISOString(),
+            approved_at: null,
+            approved_by: null
+        };
+        members.push(newApplicant);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
+        return newApplicant;
+    },
+
+    async changePasswordAsync(currentPassword, newPassword) {
+        if (!newPassword || String(newPassword).length < 6) {
+            throw new Error("Nenosiri jipya lazima liwe na angalau herufi 6.");
+        }
+        const session = this.getCurrentSession();
+        if (!session) throw new Error("Tafadhali ingia kwanza kwenye akaunti yako.");
+
+        if (_isCloudConfigured()) {
+            await _trackWrite(
+                _callCloudRpc("sg_change_own_password", {
+                    p_session_token: session.session_token,
+                    p_current_password: String(currentPassword || ""),
+                    p_new_password: String(newPassword)
+                })
+            );
+            return true;
+        }
+
+        return this.changePassword(session.id, currentPassword, newPassword);
+    },
+
+    changePassword(memberId, currentPassword, newPassword) {
+        const members = this.getMembers();
+        const idx = members.findIndex(m => m.id === memberId);
+        if (idx === -1) throw new Error("Akaunti haikupatikana.");
+        if (!this.verifyPassword(currentPassword, members[idx].password_hash)) {
+            throw new Error("Nenosiri la sasa si sahihi.");
+        }
+        members[idx].password_hash = this.hashPassword(newPassword);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
+        return true;
+    },
+
+    // =========================================================================
+    // MEMBERS DIRECTORY & EXECUTIVE ADMIN ACTIONS
+    // =========================================================================
+    getMembers() {
+        this.init();
+        try {
+            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS)) || [];
+        } catch (_) {
+            return [];
+        }
+    },
+
+    saveMembers(members) {
+        const sanitized = (Array.isArray(members) ? members : []).map(m => {
+            const copy = { ...m };
+            if (_isCloudConfigured()) {
+                delete copy.password_hash;
+            }
+            return copy;
+        });
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(sanitized));
+    },
+
+    findMemberById(id) {
+        if (!id) return null;
+        const found = this.getMembers().find(m => m.id === id) || null;
+        if (found) return found;
+        try {
+            const rawSess = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            if (rawSess) {
+                const sess = JSON.parse(rawSess);
+                if (sess && sess.id === id) return sess;
+            }
+        } catch (_) {}
+        return null;
+    },
+
+    findMemberByCredential(credential) {
+        const search = (credential || "").trim().toLowerCase();
+        if (!search) return null;
+        const normalizedPhone = this.normalizePhone(search);
+        const digitsSearch = search.replace(/[\s\-+]/g, "");
+
+        const list = this.getMembers();
+        const found = list.find(m =>
+            (m.email && m.email.toLowerCase() === search) ||
+            (m.username && m.username.toLowerCase() === search) ||
+            (m.member_id && m.member_id.toLowerCase() === search) ||
+            (m.phone && m.phone === normalizedPhone) ||
+            (digitsSearch.length >= 9 && m.phone && m.phone.replace(/[\s\-+]/g, "") === digitsSearch)
+        );
+        if (found) return found;
+
+        try {
+            const rawSess = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ACTIVE_SESSION);
+            if (rawSess) {
+                const sess = JSON.parse(rawSess);
+                if (sess && sess.username && sess.username.toLowerCase() === search) return sess;
+            }
+        } catch (_) {}
+        return null;
+    },
+
+    getNextMemberId() {
+        const members = this.getMembers();
+        let maxNum = 0;
+        members.forEach(m => {
+            if (m.member_id && m.member_id.startsWith("SG-")) {
+                const numPart = parseInt(m.member_id.replace("SG-", ""), 10);
+                if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart;
+            }
+        });
+        return "SG-" + String(maxNum + 1).padStart(6, "0");
+    },
+
+    async approveMemberAsync(applicantId) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            if (!session || !session.session_token) {
+                throw new Error("Kikao cha Admin hakijapatikana. Tafadhali ingia tena.");
+            }
+            const approved = await _trackWrite(
+                _callCloudRpc("sg_admin_approve_member", {
+                    p_session_token: session.session_token,
+                    p_target_user_id: applicantId
+                })
+            );
+            if (approved && approved.id) {
+                const list = this.getMembers();
+                const idx = list.findIndex(m => m.id === approved.id || m.username === approved.username);
+                if (idx !== -1) list[idx] = approved;
+                else list.push(approved);
+                this.saveMembers(list);
+            }
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "MEMBER_APPROVED", id: approved.id, member_id: approved.member_id });
+            return approved;
+        }
+
+        // Offline fallback
+        const members = this.getMembers();
+        const idx = members.findIndex(m => m.id === applicantId || m.username === applicantId);
+        if (idx === -1) throw new Error("Mwanachama hakupatikana.");
+        const m = members[idx];
+        if (!m.member_id) m.member_id = this.getNextMemberId();
+        m.status = "ACTIVE";
+        if (!m.role || m.role === "Applicant") m.role = "Member";
+        m.approved_at = new Date().toISOString();
+        m.approved_by = (session && session.username) || "willyger";
+        members[idx] = m;
+        this.saveMembers(members);
+        return m;
+    },
+
+    async approveAllPendingAsync() {
+        const pending = this.getMembers().filter(m => m.status === "PENDING");
+        const approvedList = [];
+        for (const applicant of pending) {
+            const res = await this.approveMemberAsync(applicant.id);
+            approvedList.push(res);
+        }
+        return approvedList;
+    },
+
+    async deleteMemberAsync(applicantId) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            if (!session || !session.session_token) {
+                throw new Error("Kikao cha Admin hakijapatikana. Tafadhali ingia tena.");
+            }
+            await _trackWrite(
+                _callCloudRpc("sg_admin_delete_member", {
+                    p_session_token: session.session_token,
+                    p_target_user_id: applicantId
+                })
+            );
+            const remaining = this.getMembers().filter(m => m.id !== applicantId && m.username !== applicantId);
+            this.saveMembers(remaining);
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "MEMBER_DELETED", id: applicantId });
+            return true;
+        }
+
+        const members = this.getMembers();
+        const target = members.find(m => m.id === applicantId);
+        if (target && this.isFounderMember(target)) {
+            throw new Error("Huwezi kufuta akaunti ya Mwanzilishi / Super Administrator!");
+        }
+        this.saveMembers(members.filter(m => m.id !== applicantId));
+        return true;
+    },
+
+    async updateMemberDossierAsync(targetUserId, { member_id = null, role = null, status = null, new_password = null, reason = "" }) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            if (!session || !session.session_token) {
+                throw new Error("Kikao cha Admin hakijapatikana. Tafadhali ingia tena.");
+            }
+            const updated = await _trackWrite(
+                _callCloudRpc("sg_admin_update_dossier", {
+                    p_session_token: session.session_token,
+                    p_target_user_id: targetUserId,
+                    p_member_id: member_id || null,
+                    p_role: role || null,
+                    p_status: status || null,
+                    p_new_password: new_password || null,
+                    p_reason: reason || ""
+                })
+            );
+            if (updated && updated.id) {
+                const list = this.getMembers();
+                const idx = list.findIndex(m => m.id === updated.id);
+                if (idx !== -1) list[idx] = updated;
+                this.saveMembers(list);
+            }
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "MEMBER_UPDATED", id: targetUserId });
+            return updated;
+        }
+
+        // Offline local fallback
+        const members = this.getMembers();
+        const idx = members.findIndex(m => m.id === targetUserId);
+        if (idx === -1) throw new Error("Mwanachama hakupatikana.");
+        const m = members[idx];
+        if (member_id) m.member_id = member_id.trim().toUpperCase();
+        if (status) {
+            m.status = status;
+            if (status === "ACTIVE" && !m.member_id) m.member_id = this.getNextMemberId();
+        }
+        if (role) m.role = role;
+        if (new_password && new_password.length >= 6) {
+            m.password_hash = this.hashPassword(new_password);
+        }
+        members[idx] = m;
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.APPLICANTS, JSON.stringify(members));
+        return m;
+    },
+
+    // =========================================================================
+    // PLATFORM SETTINGS
+    // =========================================================================
+    getPlatformSettings() {
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SETTINGS);
+            return raw ? JSON.parse(raw) : {};
+        } catch (_) {
+            return {};
+        }
+    },
+
+    async updatePlatformSettingsAsync(updates) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            const settings = await _trackWrite(
+                _callCloudRpc("sg_admin_update_settings", {
+                    p_session_token: session ? session.session_token : "",
+                    p_updates: updates
+                })
+            );
+            if (settings && typeof settings === "object") {
+                _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+                if (session && settings.whatsapp_invite_url) {
+                    this.setCurrentSession({ ...session, whatsapp_invite_url: settings.whatsapp_invite_url });
+                }
+            }
+            _notifyBroadcast({ type: "SETTINGS_UPDATED" });
+            return settings;
+        }
+
+        const next = { ...this.getPlatformSettings(), ...updates };
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SETTINGS, JSON.stringify(next));
+        return next;
+    },
+
+    // =========================================================================
+    // OFFICIAL ANNOUNCEMENTS (Article 6.8 & 11)
+    // =========================================================================
+    getAnnouncements() {
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS);
+            if (raw) return JSON.parse(raw) || [];
+            return [];
+        } catch (_) {
+            return [];
+        }
+    },
+
+    async createAnnouncementAsync({ title, content, priority = "NORMAL" }) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            const anc = await _trackWrite(
+                _callCloudRpc("sg_admin_manage_announcement", {
+                    p_session_token: session ? session.session_token : "",
+                    p_op: "CREATE",
+                    p_id: null,
+                    p_title: title,
+                    p_content: content,
+                    p_priority: priority
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "ANNOUNCEMENT_PUBLISHED" });
+            return anc;
+        }
+
+        const list = this.getAnnouncements();
+        const anc = {
+            id: "anc_" + Date.now().toString(36),
+            title: String(title || "").trim(),
+            content: String(content || "").trim(),
+            priority: priority === "HIGH" ? "HIGH" : "NORMAL",
+            author: session ? `${session.full_name} (${session.role})` : "Super Administrator",
+            created_at: new Date().toISOString()
+        };
+        list.unshift(anc);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+        return anc;
+    },
+
+    async deleteAnnouncementAsync(ancId) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            await _trackWrite(
+                _callCloudRpc("sg_admin_manage_announcement", {
+                    p_session_token: session ? session.session_token : "",
+                    p_op: "DELETE",
+                    p_id: ancId
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "ANNOUNCEMENT_REMOVED" });
+            return true;
+        }
+
+        const list = this.getAnnouncements().filter(a => a.id !== ancId);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+        return true;
+    },
+
+    // =========================================================================
+    // SG COMMUNITY FUND LEDGER (Article 13)
+    // =========================================================================
+    getFundLedger() {
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER);
+            return raw ? (JSON.parse(raw) || []) : [];
+        } catch (_) {
+            return [];
+        }
+    },
+
+    async addFundTransactionAsync({ type, amount, category, description }) {
+        const parsedAmount = parseFloat(amount);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            throw new Error("Kiasi cha muamala lazima kiwe kikubwa kuliko sifuri (0).");
+        }
+        const session = this.getCurrentSession();
+
+        if (_isCloudConfigured()) {
+            const tx = await _trackWrite(
+                _callCloudRpc("sg_admin_add_fund_tx", {
+                    p_session_token: session ? session.session_token : "",
+                    p_type: type,
+                    p_amount: parsedAmount,
+                    p_category: category,
+                    p_description: description
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "FUND_UPDATED" });
+            return tx;
+        }
+
+        const list = this.getFundLedger();
+        const tx = {
+            id: "tx_" + Date.now().toString(36),
+            type: type === "EXPENSE" ? "EXPENSE" : "INCOME",
+            amount: parsedAmount,
+            category: String(category || "Infrastructure").trim(),
+            description: String(description || "").trim(),
+            actor: (session && session.username) || "willyger",
+            date: new Date().toISOString().split("T")[0]
+        };
+        list.unshift(tx);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.FUND_LEDGER, JSON.stringify(list));
+        return tx;
+    },
+
+    getFundBalance() {
+        return this.getFundLedger().reduce((total, tx) => {
+            const amt = parseFloat(tx.amount) || 0;
+            return tx.type === "INCOME" ? total + amt : total - amt;
+        }, 0);
+    },
+
+    // =========================================================================
+    // ATTENDANCE, LEAVE REQUESTS & SUPPORT TICKETS
+    // =========================================================================
+    getAttendanceRecords(memberId = null) {
+        try {
+            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
+            const list = raw ? (JSON.parse(raw) || []) : [];
+            return memberId ? list.filter(a => a.member_id === memberId) : list;
+        } catch (_) {
+            return [];
+        }
+    },
+
+    async recordPlannedAttendanceAsync(sessionTitle) {
+        const session = this.getCurrentSession();
+        if (!session || !session.member_id) {
+            throw new Error("Wanachama walioidhinishwa (ACTIVE) pekee ndio wanaweza kufanya check-in.");
+        }
+
+        if (_isCloudConfigured()) {
+            const rec = await _trackWrite(
+                _callCloudRpc("sg_student_checkin", {
+                    p_session_token: session.session_token,
+                    p_session_title: String(sessionTitle || "").trim()
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "ATTENDANCE_UPDATED" });
+            return rec;
+        }
+
+        const today = new Date().toISOString().split("T")[0];
+        const title = String(sessionTitle || "").trim() || "Kipindi cha Mafunzo ya SILLYGER";
+        const list = this.getAttendanceRecords();
+        if (list.some(a => a.member_id === session.member_id && a.date === today && a.session_title.toLowerCase() === title.toLowerCase())) {
+            throw new Error(`Tayari umeshafanya check-in kwenye kipindi cha "${title}" leo (${today}).`);
+        }
+        const record = {
+            id: "att_" + Date.now().toString(36),
+            member_id: session.member_id,
+            session_title: title,
+            date: today,
+            session_date: today,
+            is_planned: true,
+            is_verified: false,
+            created_at: new Date().toISOString()
+        };
+        list.unshift(record);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
+        return record;
+    },
+
+    async verifyAttendanceAsync(recordId = null, verifyAll = false) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            const res = await _trackWrite(
+                _callCloudRpc("sg_admin_verify_attendance", {
+                    p_session_token: session ? session.session_token : "",
+                    p_record_id: recordId,
+                    p_verify_all: !!verifyAll
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "ATTENDANCE_UPDATED" });
+            return (res && typeof res.verified_count === "number") ? res.verified_count : 1;
+        }
+
+        const list = this.getAttendanceRecords();
+        let count = 0;
+        list.forEach(a => {
+            if ((verifyAll || a.id === recordId) && !a.is_verified) {
+                a.is_verified = true;
+                a.verified_by = session ? session.full_name : "Super Admin";
+                count++;
+            }
+        });
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
+        return count;
+    },
+
+    getLeaveRequests(memberId = null) {
+        try {
+            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS)) || [];
+            return memberId ? list.filter(l => l.member_id === memberId) : list;
+        } catch (_) {
+            return [];
+        }
+    },
+
+    async submitLeaveRequestAsync({ category, duration, reason }) {
+        const session = this.getCurrentSession();
+        if (!session || !session.member_id) {
+            throw new Error("Wanachama walioidhinishwa pekee wanaweza kuomba ruhusa.");
+        }
+
+        if (_isCloudConfigured()) {
+            const rec = await _trackWrite(
+                _callCloudRpc("sg_submit_leave_request", {
+                    p_session_token: session.session_token,
+                    p_category: category,
+                    p_duration: duration,
+                    p_reason: reason
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "LEAVE_UPDATED" });
+            return rec;
+        }
+
+        const list = this.getLeaveRequests();
+        const request = {
+            id: "leave_" + Date.now().toString(36),
+            member_id: session.member_id,
+            category: category || "Academic",
+            duration: duration || "Siku 1 - 3",
+            reason: String(reason || "").trim(),
+            status: "PENDING_REVIEW",
+            created_at: new Date().toISOString()
+        };
+        list.unshift(request);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(list));
+        return request;
+    },
+
+    async reviewLeaveRequestAsync(leaveId, decision) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            const rec = await _trackWrite(
+                _callCloudRpc("sg_admin_review_leave", {
+                    p_session_token: session ? session.session_token : "",
+                    p_leave_id: leaveId,
+                    p_decision: decision
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "LEAVE_UPDATED" });
+            return rec;
+        }
+
+        const list = this.getLeaveRequests();
+        const idx = list.findIndex(l => l.id === leaveId);
+        if (idx !== -1) {
+            list[idx].status = decision;
+            list[idx].reviewed_by = session ? session.full_name : "Super Admin";
+            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(list));
+        }
+        return list[idx] || null;
+    },
+
+    getSupportTickets(memberId = null) {
+        try {
+            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS)) || [];
+            return memberId ? list.filter(t => t.member_id === memberId) : list;
+        } catch (_) {
+            return [];
+        }
+    },
+
+    async submitSupportTicketAsync({ category, subject, message }) {
+        const session = this.getCurrentSession();
+        if (!session) throw new Error("Tafadhali ingia kwanza kwenye akaunti yako.");
+
+        if (_isCloudConfigured()) {
+            const rec = await _trackWrite(
+                _callCloudRpc("sg_submit_support_ticket", {
+                    p_session_token: session.session_token,
+                    p_category: category,
+                    p_subject: subject,
+                    p_message: message
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "TICKET_UPDATED" });
+            return rec;
+        }
+
+        const list = this.getSupportTickets();
+        const ticket = {
+            id: "ticket_" + Date.now().toString(36),
+            member_id: session.member_id || session.username,
+            category: category || "Account & Approval",
+            subject: String(subject || "").trim(),
+            message: String(message || "").trim(),
+            status: "OPEN",
+            created_at: new Date().toISOString()
+        };
+        list.unshift(ticket);
+        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(list));
+        return ticket;
+    },
+
+    async resolveSupportTicketAsync(ticketId, responseText) {
+        const session = this.getCurrentSession();
+        if (_isCloudConfigured()) {
+            const rec = await _trackWrite(
+                _callCloudRpc("sg_admin_reply_ticket", {
+                    p_session_token: session ? session.session_token : "",
+                    p_ticket_id: ticketId,
+                    p_response: responseText
+                })
+            );
+            await this.syncWithSupabase(true);
+            _notifyBroadcast({ type: "TICKET_UPDATED" });
+            return rec;
+        }
+
+        const list = this.getSupportTickets();
+        const idx = list.findIndex(t => t.id === ticketId);
+        if (idx !== -1) {
+            list[idx].status = "RESOLVED";
+            list[idx].response = responseText;
+            list[idx].responded_by = session ? session.full_name : "Super Admin";
+            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(list));
+        }
+        return list[idx] || null;
+    },
+
+    // =========================================================================
+    // AUDIT LOGS, PHONE VALIDATION, EXPORT & STATS
+    // =========================================================================
+    getAuditLogs() {
+        try {
+            return JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.AUDIT_LOGS)) || [];
+        } catch (_) {
+            return [];
+        }
+    },
+
     normalizePhone(raw) {
         if (!raw) return "";
         const clean = raw.toString().replace(/[\s\-()]/g, "");
@@ -1532,301 +1376,11 @@ const SGStore = {
         return /^\+255[67]\d{8}$/.test(norm);
     },
 
-    // ATTENDANCE RECORDS (Article 6.6 & 9)
-    getAttendanceRecords(memberId = null) {
-        this.init();
-        try {
-            const raw = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE);
-            const list = (raw ? JSON.parse(raw) : []).filter(a => a && !["att_001", "att_002", "att_003"].includes(a.id));
-            if (memberId) {
-                return list.filter(a => a.member_id === memberId);
-            }
-            return list;
-        } catch (e) {
-            return [];
-        }
+    resetToPristine() {
+        _clearSensitiveLocalCaches(false);
+        this.init(true);
     },
 
-    recordPlannedAttendance(memberId, sessionTitle) {
-        if (!memberId) throw new Error("Wanachama walioidhinishwa (ACTIVE) pekee ndio wanaweza kufanya check-in.");
-        const title = String(sessionTitle || "").trim() || "Kipindi cha Mafunzo ya SILLYGER";
-        const today = new Date().toISOString().split("T")[0];
-
-        const list = this.getAttendanceRecords();
-        const duplicate = list.find(
-            a => a.member_id === memberId && (a.date === today || a.session_date === today) && a.session_title.toLowerCase() === title.toLowerCase()
-        );
-        if (duplicate) {
-            throw new Error(`Tayari umeshafanya check-in kwenye kipindi cha "${title}" leo (${today}).`);
-        }
-
-        const record = {
-            id: "att_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-            member_id: memberId,
-            session_title: title,
-            date: today,
-            session_date: today,
-            is_planned: true,
-            is_verified: false, // Article 9.3: Planned != Verified
-            verified_by: null,
-            created_at: new Date().toISOString()
-        };
-        list.unshift(record);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("attendance").insert([{
-                    id: record.id,
-                    member_id: record.member_id,
-                    session_title: record.session_title,
-                    session_date: today,
-                    is_planned: true,
-                    is_verified: false,
-                    created_at: record.created_at
-                }]).then(({ error }) => {
-                    if (error) console.warn("Supabase attendance insert notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "ATTENDANCE_CHECKIN",
-            actor: memberId,
-            target: record.session_title,
-            details: `Member checked-in (Planned attendance recorded for ${today}).`
-        });
-
-        _notifyBroadcast({ type: "ATTENDANCE_UPDATED" });
-        return record;
-    },
-
-    verifyAttendance(recordId, verifier = "William Gerishom (Super Admin)") {
-        const list = this.getAttendanceRecords();
-        const idx = list.findIndex(r => r.id === recordId);
-        if (idx === -1) return null;
-
-        list[idx].is_verified = true;
-        list[idx].verified_by = verifier;
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("attendance").update({ is_verified: true, verified_by: verifier }).eq("id", recordId));
-        }
-
-        this.addAuditLog({
-            action: "ATTENDANCE_VERIFIED",
-            actor: verifier,
-            target: list[idx].member_id,
-            details: `Attendance verified for ${list[idx].session_title}.`
-        });
-
-        _notifyBroadcast({ type: "ATTENDANCE_UPDATED" });
-        return list[idx];
-    },
-
-    verifyAllAttendance(verifier = "William Gerishom (Super Admin)") {
-        const list = this.getAttendanceRecords();
-        const unverifiedIds = [];
-        list.forEach(a => {
-            if (!a.is_verified) {
-                a.is_verified = true;
-                a.verified_by = verifier;
-                unverifiedIds.push(a.id);
-            }
-        });
-
-        if (unverifiedIds.length > 0) {
-            _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.ATTENDANCE, JSON.stringify(list));
-            const client = getSupabaseClient();
-            if (client) {
-                _trackWrite(client.from("attendance").update({ is_verified: true, verified_by: verifier }).in("id", unverifiedIds));
-            }
-            this.addAuditLog({
-                action: "MASS_ATTENDANCE_VERIFIED",
-                actor: verifier,
-                target: "All Sessions",
-                details: `Mass-verified ${unverifiedIds.length} attendance check-ins.`
-            });
-            _notifyBroadcast({ type: "ATTENDANCE_UPDATED" });
-        }
-        return unverifiedIds.length;
-    },
-
-    // LEAVE & PERMISSION REQUESTS (Article 10)
-    getLeaveRequests(memberId = null) {
-        try {
-            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS)) || [];
-            return memberId ? list.filter(l => l.member_id === memberId) : list;
-        } catch (e) {
-            return [];
-        }
-    },
-
-    submitLeaveRequest(memberId, { reason, category, duration }) {
-        if (!memberId) throw new Error("Wanachama walioidhinishwa pekee wanaweza kuomba ruhusa.");
-        const cleanReason = String(reason || "").trim();
-        if (!cleanReason) throw new Error("Tafadhali eleza sababu ya kuomba ruhusa.");
-
-        const list = this.getLeaveRequests();
-        const nowIso = new Date().toISOString();
-        const request = {
-            id: "leave_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-            member_id: memberId,
-            category: category || "Personal",
-            duration: duration || "Siku 1 - 3",
-            reason: cleanReason,
-            status: "PENDING_REVIEW",
-            reviewed_by: null,
-            submitted_at: nowIso,
-            created_at: nowIso
-        };
-        list.unshift(request);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("leave_requests").insert([{
-                    id: request.id,
-                    member_id: request.member_id,
-                    category: request.category,
-                    duration: request.duration,
-                    reason: request.reason,
-                    status: request.status,
-                    created_at: nowIso
-                }]).then(({ error }) => {
-                    if (error) console.warn("Supabase leave insert notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "LEAVE_REQUESTED",
-            actor: memberId,
-            target: request.category,
-            details: `Permission requested (${request.duration}): ${cleanReason.substring(0, 60)}`
-        });
-
-        _notifyBroadcast({ type: "LEAVE_UPDATED" });
-        return request;
-    },
-
-    reviewLeaveRequest(leaveId, decision = "APPROVED", reviewer = "William Gerishom") {
-        const valid = ["APPROVED", "REJECTED"];
-        if (!valid.includes(decision)) throw new Error("Uamuzi batili.");
-
-        const list = this.getLeaveRequests();
-        const idx = list.findIndex(l => l.id === leaveId);
-        if (idx === -1) return null;
-
-        list[idx].status = decision;
-        list[idx].reviewed_by = reviewer;
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.LEAVE_REQUESTS, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(client.from("leave_requests").update({ status: decision, reviewed_by: reviewer }).eq("id", leaveId));
-        }
-
-        this.addAuditLog({
-            action: `LEAVE_${decision}`,
-            actor: reviewer,
-            target: list[idx].member_id,
-            details: `Leave request ${decision.toLowerCase()} for category: ${list[idx].category}.`
-        });
-
-        _notifyBroadcast({ type: "LEAVE_UPDATED" });
-        return list[idx];
-    },
-
-    // SUPPORT TICKETS (Article 6.12)
-    getSupportTickets(memberId = null) {
-        try {
-            const list = JSON.parse(_sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS)) || [];
-            return memberId ? list.filter(t => t.member_id === memberId) : list;
-        } catch (e) {
-            return [];
-        }
-    },
-
-    submitSupportTicket(memberId, { subject, category, message }) {
-        const cleanSubject = String(subject || "").trim();
-        const cleanMessage = String(message || "").trim();
-        if (!cleanSubject || !cleanMessage) {
-            throw new Error("Tafadhali jaza kichwa cha ujumbe na maelezo ya tiketi.");
-        }
-
-        const list = this.getSupportTickets();
-        const ticket = {
-            id: "ticket_" + Date.now().toString(36) + "_" + _randomSaltHex(4),
-            member_id: memberId || "APPLICANT",
-            subject: cleanSubject,
-            category: category || "Account Support",
-            message: cleanMessage,
-            status: "OPEN",
-            response: null,
-            responded_by: null,
-            created_at: new Date().toISOString()
-        };
-        list.unshift(ticket);
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("support_tickets").insert([ticket]).then(({ error }) => {
-                    if (error) console.warn("Supabase ticket insert notice:", error);
-                })
-            );
-        }
-
-        this.addAuditLog({
-            action: "SUPPORT_TICKET_CREATED",
-            actor: ticket.member_id,
-            target: ticket.subject,
-            details: `Support ticket opened: ${ticket.category}.`
-        });
-
-        _notifyBroadcast({ type: "TICKET_UPDATED" });
-        return ticket;
-    },
-
-    resolveSupportTicket(ticketId, responseText, responder = "William Gerishom") {
-        const list = this.getSupportTickets();
-        const idx = list.findIndex(t => t.id === ticketId);
-        if (idx === -1) return null;
-
-        list[idx].status = "RESOLVED";
-        list[idx].response = String(responseText || "").trim() || "Imeshughulikiwa na utawala.";
-        list[idx].responded_by = responder;
-        _sgStorage.setItem(SG_CONFIG.STORAGE_KEYS.SUPPORT_TICKETS, JSON.stringify(list));
-
-        const client = getSupabaseClient();
-        if (client) {
-            _trackWrite(
-                client.from("support_tickets").update({
-                    status: "RESOLVED",
-                    response: list[idx].response,
-                    responded_by: responder
-                }).eq("id", ticketId)
-            );
-        }
-
-        this.addAuditLog({
-            action: "SUPPORT_TICKET_RESOLVED",
-            actor: responder,
-            target: list[idx].member_id,
-            details: `Ticket resolved: ${list[idx].subject}`
-        });
-
-        _notifyBroadcast({ type: "TICKET_UPDATED" });
-        return list[idx];
-    },
-
-    // PDPA 2022 Safe Backup Payload (excludes password_hash!)
     getComplianceExportData(exportedBy = "William Gerishom William (Super Administrator)") {
         const safeMembers = this.getMembers().map(m => {
             const copy = { ...m };
@@ -1849,8 +1403,46 @@ const SGStore = {
         };
     },
 
-    // Platform statistics
     getStats() {
+        if (_isCloudConfigured()) {
+            const session = this.getCurrentSession();
+            if (session && this.isAdminUser(session)) {
+                const members = this.getMembers();
+                if (members.length > 0) {
+                    return {
+                        totalRegistered: members.length,
+                        activeMembers: members.filter(m => m.status === "ACTIVE").length,
+                        pendingApplicants: members.filter(m => m.status === "PENDING").length,
+                        fundBalance: this.getFundBalance(),
+                        divisionsCount: SG_CONFIG.DIVISIONS.length,
+                        curriculumLevels: SG_CONFIG.CURRICULUM.length
+                    };
+                }
+            }
+            try {
+                const rawStats = _sgStorage.getItem(SG_CONFIG.STORAGE_KEYS.PUBLIC_STATS);
+                if (rawStats) {
+                    const parsed = JSON.parse(rawStats);
+                    return {
+                        totalRegistered: parsed.totalRegistered ?? 0,
+                        activeMembers: parsed.activeMembers ?? 0,
+                        pendingApplicants: parsed.pendingApplicants ?? 0,
+                        fundBalance: this.getFundBalance(),
+                        divisionsCount: SG_CONFIG.DIVISIONS.length,
+                        curriculumLevels: SG_CONFIG.CURRICULUM.length
+                    };
+                }
+            } catch (_) {}
+            return {
+                totalRegistered: "—",
+                activeMembers: "—",
+                pendingApplicants: "—",
+                fundBalance: 0,
+                divisionsCount: SG_CONFIG.DIVISIONS.length,
+                curriculumLevels: SG_CONFIG.CURRICULUM.length
+            };
+        }
+
         const members = this.getMembers();
         return {
             totalRegistered: members.length,
@@ -1863,7 +1455,6 @@ const SGStore = {
     }
 };
 
-// Auto-run init
 SGStore.init();
 
 if (typeof window !== "undefined") {

@@ -21,7 +21,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="css/custom.css">
+    <link rel="stylesheet" href="css/custom.css?v=2.3">
 </head>
 <body class="bg-sgbg text-slate-100 min-h-screen bg-cyber-grid flex flex-col selection:bg-blue-600 selection:text-white">
 
@@ -45,11 +45,8 @@
                 <a href="constitution.html" class="text-white font-semibold">Katiba</a>
             </nav>
 
-            <div class="flex items-center gap-2.5">
-                <a href="member-portal.html" class="text-xs sm:text-sm font-semibold text-slate-300 hover:text-white px-2.5 py-1.5 transition hidden sm:inline">Ingia</a>
-                <a href="register.html" class="px-4 py-2 rounded-xl btn-sg-primary text-xs sm:text-sm flex items-center gap-1.5">
-                    <span>Jiunge Sasa</span>
-                </a>
+            <div class="flex items-center gap-2">
+                <div id="header-session-slot" class="hidden sm:flex items-center gap-2.5"></div>
                 <button id="mobile-menu-btn" class="md:hidden text-slate-300 hover:text-white p-2" aria-label="Fungua menyu">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                 </button>
@@ -159,11 +156,15 @@
         </div>
     </div>
 
-    <script src="js/config.js"></script>
-    <script src="js/constitution-data.js"></script>
+    <script src="js/config.js?v=2.3"></script>
+    <script src="js/store.js?v=2.3"></script>
+    <script src="js/constitution-data.js?v=2.3"></script>
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             SGUtils.bindMobileMenu("mobile-menu-btn", "mobile-menu");
+            SGUtils.renderPublicSessionSlot("header-session-slot");
+            window.addEventListener("sg:synced", () => SGUtils.renderPublicSessionSlot("header-session-slot"));
+            window.addEventListener("storage", () => SGUtils.renderPublicSessionSlot("header-session-slot"));
 
             const tocNav = document.getElementById("toc-nav");
             const container = document.getElementById("articles-container");
@@ -251,9 +252,7 @@
 
             window.copyArticleLink = function(id) {
                 const url = window.location.origin + window.location.pathname + "#" + id;
-                navigator.clipboard.writeText(url).then(() => {
-                    alert("Kiungo cha kifungu hiki kimenakiliwa: " + url);
-                });
+                SGUtils.copyText(url, "✓ Kiungo cha kifungu hiki kimenakiliwa!");
             };
         });
     </script>

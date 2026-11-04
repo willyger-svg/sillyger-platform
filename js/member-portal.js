@@ -1,10 +1,10 @@
 /**
- * SILLYGER (SG) Student Dashboard Controller (v2.1)
+ * SILLYGER (SG) Student Dashboard Controller (v2.3)
  * Full Multi-Panel Student Dashboard Experience:
  * - Sidebar + Mobile Tab Switching (Overview, WhatsApp, Updates, Check-in & Leave, Possible Courses, Profile & Support)
  * - 4 Real-Time KPI Cards, Digital Student ID Smart-Card, Onboarding Checklist Progress Bar
- * - WhatsApp Community Access Gate + One-Click Group Intro Copy
- * - Live Cloud Sync & Cross-Tab BroadcastChannel Refresh
+ * - Server-Gated WhatsApp Community Access + One-Click Group Intro Copy
+ * - Cryptographic Session Shield (PDPA 2022) + Non-Blocking Toast Notifications
  */
 
 const _esc = (v) => (typeof SGUtils !== "undefined" ? SGUtils.escapeHtml(v) : String(v || ""));
@@ -17,30 +17,45 @@ document.addEventListener("DOMContentLoaded", () => {
     setupPortalForms();
     initMemberPortal();
 
-    window.addEventListener("sg:synced", () => {
+    window.addEventListener("sg:synced", (e) => {
+        if (e && e.detail && e.detail.type === "SESSION_EXPIRED") {
+            SGUtils.showToast("🔒 Kikao chako kimekwisha muda. Tafadhali ingia tena.", "info");
+            initMemberPortal();
+            return;
+        }
+        if (e && e.detail && e.detail.type === "USER_LOGOUT") {
+            initMemberPortal();
+            return;
+        }
         const s = SGStore.getCurrentSession();
         if (s) renderMemberDashboard(s);
     });
     window.addEventListener("storage", () => {
         const s = SGStore.getCurrentSession();
         if (s) renderMemberDashboard(s);
+        else initMemberPortal();
     });
     try {
         if (typeof BroadcastChannel !== "undefined") {
             const bc = new BroadcastChannel("sg_platform_sync");
-            bc.onmessage = () => {
+            bc.onmessage = (ev) => {
+                if (ev && ev.data && (ev.data.type === "SESSION_EXPIRED" || ev.data.type === "USER_LOGOUT")) {
+                    initMemberPortal();
+                    return;
+                }
                 const s = SGStore.getCurrentSession();
                 if (s) renderMemberDashboard(s);
             };
         }
     } catch (e) {}
 
-    // Auto-sync every 8s when logged in so PENDING -> ACTIVE unlocks WhatsApp live
+    // Auto-sync every 12s when visible & logged in so PENDING -> ACTIVE unlocks WhatsApp live
     setInterval(() => {
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
         if (SGStore.getCurrentSession()) {
             SGStore.syncWithSupabase();
         }
-    }, 8000);
+    }, 12000);
 });
 
 function setupStudentTabs() {
@@ -81,8 +96,21 @@ function handleUrlAlertBanner() {
     if (!alertBox) return;
     const params = new URLSearchParams(window.location.search);
     const alertType = params.get("alert");
+    const prefillUser = params.get("user");
+    const reauthNotice = SGStore.consumeReauthNotice();
 
-    if (alertType === "login_required") {
+    if (prefillUser) {
+        const credInput = document.getElementById("login-credential");
+        if (credInput && !credInput.value) credInput.value = prefillUser;
+    }
+
+    if (alertType === "session_expired" || reauthNotice) {
+        alertBox.innerHTML = `
+            <span>🔒 Mfumo umeboreshwa kiusalama (PDPA 2022). Tafadhali ingia tena kwenye akaunti yako.</span>
+            <button onclick="this.parentElement.classList.add('hidden')" class="text-amber-300 hover:text-white font-bold">✕</button>
+        `;
+        alertBox.classList.remove("hidden");
+    } else if (alertType === "login_required") {
         alertBox.innerHTML = `
             <span>🔒 Tafadhali ingia kwanza kwenye Dashboard yako ili kufikia ukurasa huo.</span>
             <button onclick="this.parentElement.classList.add('hidden')" class="text-amber-300 hover:text-white font-bold">✕</button>
@@ -141,6 +169,7 @@ function initMemberPortal() {
 
         switchStudentTab(currentStudentTab);
         renderMemberDashboard(session);
+        SGStore.syncWithSupabase(true);
     }
 }
 
@@ -181,24 +210,14 @@ function setupLoginForm() {
         }
 
         try {
-            await SGStore.syncWithSupabase(true);
-            const member = SGStore.authenticateMember(credential, password);
-
-            SGStore.addAuditLog({
-                action: "MEMBER_LOGIN",
-                actor: member.username,
-                target: member.member_id || "PENDING",
-                details: `Login kwenye Student Dashboard. Status: ${member.status}.`
-            });
-
-            await SGStore.flushPendingWrites();
-            SGStore.setCurrentSession(member);
+            const member = await SGStore.loginAsync(credential, password);
 
             if (SGStore.isAdminUser(member)) {
                 window.location.href = "admin-portal.html";
                 return;
             }
 
+            await SGStore.syncWithSupabase(true);
             initMemberPortal();
         } catch (err) {
             errorAlert.textContent = err.message || "Hitilafu imetokea.";
@@ -212,8 +231,9 @@ function setupLoginForm() {
     };
 }
 
-window.handleMemberLogout = function () {
+window.handleMemberLogout = async function () {
     SGStore.logout();
+    await SGStore.flushPendingWrites();
     window.location.href = "member-portal.html";
 };
 
@@ -233,33 +253,33 @@ window.refreshMemberStatusNow = async function () {
 window.copyStudentId = function () {
     const s = SGStore.getCurrentSession();
     if (!s || !s.member_id) {
-        alert("SG-ID yako bado inasubiri uthibitisho wa Admin.");
+        SGUtils.showToast("⏳ SG-ID yako bado inasubiri uthibitisho wa Admin.", "info");
         return;
     }
-    navigator.clipboard.writeText(s.member_id).then(() => {
-        alert(`✓ SG-ID imenakiliwa: ${s.member_id}`);
-    }).catch(() => {});
+    SGUtils.copyText(s.member_id, `✓ SG-ID imenakiliwa: ${s.member_id}`);
 };
 
 window.copyWhatsAppIntro = function () {
     const el = document.getElementById("wa-intro-template");
     if (!el) return;
-    navigator.clipboard.writeText(el.textContent.trim()).then(() => {
-        alert("✓ Ujumbe wa utambulisho umenakiliwa! Unaweza kuubandika (Paste) ndani ya WhatsApp Group.");
-    }).catch(() => {});
+    SGUtils.copyText(
+        el.textContent.trim(),
+        "✓ Ujumbe wa utambulisho umenakiliwa! Unaweza kuubandika (Paste) ndani ya WhatsApp Group."
+    );
 };
 
-window.quickOverviewCheckin = function () {
+window.quickOverviewCheckin = async function () {
     const s = SGStore.getCurrentSession();
     if (!s || !s.member_id) return;
     const settings = SGStore.getPlatformSettings();
     const sessionTitle = settings.active_session_title || "Kipindi cha Pamoja cha Wanafunzi";
     try {
-        SGStore.recordPlannedAttendance(s.member_id, sessionTitle);
-        renderMemberDashboard(s);
-        alert(`✓ Check-in yako kwenye "${sessionTitle}" imerekodiwa!`);
+        await SGStore.recordPlannedAttendanceAsync(sessionTitle);
+        const fresh = SGStore.getCurrentSession() || s;
+        renderMemberDashboard(fresh);
+        SGUtils.showToast(`✓ Check-in yako kwenye "${sessionTitle}" imerekodiwa!`, "success");
     } catch (err) {
-        alert("Taarifa: " + err.message);
+        SGUtils.showToast("Taarifa: " + (err.message || err), "info");
     }
 };
 
@@ -400,7 +420,18 @@ function renderWhatsAppGate(member) {
     let cardHtml = "";
 
     if (status === "ACTIVE") {
-        const waLink = _esc(SG_CONFIG.privateWhatsAppInvite);
+        const rawWaLink = SG_CONFIG.privateWhatsAppInvite;
+        const waLink = _esc(rawWaLink);
+        const ctaHtml = rawWaLink
+            ? `<a href="${waLink}" target="_blank" rel="noopener noreferrer"
+                    class="px-6 py-3 rounded-2xl btn-sg-emerald text-xs sm:text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                    <span>Jiunge na WhatsApp Group Sasa</span>
+                    <span>&rarr;</span>
+               </a>`
+            : `<button type="button" onclick="refreshMemberStatusNow()"
+                    class="px-5 py-2.5 rounded-2xl btn-sg-emerald text-xs sm:text-sm flex items-center justify-center gap-2 whitespace-nowrap">
+                    <span>🔄 Pakia Kiungo cha WhatsApp</span>
+               </button>`;
         cardHtml = `
             <div class="sg-glass p-6 sm:p-7 rounded-3xl border border-emerald-500/45 bg-gradient-to-br from-emerald-950/35 via-slate-900/90 to-slate-950 shadow-xl space-y-5">
                 <div class="flex items-start gap-4">
@@ -421,11 +452,7 @@ function renderWhatsAppGate(member) {
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-emerald-900/40">
                     <span class="text-[11px] font-mono-sg text-emerald-300/80">Official Student Learning Group</span>
-                    <a href="${waLink}" target="_blank" rel="noopener noreferrer"
-                        class="px-6 py-3 rounded-2xl btn-sg-emerald text-xs sm:text-sm flex items-center justify-center gap-2 whitespace-nowrap">
-                        <span>Jiunge na WhatsApp Group Sasa</span>
-                        <span>&rarr;</span>
-                    </a>
+                    ${ctaHtml}
                 </div>
             </div>
         `;
@@ -447,7 +474,7 @@ function renderWhatsAppGate(member) {
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
-                    <span class="text-[11px] font-mono-sg text-slate-400">Inajisasisha kila sekunde 8</span>
+                    <span class="text-[11px] font-mono-sg text-slate-400">Inajisasisha kila sekunde 12</span>
                     <button onclick="refreshMemberStatusNow()" class="px-5 py-2.5 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-900/50 text-xs text-blue-300 hover:text-white font-semibold transition">
                         🔄 Angalia Hali Mpya Sasa
                     </button>
@@ -801,53 +828,82 @@ function renderProfileAndTickets(member) {
 function setupPortalForms() {
     const checkinForm = document.getElementById("form-member-checkin");
     if (checkinForm) {
-        checkinForm.addEventListener("submit", (e) => {
+        checkinForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const session = SGStore.getCurrentSession();
             if (!session || !session.member_id) return;
             const titleInput = document.getElementById("checkin-session-input");
+            const btn = checkinForm.querySelector('button[type="submit"]');
+            const orig = btn ? btn.innerHTML : "";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = "⏳...";
+            }
             try {
-                SGStore.recordPlannedAttendance(session.member_id, titleInput.value);
+                await SGStore.recordPlannedAttendanceAsync(titleInput.value);
                 titleInput.value = "";
-                renderMemberDashboard(session);
-                alert("✓ Check-in yako imerekodiwa! Admin ataithibitisha.");
+                const fresh = SGStore.getCurrentSession() || session;
+                renderMemberDashboard(fresh);
+                SGUtils.showToast("✓ Check-in yako imerekodiwa! Admin ataithibitisha.", "success");
             } catch (err) {
-                alert("Taarifa: " + err.message);
+                SGUtils.showToast("Taarifa: " + (err.message || err), "info");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                }
             }
         });
     }
 
     const leaveForm = document.getElementById("form-leave-request");
     if (leaveForm) {
-        leaveForm.addEventListener("submit", (e) => {
+        leaveForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const session = SGStore.getCurrentSession();
             if (!session || !session.member_id) return;
+            const btn = leaveForm.querySelector('button[type="submit"]');
+            const orig = btn ? btn.innerHTML : "";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = "⏳ Inatuma...";
+            }
             try {
-                SGStore.submitLeaveRequest(session.member_id, {
+                await SGStore.submitLeaveRequestAsync({
                     category: document.getElementById("leave-category").value,
                     duration: document.getElementById("leave-duration").value,
                     reason: document.getElementById("leave-reason").value
                 });
                 leaveForm.reset();
                 closeModal("modal-leave-request");
-                renderMemberDashboard(session);
-                alert("✓ Ombi lako la ruhusa limewasilishwa.");
+                const fresh = SGStore.getCurrentSession() || session;
+                renderMemberDashboard(fresh);
+                SGUtils.showToast("✓ Ombi lako la ruhusa limewasilishwa.", "success");
             } catch (err) {
-                alert("Hitilafu: " + err.message);
+                SGUtils.showToast("Hitilafu: " + (err.message || err), "error");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                }
             }
         });
     }
 
     const ticketForm = document.getElementById("form-support-ticket");
     if (ticketForm) {
-        ticketForm.addEventListener("submit", (e) => {
+        ticketForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const session = SGStore.getCurrentSession();
             if (!session) return;
-            const actorId = session.member_id || session.username;
+            const btn = ticketForm.querySelector('button[type="submit"]');
+            const orig = btn ? btn.innerHTML : "";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = "⏳ Inatuma...";
+            }
             try {
-                SGStore.submitSupportTicket(actorId, {
+                await SGStore.submitSupportTicketAsync({
                     category: document.getElementById("ticket-category").value,
                     subject: document.getElementById("ticket-subject").value,
                     message: document.getElementById("ticket-message").value
@@ -855,17 +911,23 @@ function setupPortalForms() {
                 ticketForm.reset();
                 closeModal("modal-support-ticket");
                 switchStudentTab("profile");
-                renderMemberDashboard(session);
-                alert("✓ Ujumbe wako umetumwa! Utapata jibu hapa kwenye Dashboard.");
+                const fresh = SGStore.getCurrentSession() || session;
+                renderMemberDashboard(fresh);
+                SGUtils.showToast("✓ Ujumbe wako umetumwa! Utapata jibu hapa kwenye Dashboard.", "success");
             } catch (err) {
-                alert("Hitilafu: " + err.message);
+                SGUtils.showToast("Hitilafu: " + (err.message || err), "error");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                }
             }
         });
     }
 
     const cpForm = document.getElementById("form-change-password");
     if (cpForm) {
-        cpForm.addEventListener("submit", (e) => {
+        cpForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const session = SGStore.getCurrentSession();
             if (!session) return;
@@ -874,16 +936,27 @@ function setupPortalForms() {
             const confirmNext = document.getElementById("cp-confirm").value;
 
             if (next !== confirmNext) {
-                alert("Nenosiri jipya na uthibitisho wake havifanani.");
+                SGUtils.showToast("Nenosiri jipya na uthibitisho wake havifanani.", "error");
                 return;
             }
+            const btn = cpForm.querySelector('button[type="submit"]');
+            const orig = btn ? btn.innerHTML : "";
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = "⏳ Inahifadhi...";
+            }
             try {
-                SGStore.changePassword(session.id, cur, next);
+                await SGStore.changePasswordAsync(cur, next);
                 cpForm.reset();
                 closeModal("modal-change-password");
-                alert("✓ Nenosiri lako limebadilishwa kikamilifu!");
+                SGUtils.showToast("✓ Nenosiri lako limebadilishwa kikamilifu!", "success");
             } catch (err) {
-                alert("Hitilafu: " + err.message);
+                SGUtils.showToast("Hitilafu: " + (err.message || err), "error");
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = orig;
+                }
             }
         });
     }

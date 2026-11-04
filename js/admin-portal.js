@@ -13,6 +13,7 @@ let inspectingMemberId = null;
 let _lastPendingQueueSig = "";
 const _busyApprovals = new Set();
 let _confirmResolver = null;
+let _promptResolver = null;
 
 // Non-blocking Toast Banner (Immune to browser alert/confirm dialog suppression)
 window.showAdminToast = function (message, variant = "success") {
@@ -73,6 +74,57 @@ window.resolveAdminConfirm = function (accepted) {
     }
 };
 
+// In-Page Text Input Prompt Dialog (Replaces native window.prompt which WebViews block)
+window.askAdminPrompt = function ({
+    title = "Ingiza Taarifa",
+    message = "",
+    placeholder = "",
+    initialValue = "",
+    confirmText = "Thibitisha",
+    danger = false,
+    rows = 3
+}) {
+    const modal = document.getElementById("modal-admin-prompt");
+    const elTitle = document.getElementById("admin-prompt-title");
+    const elMsg = document.getElementById("admin-prompt-message");
+    const elInput = document.getElementById("admin-prompt-input");
+    const elOk = document.getElementById("admin-prompt-ok-btn");
+
+    if (!modal || !elTitle || !elMsg || !elInput || !elOk) {
+        return Promise.resolve(null);
+    }
+
+    elTitle.textContent = title;
+    elMsg.textContent = message;
+    elInput.placeholder = placeholder || "";
+    elInput.value = initialValue || "";
+    elInput.rows = rows || 3;
+    elOk.textContent = confirmText;
+    elOk.className = danger
+        ? "px-5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold transition shadow-lg"
+        : "px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-extrabold transition shadow-lg";
+
+    modal.classList.remove("hidden");
+    setTimeout(() => {
+        try { elInput.focus(); } catch (_) {}
+    }, 50);
+
+    return new Promise(resolve => {
+        _promptResolver = resolve;
+    });
+};
+
+window.resolveAdminPrompt = function (accepted) {
+    const modal = document.getElementById("modal-admin-prompt");
+    const elInput = document.getElementById("admin-prompt-input");
+    if (modal) modal.classList.add("hidden");
+    if (_promptResolver) {
+        const fn = _promptResolver;
+        _promptResolver = null;
+        fn(accepted && elInput ? elInput.value : null);
+    }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     initAdminPortal();
 });
@@ -84,7 +136,9 @@ function initAdminPortal() {
     const isAdmin = SGStore.isAdminUser(session);
 
     if (!isAdmin) {
-        if (session) {
+        if (SGStore.consumeReauthNotice()) {
+            window.location.href = "member-portal.html?alert=session_expired";
+        } else if (session) {
             window.location.href = `member-portal.html?alert=admin_required&user=${encodeURIComponent(session.username)}`;
         } else {
             window.location.href = "member-portal.html?alert=login_required";
@@ -94,6 +148,13 @@ function initAdminPortal() {
 
     if (dashboardView) dashboardView.classList.remove("hidden");
     renderSuperAdminDashboard(session);
+
+    SGStore.syncWithSupabase(true).then(() => {
+        const fresh = SGStore.getCurrentSession();
+        if (fresh) {
+            rerenderCurrentAdminView(true);
+        }
+    });
 }
 
 function rerenderCurrentAdminView(force = false) {
@@ -113,29 +174,57 @@ function rerenderCurrentAdminView(force = false) {
 
 // Cross-tab & Cloud real-time sync listeners
 if (typeof window !== "undefined") {
-    window.addEventListener("storage", () => rerenderCurrentAdminView(false));
-    window.addEventListener("sg:synced", () => rerenderCurrentAdminView(false));
+    window.addEventListener("storage", () => {
+        if (!SGStore.getCurrentSession()) {
+            window.location.href = "member-portal.html";
+            return;
+        }
+        rerenderCurrentAdminView(false);
+    });
+    window.addEventListener("sg:synced", (e) => {
+        if (e && e.detail && e.detail.type === "SESSION_EXPIRED") {
+            window.location.href = "member-portal.html?alert=session_expired";
+            return;
+        }
+        if (e && e.detail && e.detail.type === "USER_LOGOUT") {
+            window.location.href = "member-portal.html";
+            return;
+        }
+        rerenderCurrentAdminView(false);
+    });
 
     try {
         if (typeof BroadcastChannel !== "undefined") {
             const bc = new BroadcastChannel("sg_platform_sync");
-            bc.onmessage = () => rerenderCurrentAdminView(false);
+            bc.onmessage = (ev) => {
+                if (ev && ev.data && ev.data.type === "SESSION_EXPIRED") {
+                    window.location.href = "member-portal.html?alert=session_expired";
+                    return;
+                }
+                if (ev && ev.data && ev.data.type === "USER_LOGOUT") {
+                    window.location.href = "member-portal.html";
+                    return;
+                }
+                rerenderCurrentAdminView(false);
+            };
         }
     } catch (e) {}
 
-    // Periodic cloud & local queue poll (every 6 seconds — non-destructive diffed render)
+    // Periodic cloud & local queue poll (every 10 seconds when visible — non-destructive diffed render)
     setInterval(() => {
         if (_busyApprovals.size > 0) return;
+        if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
         SGStore.syncWithSupabase();
         refreshAdminTelemetry();
         if (currentActiveTab === "queue") {
             renderPendingQueue(false);
         }
-    }, 6000);
+    }, 10000);
 }
 
-window.handleAdminLogout = function () {
+window.handleAdminLogout = async function () {
     SGStore.logout();
+    await SGStore.flushPendingWrites();
     window.location.href = "member-portal.html";
 };
 
@@ -716,8 +805,6 @@ window.saveDossierChanges = async function (e) {
     const member = SGStore.findMemberById(inspectingMemberId);
     if (!member) return;
 
-    const adminUser = SGStore.getCurrentSession();
-    const adminActor = adminUser ? adminUser.username : "willyger";
     const originalStatus = member.status;
     const originalRole = member.role;
 
@@ -727,6 +814,10 @@ window.saveDossierChanges = async function (e) {
     const newPassword = document.getElementById("dossier-new-password-input").value;
     const reason = document.getElementById("dossier-audit-reason").value.trim() || "Imeidhinishwa / kusasishwa na Super Administrator";
 
+    const effectiveTargetRole = (newStatus === "ACTIVE" && selectedRole === "Applicant" && originalRole === "Applicant")
+        ? "Member"
+        : selectedRole;
+
     const saveBtn = document.getElementById("btn-dossier-save");
     const origBtnText = saveBtn ? saveBtn.textContent : "";
     if (saveBtn) {
@@ -735,31 +826,26 @@ window.saveDossierChanges = async function (e) {
     }
 
     try {
-        // If promoting from PENDING -> ACTIVE via Dossier, run full cloud-verified approval first
-        if (originalStatus === "PENDING" && newStatus === "ACTIVE" && !newId) {
-            const approved = await SGStore.approveMemberAsync(member.id, adminActor);
+        if (
+            originalStatus === "PENDING" &&
+            newStatus === "ACTIVE" &&
+            !newId &&
+            effectiveTargetRole === "Member" &&
+            (!newPassword || !newPassword.trim())
+        ) {
+            const approved = await SGStore.approveMemberAsync(member.id);
             showApprovedFeedbackBanner(approved);
         } else {
-            if (newId && newId !== member.member_id) {
-                SGStore.assignCustomMemberId(member.id, newId, reason, adminActor);
+            const updated = await SGStore.updateMemberDossierAsync(member.id, {
+                member_id: newId || null,
+                role: effectiveTargetRole,
+                status: newStatus,
+                new_password: newPassword && newPassword.trim() ? newPassword : null,
+                reason
+            });
+            if (originalStatus === "PENDING" && updated && updated.status === "ACTIVE") {
+                showApprovedFeedbackBanner(updated);
             }
-            if (newStatus && newStatus !== member.status) {
-                SGStore.updateMemberStatus(member.id, newStatus, reason, adminActor);
-            }
-        }
-
-        // Only update role if Admin explicitly chose a role different from original (prevents downgrading Member -> Applicant!)
-        const updatedAfterStatus = SGStore.findMemberById(member.id);
-        const effectiveTargetRole = (newStatus === "ACTIVE" && selectedRole === "Applicant" && originalRole === "Applicant")
-            ? "Member"
-            : selectedRole;
-
-        if (effectiveTargetRole && updatedAfterStatus && effectiveTargetRole !== updatedAfterStatus.role) {
-            SGStore.updateMemberRole(member.id, effectiveTargetRole, reason, adminActor);
-        }
-
-        if (newPassword && newPassword.trim().length > 0) {
-            SGStore.adminResetPassword(member.id, newPassword, adminActor);
         }
 
         await SGStore.flushPendingWrites();
@@ -816,31 +902,39 @@ function renderAnnouncementsManager() {
     `).join("");
 }
 
-window.publishOfficialAnnouncement = function (e) {
+window.publishOfficialAnnouncement = async function (e) {
     if (e) e.preventDefault();
     const title = document.getElementById("anc-title-input").value.trim();
     const content = document.getElementById("anc-content-input").value.trim();
     const priority = document.getElementById("anc-priority-input").value;
 
     if (!title || !content) {
-        alert("Tafadhali weka kichwa cha habari na maudhui ya tangazo.");
+        showAdminToast("Tafadhali weka kichwa cha habari na maudhui ya tangazo.", "error");
         return;
     }
 
-    const session = SGStore.getCurrentSession();
-    const authorName = session ? `${session.full_name} (${session.role})` : "William Gerishom William (Super Admin)";
+    const form = document.getElementById("form-create-announcement");
+    const btn = form ? form.querySelector('button[type="submit"]') : null;
+    const orig = btn ? btn.innerHTML : "";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Inachapisha...";
+    }
 
-    SGStore.createAnnouncement({
-        title,
-        content,
-        priority,
-        author: authorName
-    });
-
-    showAdminToast("✓ Tangazo rasmi limechapishwa na linapatikana kwa wanachama wote!", "success");
-    document.getElementById("form-create-announcement").reset();
-    renderAnnouncementsManager();
-    refreshAdminTelemetry();
+    try {
+        await SGStore.createAnnouncementAsync({ title, content, priority });
+        showAdminToast("✓ Tangazo rasmi limechapishwa na linapatikana kwa wanachama wote!", "success");
+        if (form) form.reset();
+        renderAnnouncementsManager();
+        refreshAdminTelemetry();
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        }
+    }
 };
 
 window.removeOfficialAnnouncement = async function (ancId) {
@@ -851,11 +945,14 @@ window.removeOfficialAnnouncement = async function (ancId) {
         danger: true
     });
     if (!ok) return;
-    const session = SGStore.getCurrentSession();
-    SGStore.deleteAnnouncement(ancId, session ? session.username : "willyger");
-    showAdminToast("✓ Tangazo limeondolewa.", "info");
-    renderAnnouncementsManager();
-    refreshAdminTelemetry();
+    try {
+        await SGStore.deleteAnnouncementAsync(ancId);
+        showAdminToast("✓ Tangazo limeondolewa.", "info");
+        renderAnnouncementsManager();
+        refreshAdminTelemetry();
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
 };
 
 // -------------------------------------------------------------
@@ -893,7 +990,7 @@ function renderFundLedger() {
     `).join("");
 }
 
-window.recordFundTransaction = function (e) {
+window.recordFundTransaction = async function (e) {
     if (e) e.preventDefault();
     const type = document.getElementById("fund-type-select").value;
     const amount = document.getElementById("fund-amount-input").value;
@@ -901,26 +998,37 @@ window.recordFundTransaction = function (e) {
     const description = document.getElementById("fund-desc-input").value.trim();
 
     if (!amount || !description) {
-        alert("Tafadhali jaza kiasi na maelezo ya muamala.");
+        showAdminToast("Tafadhali jaza kiasi na maelezo ya muamala.", "error");
         return;
     }
 
+    const form = document.getElementById("form-fund-transaction");
+    const btn = form ? form.querySelector('button[type="submit"]') : null;
+    const orig = btn ? btn.innerHTML : "";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = "⏳ Inarekodi...";
+    }
+
     try {
-        const session = SGStore.getCurrentSession();
-        SGStore.addFundTransaction({
+        await SGStore.addFundTransactionAsync({
             type,
             amount,
             category,
-            description,
-            actor: session ? session.username : "willyger"
+            description
         });
 
-        alert("✓ Muamala wa SG Community Fund umerekodiwa rasmi kwenye leja!");
-        document.getElementById("form-fund-transaction").reset();
+        showAdminToast("✓ Muamala wa SG Community Fund umerekodiwa rasmi kwenye leja!", "success");
+        if (form) form.reset();
         refreshAdminTelemetry();
         renderFundLedger();
     } catch (err) {
-        alert("Hitilafu: " + err.message);
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = orig;
+        }
     }
 };
 
@@ -975,37 +1083,41 @@ function renderAttendanceManager() {
     `).join("");
 }
 
-window.saveActiveSessionTitle = function () {
+window.saveActiveSessionTitle = async function () {
     const input = document.getElementById("active-session-title-input");
     if (!input) return;
     const title = input.value.trim();
-    const session = SGStore.getCurrentSession();
-    SGStore.updatePlatformSettings(
-        { active_session_title: title },
-        session ? session.username : "willyger"
-    );
-    showAdminToast(title ? `✓ Kipindi cha sasa kimewekwa: "${title}"` : "✓ Jina la kipindi kimefutwa.", "success");
+    try {
+        await SGStore.updatePlatformSettingsAsync({ active_session_title: title });
+        showAdminToast(title ? `✓ Kipindi cha sasa kimewekwa: "${title}"` : "✓ Jina la kipindi kimefutwa.", "success");
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
 };
 
-window.verifyAttendanceRecord = function (recordId) {
-    const session = SGStore.getCurrentSession();
-    const verifier = session ? `${session.full_name} (${session.role})` : "William Gerishom (Super Admin)";
-    SGStore.verifyAttendance(recordId, verifier);
-    showAdminToast("✓ Mahudhurio yamethibitishwa!", "success");
-    renderAttendanceManager();
-    refreshAdminTelemetry();
-};
-
-window.verifyAllPendingAttendance = function () {
-    const session = SGStore.getCurrentSession();
-    const verifier = session ? `${session.full_name} (${session.role})` : "William Gerishom (Super Admin)";
-    const count = SGStore.verifyAllAttendance(verifier);
-    if (count > 0) {
-        showAdminToast(`✓ Vipindi ${count} vya mahudhurio vimethibitishwa vyote mara moja!`, "success");
+window.verifyAttendanceRecord = async function (recordId) {
+    try {
+        await SGStore.verifyAttendanceAsync(recordId, false);
+        showAdminToast("✓ Mahudhurio yamethibitishwa!", "success");
         renderAttendanceManager();
         refreshAdminTelemetry();
-    } else {
-        showAdminToast("Hakuna mahudhurio mapya yasiyothibitishwa.", "info");
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
+};
+
+window.verifyAllPendingAttendance = async function () {
+    try {
+        const count = await SGStore.verifyAttendanceAsync(null, true);
+        if (count > 0) {
+            showAdminToast(`✓ Vipindi ${count} vya mahudhurio vimethibitishwa vyote mara moja!`, "success");
+            renderAttendanceManager();
+            refreshAdminTelemetry();
+        } else {
+            showAdminToast("Hakuna mahudhurio mapya yasiyothibitishwa.", "info");
+        }
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
     }
 };
 
@@ -1089,27 +1201,42 @@ function renderLeavesAndTicketsManager() {
     }
 }
 
-window.decideLeave = function (leaveId, decision) {
-    const session = SGStore.getCurrentSession();
-    const reviewer = session ? session.full_name : "William Gerishom";
-    SGStore.reviewLeaveRequest(leaveId, decision, reviewer);
-    renderLeavesAndTicketsManager();
-    refreshAdminTelemetry();
+window.decideLeave = async function (leaveId, decision) {
+    try {
+        await SGStore.reviewLeaveRequestAsync(leaveId, decision);
+        showAdminToast(decision === "APPROVED" ? "✓ Ombi la ruhusa limekubaliwa." : "✓ Ombi la ruhusa limekataliwa.", "success");
+        renderLeavesAndTicketsManager();
+        refreshAdminTelemetry();
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
 };
 
-window.replyToTicket = function (ticketId) {
+window.replyToTicket = async function (ticketId) {
     const ticket = SGStore.getSupportTickets().find(t => t.id === ticketId);
     if (!ticket) return;
-    const reply = prompt(`Andika jibu rasmi kwa tiketi ya ${ticket.member_id} ("${ticket.subject}"):`, ticket.response || "");
+    const reply = await askAdminPrompt({
+        title: `Jibu Tiketi ya ${ticket.member_id}`,
+        message: `Kichwa: "${ticket.subject}"\nUjumbe: ${ticket.message}`,
+        placeholder: "Andika jibu rasmi la Admin hapa...",
+        initialValue: ticket.response || "",
+        confirmText: "Tuma Jibu Rasmi",
+        danger: false,
+        rows: 4
+    });
     if (reply === null) return;
     if (!reply.trim()) {
-        alert("Tafadhali andika jibu kabla ya kuhifadhi.");
+        showAdminToast("Tafadhali andika jibu kabla ya kuhifadhi.", "error");
         return;
     }
-    const session = SGStore.getCurrentSession();
-    SGStore.resolveSupportTicket(ticketId, reply.trim(), session ? session.full_name : "William Gerishom");
-    renderLeavesAndTicketsManager();
-    refreshAdminTelemetry();
+    try {
+        await SGStore.resolveSupportTicketAsync(ticketId, reply.trim());
+        showAdminToast("✓ Jibu la tiketi limetumwa na kuhifadhiwa!", "success");
+        renderLeavesAndTicketsManager();
+        refreshAdminTelemetry();
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
 };
 
 // -------------------------------------------------------------
@@ -1184,21 +1311,24 @@ function renderDatabaseSettings() {
     }
 }
 
-window.saveWhatsAppLinkSetting = function (e) {
+window.saveWhatsAppLinkSetting = async function (e) {
     if (e) e.preventDefault();
     const waInput = document.getElementById("admin-wa-link-input");
     if (!waInput) return;
     const url = waInput.value.trim();
     if (!url.startsWith("https://chat.whatsapp.com/")) {
-        alert("Tafadhali weka kiungo halali cha WhatsApp Group kinachoanza na https://chat.whatsapp.com/");
+        showAdminToast("Tafadhali weka kiungo halali cha WhatsApp Group kinachoanza na https://chat.whatsapp.com/", "error");
         return;
     }
-    const session = SGStore.getCurrentSession();
-    SGStore.updatePlatformSettings({ whatsapp_invite_url: url }, session ? session.username : "willyger");
-    alert("✓ Kiungo rasmi cha WhatsApp Group kimesasishwa kikamilifu!");
+    try {
+        await SGStore.updatePlatformSettingsAsync({ whatsapp_invite_url: url });
+        showAdminToast("✓ Kiungo rasmi cha WhatsApp Group kimesasishwa kikamilifu!", "success");
+    } catch (err) {
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
+    }
 };
 
-window.changeAdminOwnPassword = function (e) {
+window.changeAdminOwnPassword = async function (e) {
     if (e) e.preventDefault();
     const session = SGStore.getCurrentSession();
     if (!session) return;
@@ -1208,17 +1338,17 @@ window.changeAdminOwnPassword = function (e) {
     const confirmNext = document.getElementById("admin-cp-confirm").value;
 
     if (next !== confirmNext) {
-        alert("Nenosiri jipya na uthibitisho wake havifanani.");
+        showAdminToast("Nenosiri jipya na uthibitisho wake havifanani.", "error");
         return;
     }
 
     try {
-        SGStore.changePassword(session.id, cur, next);
+        await SGStore.changePasswordAsync(cur, next);
         document.getElementById("form-admin-password").reset();
-        alert("✓ Nenosiri la Super Administrator limebadilishwa kikamilifu!");
+        showAdminToast("✓ Nenosiri la Super Administrator limebadilishwa kikamilifu!", "success");
         refreshAdminTelemetry();
     } catch (err) {
-        alert("Hitilafu: " + err.message);
+        showAdminToast("Hitilafu: " + (err.message || err), "error");
     }
 };
 
@@ -1236,6 +1366,7 @@ window.exportCommunityDataJSON = function () {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    showAdminToast("✓ Faili la Backup (PDPA 2022 JSON) limepakuliwa.", "success");
 };
 
 window.copySqlSchemaToClipboard = async function (btn) {
@@ -1244,15 +1375,13 @@ window.copySqlSchemaToClipboard = async function (btn) {
         const res = await fetch("schema.sql", { cache: "no-store" });
         if (!res.ok) throw new Error("Imeshindikana kusoma faili la schema.sql");
         const sqlText = await res.text();
-        await navigator.clipboard.writeText(sqlText);
+        await SGUtils.copyText(sqlText, "✓ schema.sql imenakiliwa! Sasa ipaste kwenye Supabase SQL Editor na ubofye Run.");
         if (btn) {
             btn.innerHTML = `<span>✓ SQL Imenakiliwa (Paste kwenye Supabase SQL Editor!)</span>`;
             setTimeout(() => { btn.innerHTML = orig; }, 3000);
-        } else {
-            alert("✓ schema.sql imenakiliwa! Sasa ipaste kwenye Supabase SQL Editor na ubofye Run.");
         }
     } catch (err) {
-        alert("Fungua faili la schema.sql moja kwa moja kwenye mradi wako kisha nakili maandishi yake yote (" + err.message + ").");
+        showAdminToast("Fungua faili la schema.sql moja kwa moja kwenye mradi wako kisha nakili maandishi yake yote (" + (err.message || err) + ").", "error");
     }
 };
 
@@ -1262,7 +1391,7 @@ window.saveDatabaseCredentials = async function (e) {
     const key = (document.getElementById("supabase-key-input").value || "").trim();
 
     if (!url || !key) {
-        alert("Tafadhali jaza Project URL na Public Anon Key zote mbili.");
+        showAdminToast("Tafadhali jaza Project URL na Public Anon Key zote mbili.", "error");
         return;
     }
 
@@ -1270,37 +1399,59 @@ window.saveDatabaseCredentials = async function (e) {
     SG_CONFIG.SUPABASE.anonKey = key;
 
     try {
-        if (typeof supabase !== "undefined") {
-            const client = supabase.createClient(url, key);
-            const { error } = await client.from("members").select("id").limit(1);
-            if (error) {
-                alert(`⚠️ Imehifadhiwa, lakini Supabase imerudisha ujumbe: ${error.message}\n\nHakikisha umepandisha faili la schema.sql kwenye SQL Editor kule Supabase.`);
-            } else {
-                await SGStore.syncWithSupabase(true);
-                alert("✓ Hongera! Supabase PostgreSQL imeunganishwa kikamilifu! Sasa data za wanachama, matangazo, leja ya fedha na mahudhurio zitasawazishwa mtandaoni.");
-            }
+        const cleanUrl = url.replace(/\/+$/, "");
+        const testRes = await fetch(`${cleanUrl}/rest/v1/rpc/sg_get_public_overview`, {
+            method: "POST",
+            headers: {
+                apikey: key,
+                Authorization: `Bearer ${key}`,
+                "Content-Type": "application/json",
+                Accept: "application/json"
+            },
+            body: "{}"
+        });
+        if (!testRes.ok) {
+            showAdminToast("⚠️ Imehifadhiwa, lakini hakikisha umepandisha faili la schema.sql kwenye SQL Editor kule Supabase.", "info");
         } else {
-            alert("✓ Taarifa za Supabase zimehifadhiwa.");
+            await SGStore.syncWithSupabase(true);
+            showAdminToast("✓ Hongera! Supabase PostgreSQL imeunganishwa na kulindwa kikamilifu!", "success");
         }
     } catch (err) {
-        alert("Taarifa zimehifadhiwa, angalia muunganisho: " + err.message);
+        showAdminToast("Taarifa zimehifadhiwa, angalia muunganisho: " + (err.message || err), "info");
     }
 
-    location.reload();
+    setTimeout(() => location.reload(), 900);
 };
 
-window.disconnectSupabaseLocal = function () {
-    if (!confirm("Je, unataka kuondoa muunganisho wa Supabase kwenye kivinjari hiki na kubaki na LocalStorage?")) return;
+window.disconnectSupabaseLocal = async function () {
+    const ok = await askAdminConfirm({
+        title: "Ondoa Muunganisho wa Kifaa Hiki?",
+        message: "Je, unataka kuondoa muunganisho maalum wa Supabase uliowekwa kwenye kivinjari hiki?",
+        confirmText: "Ndiyo, Ondoa",
+        danger: true
+    });
+    if (!ok) return;
     SG_CONFIG.SUPABASE.url = "";
     SG_CONFIG.SUPABASE.anonKey = "";
     location.reload();
 };
 
-window.resetCommunityDataToPristine = function () {
-    const confirmation = prompt("ONYO: Hatua hii itafuta data zote za majaribio kwenye kifaa hiki na kurudisha mfumo katika hali safi ya uzinduzi (William Gerishom William pekee kama Super Admin).\n\nAndika neno 'FUTA' kuthibitisha:");
-    if (confirmation && confirmation.trim().toUpperCase() === "FUTA") {
+window.resetCommunityDataToPristine = async function () {
+    const confirmation = await askAdminPrompt({
+        title: "Safisha Data za Majaribio (Kifaa Hiki)",
+        message: "Hatua hii itafuta cache za majaribio kwenye kivinjari hiki na kusawazisha upya na Cloud.\n\nAndika neno 'FUTA' kuthibitisha:",
+        placeholder: "Andika FUTA hapa...",
+        initialValue: "",
+        confirmText: "Safisha Sasa",
+        danger: true,
+        rows: 2
+    });
+    if (confirmation === null) return;
+    if (confirmation.trim().toUpperCase() === "FUTA") {
         SGStore.resetToPristine();
-        alert("✓ Mfumo umesafishwa kikamilifu! Data zote za majaribio zimeondolewa.");
-        location.reload();
+        showAdminToast("✓ Cache ya kifaa hiki imesafishwa kikamilifu!", "success");
+        setTimeout(() => location.reload(), 800);
+    } else {
+        showAdminToast("Uthibitisho haujafanana na neno 'FUTA'. Hakuna kilichofutwa.", "info");
     }
 };

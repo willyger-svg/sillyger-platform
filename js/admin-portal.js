@@ -1498,8 +1498,9 @@ function renderAdminTvStudio() {
     if (descInput && !descInput.value) {
         descInput.value = broadcast.desc || "";
     }
-    if (isLiveInput) {
-        isLiveInput.checked = !!broadcast.is_live;
+    if (isLiveInput && !isLiveInput.dataset.initialized) {
+        isLiveInput.checked = true; // default: publishing = go live
+        isLiveInput.dataset.initialized = "1";
     }
 
     renderAdminTvPreview(urlInput ? urlInput.value : broadcast.url, broadcast.is_live);
@@ -1527,8 +1528,14 @@ function renderAdminTvPreview(urlOrId, isLive) {
     }
 
     if (videoId) {
+        // Do NOT rebuild the iframe if this exact video is already showing —
+        // rebuilding on every sync tick is what made the preview stutter/restart.
+        const existing = previewSlot.querySelector("iframe[data-video-id]");
+        if (existing && existing.getAttribute("data-video-id") === videoId) return;
+
         previewSlot.innerHTML = `
             <iframe class="w-full h-full border-0 rounded-xl"
+                    data-video-id="${videoId}"
                     src="https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1&playsinline=1"
                     title="SILLYGER TV Preview"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

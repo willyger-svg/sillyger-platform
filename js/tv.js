@@ -133,21 +133,25 @@ function renderTvStage(forceIframeReload = false) {
 
     if (titleEl) titleEl.textContent = title;
     if (descEl) descEl.textContent = desc;
-    if (updatedTimeEl && broadcast.updated_at) {
-        updatedTimeEl.textContent = `Ilisasishwa: ${SGUtils.formatDateSw(broadcast.updated_at, true)}`;
-    }
-
-    // Set WhatsApp link
-    if (waBtn) {
-        const waLink = typeof SGUtils !== "undefined" ? SGUtils.getWhatsAppGroupInviteUrl() : null;
-        if (waLink) {
-            waBtn.href = waLink;
-            waBtn.target = "_blank";
-            waBtn.rel = "noopener noreferrer";
-        } else {
-            waBtn.href = "member-portal.html";
+    try {
+        if (updatedTimeEl && broadcast.updated_at) {
+            updatedTimeEl.textContent = `Ilisasishwa: ${SGUtils.formatDateSw(broadcast.updated_at, true)}`;
         }
-    }
+    } catch (_) {}
+
+    // Set WhatsApp link (non-critical: must never block the video from rendering)
+    try {
+        if (waBtn) {
+            const waLink = typeof SG_CONFIG !== "undefined" ? SG_CONFIG.privateWhatsAppInvite : "";
+            if (waLink) {
+                waBtn.href = waLink;
+                waBtn.target = "_blank";
+                waBtn.rel = "noopener noreferrer";
+            } else {
+                waBtn.href = "member-portal.html";
+            }
+        }
+    } catch (_) {}
 
     // Render Player iframe
     if (playerSlot) {

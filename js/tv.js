@@ -6,7 +6,41 @@
 let currentPlayingVideoId = "";
 let currentPlayingTitle = "";
 let isTvMuted = true;
+let isTvPaused = false;
 let currentVolume = 100;
+
+window.toggleTvPlayPause = function () {
+    const iframe = document.getElementById("sg-tv-iframe");
+    const icon = document.getElementById("tv-playpause-icon");
+    const label = document.getElementById("tv-playpause-label");
+    const btn = document.getElementById("tv-playpause-btn");
+
+    if (!iframe || !iframe.contentWindow) return;
+
+    if (!isTvPaused) {
+        try {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
+        } catch (_) {}
+        isTvPaused = true;
+        if (icon) icon.textContent = "▶️";
+        if (label) label.textContent = "Endelea (Play)";
+        if (btn) {
+            btn.className = "px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-emerald-600/30 active:scale-95";
+        }
+        SGUtils.showToast("⏸️ Video imesitishwa. Unaweza kujibu soga kwa utulivu.", "info");
+    } else {
+        try {
+            iframe.contentWindow.postMessage(JSON.stringify({ event: "command", func: "playVideo", args: [] }), "*");
+        } catch (_) {}
+        isTvPaused = false;
+        if (icon) icon.textContent = "⏸️";
+        if (label) label.textContent = "Sitisha (Pause)";
+        if (btn) {
+            btn.className = "px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-amber-600/30 active:scale-95";
+        }
+        SGUtils.showToast("▶️ Video inaendelea!", "success");
+    }
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
     // 1. Mobile navigation menu toggle

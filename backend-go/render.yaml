@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: sillyger-backend-go
+    runtime: docker
+    dockerfilePath: ./backend-go/Dockerfile
+    dockerContext: ./backend-go
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: APP_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sillyger-postgres
+          property: connectionString
+
+databases:
+  - name: sillyger-postgres
+    plan: free
+    region: frankfurt

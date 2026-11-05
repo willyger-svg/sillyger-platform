@@ -168,6 +168,12 @@
 
                     <!-- Direct TV Controls (Audio, Volume Slider, Fullscreen, WhatsApp Chat, Share) -->
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <!-- Play / Pause Button (Allows users to pause and reply without missing anything) -->
+                        <button type="button" id="tv-playpause-btn" onclick="toggleTvPlayPause()" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-amber-600/30 active:scale-95" title="Sitisha au endelea na video (Pause/Play)">
+                            <span id="tv-playpause-icon">⏸️</span>
+                            <span id="tv-playpause-label">Sitisha (Pause)</span>
+                        </button>
+
                         <!-- Mute / Unmute Button -->
                         <button type="button" id="tv-unmute-btn" onclick="toggleTvAudio()" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-blue-600/30 active:scale-95" title="Washa au zima sauti ya video">
                             <span id="tv-unmute-icon">🔊</span>

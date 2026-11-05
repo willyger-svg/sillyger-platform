@@ -7,6 +7,11 @@
  */
 
 const _escAdmin = (v) => (typeof SGUtils !== "undefined" ? SGUtils.escapeHtml(v) : String(v || ""));
+const _esc = _escAdmin;
+if (typeof window !== "undefined") {
+    window._escAdmin = _escAdmin;
+    window._esc = _escAdmin;
+}
 
 let currentActiveTab = "queue";
 let inspectingMemberId = null;
@@ -14,6 +19,47 @@ let _lastPendingQueueSig = "";
 const _busyApprovals = new Set();
 let _confirmResolver = null;
 let _promptResolver = null;
+
+// Safe global tab switching available immediately on page parse
+window.switchAdminTab = function (tabName) {
+    if (!tabName) return;
+    currentActiveTab = tabName;
+
+    document.querySelectorAll(".admin-nav-tab").forEach(btn => {
+        if (btn.getAttribute("data-tab") === tabName) {
+            btn.className = "admin-nav-tab px-4 py-2.5 rounded-xl bg-purple-600/20 border border-purple-500/50 text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-500/10 whitespace-nowrap";
+        } else {
+            btn.className = "admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap";
+        }
+    });
+
+    document.querySelectorAll(".admin-tab-pane").forEach(pane => {
+        pane.classList.add("hidden");
+    });
+
+    const targetPane = document.getElementById(`tab-pane-${tabName}`);
+    if (targetPane) {
+        targetPane.classList.remove("hidden");
+    }
+
+    try {
+        if (typeof rerenderCurrentAdminView === "function") {
+            rerenderCurrentAdminView(true);
+        }
+    } catch (err) {
+        console.error("rerenderCurrentAdminView error:", err);
+    }
+};
+
+window.setupAdminTabs = function () {
+    const tabBtns = document.querySelectorAll(".admin-nav-tab");
+    tabBtns.forEach(btn => {
+        btn.onclick = () => {
+            const tab = btn.getAttribute("data-tab");
+            if (tab) window.switchAdminTab(tab);
+        };
+    });
+};
 
 // Non-blocking Toast Banner (Immune to browser alert/confirm dialog suppression)
 window.showAdminToast = function (message, variant = "success") {
@@ -244,7 +290,7 @@ function renderSuperAdminDashboard(adminUser) {
     if (elAdminId) elAdminId.textContent = adminUser.member_id || "SG-000001";
     if (elInitials) {
         if (adminUser.avatar_url) {
-            elInitials.innerHTML = `<img src="${_esc(adminUser.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-xl">`;
+            elInitials.innerHTML = `<img src="${_escAdmin(adminUser.avatar_url)}" alt="Avatar" class="w-full h-full object-cover rounded-xl">`;
         } else {
             elInitials.innerHTML = `<img src="assets/sillyger-logo-icon.svg" alt="SG Logo" class="w-full h-full object-contain p-1">`;
         }
@@ -300,37 +346,16 @@ function refreshAdminTelemetry() {
 }
 
 function setupAdminTabs() {
-    const tabBtns = document.querySelectorAll(".admin-nav-tab");
-    tabBtns.forEach(btn => {
-        btn.onclick = () => {
-            const tab = btn.getAttribute("data-tab");
-            switchAdminTab(tab);
-        };
-    });
+    if (typeof window.setupAdminTabs === "function") {
+        window.setupAdminTabs();
+    }
 }
 
-window.switchAdminTab = function (tabName) {
-    currentActiveTab = tabName;
-
-    document.querySelectorAll(".admin-nav-tab").forEach(btn => {
-        if (btn.getAttribute("data-tab") === tabName) {
-            btn.className = "admin-nav-tab px-4 py-2.5 rounded-xl bg-purple-600/20 border border-purple-500/50 text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-500/10 whitespace-nowrap";
-        } else {
-            btn.className = "admin-nav-tab px-4 py-2.5 rounded-xl border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold text-xs flex items-center gap-2 transition whitespace-nowrap";
-        }
-    });
-
-    document.querySelectorAll(".admin-tab-pane").forEach(pane => {
-        pane.classList.add("hidden");
-    });
-
-    const targetPane = document.getElementById(`tab-pane-${tabName}`);
-    if (targetPane) {
-        targetPane.classList.remove("hidden");
+function switchAdminTab(tabName) {
+    if (typeof window.switchAdminTab === "function") {
+        window.switchAdminTab(tabName);
     }
-
-    rerenderCurrentAdminView(true);
-};
+}
 
 // -------------------------------------------------------------
 // TAB 1: PENDING APPLICATION REVIEW QUEUE (1-CLICK CLOUD VERIFIED)

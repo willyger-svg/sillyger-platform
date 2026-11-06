@@ -14,23 +14,18 @@ export default function HomePage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
   useEffect(() => {
-    // Fetch live pending stats and announcements from backend
-    api.getPendingMembers()
-      .then((pending) => {
-        if (pending) {
-          setStats((prev) => ({
-            ...prev,
-            pending: pending.length,
-            registered: prev.active + pending.length,
-          }));
-        }
-      })
-      .catch(() => {});
-
-    api.getAnnouncements()
-      .then((list) => {
-        if (list && list.length > 0) {
-          setAnnouncements(list);
+    // Fetch live stats & announcements from Supabase Cloud Engine
+    api.getPublicOverview()
+      .then((overview) => {
+        if (overview) {
+          setStats({
+            registered: overview.stats.totalRegistered,
+            active: overview.stats.activeMembers,
+            pending: overview.stats.pendingApplicants,
+          });
+          if (overview.announcements && overview.announcements.length > 0) {
+            setAnnouncements(overview.announcements);
+          }
         }
       })
       .catch(() => {});

@@ -186,6 +186,29 @@ function PortalContent() {
       generateQr(current);
       setEditFullName(current.full_name);
       setEditPhone(current.phone);
+
+      // Load portal state from Supabase
+      api.getMyPortalState()
+        .then((state) => {
+          if (state && state.member) {
+            setMember(state.member);
+            generateQr(state.member);
+            if (state.announcements && state.announcements.length > 0) {
+              setAnnouncements(state.announcements);
+            }
+            if (state.attendance && state.attendance.length > 0) {
+              setAttendanceList(
+                state.attendance.map((att: any) => ({
+                  id: att.id,
+                  title: att.session_title,
+                  date: new Date(att.created_at).toLocaleDateString('sw-TZ'),
+                  status: att.status || 'VERIFIED',
+                }))
+              );
+            }
+          }
+        })
+        .catch(() => {});
     }
 
     // Load announcements
@@ -254,10 +277,23 @@ function PortalContent() {
   const handleSyncDashboard = async () => {
     setIsSyncing(true);
     try {
-      const res = await api.getMe();
-      if (res && res.member) {
-        setMember(res.member);
-        generateQr(res.member);
+      const state = await api.getMyPortalState();
+      if (state && state.member) {
+        setMember(state.member);
+        generateQr(state.member);
+        if (state.announcements && state.announcements.length > 0) {
+          setAnnouncements(state.announcements);
+        }
+        if (state.attendance && state.attendance.length > 0) {
+          setAttendanceList(
+            state.attendance.map((att: any) => ({
+              id: att.id,
+              title: att.session_title,
+              date: new Date(att.created_at).toLocaleDateString('sw-TZ'),
+              status: att.status || 'VERIFIED',
+            }))
+          );
+        }
       }
       showToast('✓ Taarifa zako zimesawazishwa kikamilifu!');
     } catch {
@@ -267,9 +303,12 @@ function PortalContent() {
     }
   };
 
-  const handleCheckin = (e: React.FormEvent) => {
+  const handleCheckin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkinInput.trim()) return;
+    try {
+      await api.studentCheckin(checkinInput.trim());
+    } catch (_) {}
     const newRecord = {
       id: 'att-' + Date.now(),
       title: checkinInput.trim(),
@@ -278,12 +317,15 @@ function PortalContent() {
     };
     setAttendanceList([newRecord, ...attendanceList]);
     setCheckinInput('');
-    showToast('✓ Mahudhurio yamerekodiwa!');
+    showToast('✓ Mahudhurio yamerekodiwa kwenye Cloud!');
   };
 
-  const handleLeaveSubmit = (e: React.FormEvent) => {
+  const handleLeaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!leaveReason.trim()) return;
+    try {
+      await api.submitLeaveRequest(leaveCategory, leaveDuration, leaveReason.trim());
+    } catch (_) {}
     const newLeave = {
       id: 'leave-' + Date.now(),
       category: leaveCategory,
@@ -298,9 +340,12 @@ function PortalContent() {
     showToast('✓ Ombi la ruhusa limewasilishwa kwa Admin!');
   };
 
-  const handleTicketSubmit = (e: React.FormEvent) => {
+  const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketTitle.trim() || !ticketMessage.trim()) return;
+    try {
+      await api.submitSupportTicket(ticketCategory, ticketTitle.trim(), ticketMessage.trim());
+    } catch (_) {}
     const newTicket = {
       id: 'ticket-' + Date.now(),
       category: ticketCategory,

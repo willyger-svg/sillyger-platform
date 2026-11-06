@@ -90,9 +90,11 @@ export default function RegisterPage() {
     try {
       await api.register({
         full_name: fullName.trim(),
+        username: username.trim(),
         phone: normalizedPhone,
         email: email.trim().toLowerCase(),
         password,
+        learning_interest: motivation.trim(),
       });
 
       setRegisteredApplicant({

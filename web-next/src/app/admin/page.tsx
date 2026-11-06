@@ -344,45 +344,151 @@ export default function AdminPage() {
       if (session.reg_number) setAdminId(session.reg_number);
     }
 
-    // Try fetching from Go API
-    api.getPendingMembers()
-      .then((pending) => {
-        if (pending && pending.length > 0) {
-          const mapped: ApplicantRecord[] = pending.map((p) => ({
-            id: p.id,
-            full_name: p.full_name,
-            username: (p as any).username || p.full_name.toLowerCase().replace(/\s+/g, '_'),
-            phone: p.phone,
-            email: p.email,
-            track: 'SG Student Community',
-            experience: 'Mwanafunzi',
-            motivation: (p as any).motivation || 'Kujifunza teknolojia pamoja na wenzangu.',
-            created_at: p.created_at || new Date().toISOString(),
-            status: 'PENDING',
-          }));
-          setPendingApplicants(mapped);
-          setPendingCount(mapped.length);
+    // Load full admin state from Supabase Cloud Engine
+    api.getAdminFullState()
+      .then((state) => {
+        if (state) {
+          if (state.admin) {
+            setAdminName(state.admin.full_name || 'William Gerishom William');
+            setAdminRole(state.admin.role || 'Super Administrator');
+            if (state.admin.reg_number) setAdminId(state.admin.reg_number);
+          }
+
+          if (state.members && state.members.length > 0) {
+            const mappedAll: ApplicantRecord[] = state.members.map((m: any) => ({
+              id: m.id,
+              full_name: m.full_name,
+              username: m.username || m.full_name.toLowerCase().replace(/\s+/g, '_'),
+              phone: m.phone,
+              email: m.email,
+              track: m.track || 'SG Student Community',
+              experience: m.experience || 'Mwanafunzi',
+              motivation: m.motivation || 'Kujifunza teknolojia pamoja na wenzangu.',
+              created_at: m.created_at || new Date().toISOString(),
+              status: (m.status || 'ACTIVE') as any,
+              reg_number: m.member_id || m.reg_number,
+              role: m.role || 'Member',
+            }));
+
+            const pending = mappedAll.filter((m) => m.status === 'PENDING');
+            const active = mappedAll.filter((m) => m.status !== 'PENDING');
+
+            setPendingApplicants(pending);
+            setMembersList(active.length > 0 ? active : mappedAll);
+            setPendingCount(pending.length);
+            setActiveCount(active.length);
+            setTotalCount(mappedAll.length);
+          }
+
+          if (state.announcements && state.announcements.length > 0) {
+            setAnnouncements(state.announcements);
+          }
+
+          if (state.fund_ledger && state.fund_ledger.length > 0) {
+            setFundTransactions(
+              state.fund_ledger.map((f: any) => ({
+                id: f.id,
+                date: f.date || f.created_at || new Date().toISOString(),
+                type: f.type || 'INCOME',
+                amount: f.amount || 0,
+                category: f.category || 'Mchango',
+                description: f.description || '',
+              }))
+            );
+          }
+
+          if (state.attendance && state.attendance.length > 0) {
+            setAttendanceRecords(
+              state.attendance.map((att: any) => ({
+                id: att.id,
+                member_id: att.member_id,
+                name: att.full_name || att.member_name || att.member_id,
+                session_title: att.session_title || 'Kipindi cha Jumuiya',
+                date: att.created_at || att.date || new Date().toISOString(),
+                status: (att.status || 'VERIFIED') as any,
+              }))
+            );
+          }
+
+          if (state.leave_requests && state.leave_requests.length > 0) {
+            setLeavesList(
+              state.leave_requests.map((l: any) => ({
+                id: l.id,
+                member_id: l.member_id,
+                name: l.full_name || l.member_name || 'Mwanachama',
+                type: l.category || 'Academic',
+                duration: l.duration || 'Siku 1 - 3',
+                reason: l.reason || '',
+                status: (l.status || 'PENDING') as any,
+              }))
+            );
+          }
+
+          if (state.support_tickets && state.support_tickets.length > 0) {
+            setTicketsList(
+              state.support_tickets.map((t: any) => ({
+                id: t.id,
+                member_name: t.full_name || t.member_name || 'Mwanafunzi',
+                title: t.title || 'Msaada wa Akaunti',
+                category: t.category || 'General',
+                message: t.message || '',
+                status: (t.status || 'OPEN') as any,
+              }))
+            );
+          }
+
+          if (state.audit_logs && state.audit_logs.length > 0) {
+            setAuditLogs(
+              state.audit_logs.map((lg: any) => ({
+                id: lg.id || String(Math.random()),
+                timestamp: lg.timestamp || lg.created_at || new Date().toISOString(),
+                action: lg.action || 'ACTIVITY',
+                actor: lg.actor || 'System',
+                target: lg.target || '',
+                details: lg.details || '',
+              }))
+            );
+            setAuditLogsCount(state.audit_logs.length);
+          }
+
+          if (state.settings) {
+            if (state.settings.whatsapp_invite_url) {
+              setWhatsappLink(state.settings.whatsapp_invite_url);
+            }
+            if (state.settings.tv_live_url) {
+              setTvUrl(state.settings.tv_live_url);
+              const vId = extractVideoId(state.settings.tv_live_url);
+              if (vId) setTvParsedVideoId(vId);
+            }
+            if (state.settings.tv_live_title) {
+              setTvTitle(state.settings.tv_live_title);
+            }
+            if (state.settings.tv_is_live !== undefined) {
+              setTvIsLive(state.settings.tv_is_live === 'true');
+            }
+          }
         }
       })
-      .catch(() => {});
-
-    api.getAnnouncements()
-      .then((list) => {
-        if (list && list.length > 0) setAnnouncements(list);
-      })
-      .catch(() => {});
-
-    api.getTvBroadcast()
-      .then((tv) => {
-        if (tv) {
-          setTvTitle(tv.title || 'SILLYGER Tech Broadcast');
-          setTvUrl(tv.video_url || 'https://www.youtube.com/watch?v=live_stream');
-          setTvIsLive(!!tv.is_live);
-          const vId = extractVideoId(tv.video_url || '');
-          if (vId) setTvParsedVideoId(vId);
-        }
-      })
-      .catch(() => {});
+      .catch(() => {
+        // Fallback to public overview if session is not active admin
+        api.getPublicOverview()
+          .then((ov) => {
+            if (ov) {
+              setPendingCount(ov.stats.pendingApplicants);
+              setActiveCount(ov.stats.activeMembers);
+              setTotalCount(ov.stats.totalRegistered);
+              if (ov.announcements) setAnnouncements(ov.announcements);
+              if (ov.tv_stream) {
+                setTvTitle(ov.tv_stream.title);
+                setTvUrl(ov.tv_stream.url);
+                setTvIsLive(ov.tv_stream.is_live);
+                const vId = extractVideoId(ov.tv_stream.url);
+                if (vId) setTvParsedVideoId(vId);
+              }
+            }
+          })
+          .catch(() => {});
+      });
   }, []);
 
   // Update total counts

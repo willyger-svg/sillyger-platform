@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import QRCode from 'qrcode';
 import api, { Member } from '../../lib/api';
 
-export default function PortalPage() {
+function PortalContent() {
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'register' ? 'register' : 'login';
 
   const [authMode, setAuthMode] = useState<'login' | 'register'>(initialTab);
   const [member, setMember] = useState<Member | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'idcard' | 'whatsapp' | 'updates'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'idcard' | 'whatsapp'>('overview');
 
   // Login form state
   const [identifier, setIdentifier] = useState('');
@@ -34,12 +34,15 @@ export default function PortalPage() {
     if (current) {
       setMember(current);
       generateQr(current);
-      api.getMe().then((res) => {
-        if (res.member) {
-          setMember(res.member);
-          generateQr(res.member);
-        }
-      }).catch(() => {});
+      api
+        .getMe()
+        .then((res) => {
+          if (res.member) {
+            setMember(res.member);
+            generateQr(res.member);
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -50,7 +53,11 @@ export default function PortalPage() {
       status: m.status,
       org: 'SILLYGER Community Tanzania',
     });
-    QRCode.toDataURL(payload, { width: 140, margin: 1, color: { dark: '#0066FF', light: '#0b1120' } })
+    QRCode.toDataURL(payload, {
+      width: 140,
+      margin: 1,
+      color: { dark: '#0066FF', light: '#0b1120' },
+    })
       .then(setQrCodeUrl)
       .catch(() => {});
   };
@@ -389,7 +396,6 @@ export default function PortalPage() {
           {/* Tab 1: Overview */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* WhatsApp Card */}
               <div className="sg-glass p-6 rounded-3xl border border-emerald-500/30 space-y-4">
                 <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
                   <span>💬</span>
@@ -409,7 +415,6 @@ export default function PortalPage() {
                 </a>
               </div>
 
-              {/* Attendance Quick Check-in */}
               <div className="sg-glass p-6 rounded-3xl border border-blue-500/30 space-y-4">
                 <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
                   <span>✅</span>
@@ -431,12 +436,10 @@ export default function PortalPage() {
           {/* Tab 2: Digital ID Card */}
           {activeTab === 'idcard' && (
             <div className="flex flex-col items-center justify-center space-y-6">
-              {/* The Printable Digital ID Card */}
               <div
                 id="sg-printable-id-card"
                 className="w-full max-w-sm rounded-3xl p-6 relative overflow-hidden shadow-2xl border border-blue-500/40 bg-gradient-to-b from-[#0b1120] via-[#111a2e] to-[#060a14] text-white"
               >
-                {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
                   <div className="flex items-center gap-2.5">
                     <img src="/assets/sillyger-logo-icon.svg" alt="SG" className="w-9 h-9 rounded-xl shadow-md" />
@@ -452,7 +455,6 @@ export default function PortalPage() {
                   </span>
                 </div>
 
-                {/* Body Details */}
                 <div className="flex items-center gap-4 py-2">
                   <div className="w-20 h-20 rounded-2xl bg-slate-900 border border-blue-500/40 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
                     <img
@@ -471,7 +473,6 @@ export default function PortalPage() {
                   </div>
                 </div>
 
-                {/* QR Code and Footer */}
                 <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between">
                   <div>
                     <span className="text-[9px] font-mono-sg text-slate-500 uppercase block">KUTHIBITISHWA NA</span>
@@ -517,5 +518,13 @@ export default function PortalPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PortalPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-slate-400 font-mono-sg text-xs">Inapakia Portal...</div>}>
+      <PortalContent />
+    </Suspense>
   );
 }

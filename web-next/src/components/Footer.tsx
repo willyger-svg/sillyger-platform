@@ -22,7 +22,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-slate-400">
-          <Link href="/portal?tab=register" className="hover:text-white transition">
+          <Link href="/register" className="hover:text-white transition">
             Jiunge
           </Link>
           <Link href="/portal" className="hover:text-white transition">
@@ -30,6 +30,9 @@ export default function Footer() {
           </Link>
           <Link href="/courses" className="hover:text-white transition">
             Possible Courses
+          </Link>
+          <Link href="/future-divisions" className="hover:text-white transition">
+            Future Vision
           </Link>
           <Link href="/constitution" className="hover:text-white transition">
             Katiba v1.4

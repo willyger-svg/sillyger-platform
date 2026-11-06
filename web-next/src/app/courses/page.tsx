@@ -112,7 +112,7 @@ export default function CoursesPage() {
           </p>
         </div>
         <Link
-          href="/portal?tab=register"
+          href="/register"
           className="shrink-0 px-7 py-3.5 rounded-2xl btn-sg-primary text-sm font-bold flex items-center gap-2"
         >
           <span>Jiunge na SILLYGER Sasa</span>

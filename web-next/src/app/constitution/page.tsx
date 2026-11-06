@@ -112,7 +112,7 @@ export default function ConstitutionPage() {
         </p>
         <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
-            href="/portal?tab=register"
+            href="/register"
             className="w-full sm:w-auto px-8 py-3.5 rounded-2xl btn-sg-primary text-sm font-bold"
           >
             Jiunge Sasa &rarr;

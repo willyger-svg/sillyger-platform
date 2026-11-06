@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useI18n } from '../lib/i18n';
+import api from '../lib/api';
 import { Play, Pause, Maximize, MessageSquare, Send, Users, Radio, ShieldCheck } from 'lucide-react';
 
 interface ChatMessage {
@@ -18,6 +19,14 @@ export default function TvPlayer() {
   const [isCinema, setIsCinema] = useState(false);
   const [viewerCount, setViewerCount] = useState(24);
   const [isLive, setIsLive] = useState(true);
+  const [videoSrc, setVideoSrc] = useState(
+    'https://www.youtube-nocookie.com/embed/live_stream?autoplay=1&mute=0&rel=0&enablejsapi=1'
+  );
+  const [tvTitle, setTvTitle] = useState('SILLYGER Tech Broadcast: Kipindi Rasmi cha Mafunzo');
+  const [tvDesc, setTvDesc] = useState(
+    'Mawasilisho ya moja kwa moja ya programu, sayansi ya data, ujasiriamali wa kidijitali, na miongozo ya katiba ya jumuiya ya SILLYGER (SG).'
+  );
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -33,13 +42,6 @@ export default function TvPlayer() {
       is_admin: true,
       timestamp: '19:50',
     },
-    {
-      id: '3',
-      sender_name: 'Baraka J.',
-      message: 'Safi sana, picha na sauti inakuja safi kabisa.',
-      is_admin: false,
-      timestamp: '19:52',
-    },
   ]);
   const [inputText, setInputText] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -49,15 +51,59 @@ export default function TvPlayer() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
+  // Sync Live TV Stream with Go Core Engine
+  useEffect(() => {
+    api
+      .getTvBroadcast()
+      .then((tv) => {
+        if (tv) {
+          if (tv.video_id) {
+            setVideoSrc(
+              `https://www.youtube-nocookie.com/embed/${tv.video_id}?autoplay=1&mute=0&rel=0&enablejsapi=1`
+            );
+          }
+          if (tv.title) setTvTitle(tv.title);
+          if (tv.description) setTvDesc(tv.description);
+          setIsLive(tv.is_live);
+          if (tv.viewer_count) setViewerCount(tv.viewer_count);
+        }
+      })
+      .catch((err) => {
+        console.warn('TV sync fallback:', err.message);
+      });
+
+    // Realtime broadcast sync via WebSockets
+    const ws = api.createWebSocket((msg) => {
+      if (msg.type === 'live_status') {
+        if (msg.video_id) {
+          setVideoSrc(
+            `https://www.youtube-nocookie.com/embed/${msg.video_id}?autoplay=1&mute=0&rel=0&enablejsapi=1`
+          );
+        }
+        if (msg.data?.title) setTvTitle(msg.data.title);
+        setIsLive(msg.data?.is_live ?? true);
+      }
+    });
+
+    return () => {
+      if (ws) ws.close();
+    };
+  }, []);
+
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim()) return;
 
+    const currentMember = api.getCurrentMember();
+    const senderName = currentMember ? currentMember.full_name : 'Mwanachama';
+    const isAdmin =
+      currentMember?.role === 'SUPER_ADMIN' || currentMember?.role === 'ADMIN';
+
     const newMsg: ChatMessage = {
       id: String(Date.now()),
-      sender_name: 'Wewe (Mwanachama)',
+      sender_name: senderName,
       message: inputText.trim(),
-      is_admin: false,
+      is_admin: isAdmin,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     };
 
@@ -66,7 +112,13 @@ export default function TvPlayer() {
   };
 
   return (
-    <div className={`transition-all duration-300 ${isCinema ? 'fixed inset-0 z-50 bg-slate-950 p-4 md:p-8 overflow-y-auto' : 'w-full'}`}>
+    <div
+      className={`transition-all duration-300 ${
+        isCinema
+          ? 'fixed inset-0 z-50 bg-slate-950 p-4 md:p-8 overflow-y-auto'
+          : 'w-full'
+      }`}
+    >
       <div className="max-w-7xl mx-auto">
         {/* Top Control Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -133,7 +185,7 @@ export default function TvPlayer() {
               ) : (
                 <iframe
                   className="w-full h-full"
-                  src="https://www.youtube-nocookie.com/embed/live_stream?channel=UC_SILLYGER_DEMO&autoplay=1&mute=0&rel=0&enablejsapi=1"
+                  src={videoSrc}
                   title="SILLYGER TV"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -143,12 +195,8 @@ export default function TvPlayer() {
 
             {/* Video Title & Description Card */}
             <div className="glass-panel p-5 rounded-3xl border border-slate-800/80">
-              <h2 className="text-lg md:text-xl font-black text-white">
-                SILLYGER Tech Broadcast: Kipindi Rasmi cha Mafunzo
-              </h2>
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                Mawasilisho ya moja kwa moja ya programu, sayansi ya data, ujasiriamali wa kidijitali, na miongozo ya katiba ya jumuiya ya SILLYGER (SG).
-              </p>
+              <h2 className="text-lg md:text-xl font-black text-white">{tvTitle}</h2>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">{tvDesc}</p>
             </div>
           </div>
 
@@ -162,7 +210,7 @@ export default function TvPlayer() {
               </div>
               <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                Live Sync
+                Go Live Sync
               </span>
             </div>
 
@@ -178,7 +226,11 @@ export default function TvPlayer() {
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className={`font-bold flex items-center gap-1 ${msg.is_admin ? 'text-blue-400' : 'text-slate-200'}`}>
+                    <span
+                      className={`font-bold flex items-center gap-1 ${
+                        msg.is_admin ? 'text-blue-400' : 'text-slate-200'
+                      }`}
+                    >
                       {msg.is_admin && <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />}
                       {msg.sender_name}
                     </span>
@@ -191,7 +243,10 @@ export default function TvPlayer() {
             </div>
 
             {/* Chat Input Bar */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800/80 bg-slate-900/40 flex items-center gap-2">
+            <form
+              onSubmit={handleSendMessage}
+              className="p-3 border-t border-slate-800/80 bg-slate-900/40 flex items-center gap-2"
+            >
               <input
                 type="text"
                 value={inputText}

@@ -440,7 +440,7 @@ export default function RegisterPage() {
 
               <div className="text-center text-xs text-slate-400">
                 Tayari una akaunti?
-                <Link href="/portal?tab=login" className="text-blue-400 hover:underline font-semibold ml-1">
+                <Link href="/portal" className="text-blue-400 hover:underline font-semibold ml-1">
                   Ingia kwenye Student Portal &rarr;
                 </Link>
               </div>

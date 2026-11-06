@@ -57,7 +57,7 @@ export default function Navbar() {
               onClick={() => {
                 if (typeof window !== 'undefined') {
                   api.clearSession();
-                  window.location.href = '/portal?tab=login';
+                  window.location.href = '/portal';
                 }
               }}
               className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-red-500/50 hover:bg-red-950/30 text-slate-400 hover:text-red-400 transition flex items-center gap-1.5"
@@ -163,7 +163,7 @@ export default function Navbar() {
                   Ingia Dashboard
                 </Link>
                 <Link
-                  href="/portal?tab=register"
+                  href="/register"
                   className="px-4 py-2 rounded-xl btn-sg-primary text-xs font-bold shadow-md"
                 >
                   Ndiyo, Nataka Kujiunga
@@ -233,7 +233,7 @@ export default function Navbar() {
           </Link>
           <div className="pt-2">
             <Link
-              href="/portal?tab=register"
+              href="/register"
               onClick={() => setMobileMenuOpen(false)}
               className="block text-center w-full py-2.5 rounded-xl btn-sg-primary text-sm font-bold"
             >

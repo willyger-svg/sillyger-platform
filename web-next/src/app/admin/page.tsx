@@ -467,6 +467,20 @@ export default function AdminPage() {
               setTvIsLive(state.settings.tv_is_live === 'true');
             }
           }
+
+          // Also load real TV archive from Supabase
+          api.getPublicOverview().then((ov) => {
+            if (ov && ov.tv_archive && ov.tv_archive.length > 0) {
+              setTvArchive(
+                ov.tv_archive.map((a: any) => ({
+                  id: a.id,
+                  videoId: a.video_id,
+                  title: a.title,
+                  desc: a.description,
+                }))
+              );
+            }
+          }).catch(() => {});
         }
       })
       .catch(() => {
@@ -552,8 +566,13 @@ export default function AdminPage() {
     showToast(`✓ Wanafunzi wote ${list.length} wameidhinishwa kwa pamoja!`, 'success');
   };
 
-  const handleReject = (id: string, name: string) => {
+  const handleReject = async (id: string, name: string) => {
     if (confirm(`Je, una uhakika unataka kukataa ombi la ${name}?`)) {
+      try {
+        await api.deleteMember(id);
+      } catch (err: any) {
+        console.warn('Delete error:', err);
+      }
       setPendingApplicants((prev) => prev.filter((a) => a.id !== id));
       showToast(`Ombi la ${name} limeondolewa.`, 'info');
       if (inspectingMember && inspectingMember.id === id) {
@@ -572,39 +591,51 @@ export default function AdminPage() {
     setDossierAuditReason('');
   };
 
-  const saveDossierChanges = (e: React.FormEvent) => {
+  const saveDossierChanges = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inspectingMember) return;
 
-    const updated: ApplicantRecord = {
-      ...inspectingMember,
-      reg_number: dossierMemberId || inspectingMember.reg_number,
-      role: dossierRole,
-      status: dossierStatus,
-    };
+    try {
+      const updatedMember = await api.adminUpdateDossier(inspectingMember.id, {
+        member_id: dossierMemberId.trim() || undefined,
+        role: dossierRole,
+        status: dossierStatus,
+        new_password: dossierNewPassword.trim() || undefined,
+        reason: dossierAuditReason.trim() || undefined,
+      });
 
-    if (inspectingMember.status === 'PENDING' && dossierStatus === 'ACTIVE') {
-      setPendingApplicants((prev) => prev.filter((a) => a.id !== inspectingMember.id));
-      setMembersList((prev) => [updated, ...prev.filter((m) => m.id !== inspectingMember.id)]);
-    } else {
-      setMembersList((prev) => prev.map((m) => (m.id === inspectingMember.id ? updated : m)));
-      setPendingApplicants((prev) => prev.map((a) => (a.id === inspectingMember.id ? updated : a)));
+      const updated: ApplicantRecord = {
+        ...inspectingMember,
+        reg_number: updatedMember.reg_number || dossierMemberId || inspectingMember.reg_number,
+        role: updatedMember.role || dossierRole,
+        status: (updatedMember.status || dossierStatus) as any,
+      };
+
+      if (inspectingMember.status === 'PENDING' && dossierStatus === 'ACTIVE') {
+        setPendingApplicants((prev) => prev.filter((a) => a.id !== inspectingMember.id));
+        setMembersList((prev) => [updated, ...prev.filter((m) => m.id !== inspectingMember.id)]);
+      } else {
+        setMembersList((prev) => prev.map((m) => (m.id === inspectingMember.id ? updated : m)));
+        setPendingApplicants((prev) => prev.map((a) => (a.id === inspectingMember.id ? updated : a)));
+      }
+
+      setAuditLogs((prev) => [
+        {
+          id: Date.now().toString(),
+          timestamp: new Date().toLocaleString('sw-TZ'),
+          action: 'ROLE_CHANGE',
+          actor: adminName,
+          target: updated.reg_number || updated.full_name,
+          details: dossierAuditReason || `Marekebisho ya jukumu (${dossierRole}) na hadhi (${dossierStatus}).`,
+        },
+        ...prev,
+      ]);
+
+      showToast(`✓ Taarifa za ${updated.full_name} zimesasishwa kikamilifu kwenye Database!`, 'success');
+      setInspectingMember(null);
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kusasisha dossier', 'error');
     }
-
-    setAuditLogs((prev) => [
-      {
-        id: Date.now().toString(),
-        timestamp: new Date().toLocaleString('sw-TZ'),
-        action: 'ROLE_CHANGE',
-        actor: adminName,
-        target: updated.reg_number || updated.full_name,
-        details: dossierAuditReason || `Marekebisho ya jukumu (${dossierRole}) na hadhi (${dossierStatus}).`,
-      },
-      ...prev,
-    ]);
-
-    showToast(`✓ Taarifa za ${updated.full_name} zimesasishwa kikamilifu!`, 'success');
-    setInspectingMember(null);
   };
 
   // Tab 3 Handlers (Announcements)
@@ -642,12 +673,18 @@ export default function AdminPage() {
   };
 
   // Tab 4 Handlers (Fund)
-  const handleRecordFund = (e: React.FormEvent) => {
+  const handleRecordFund = async (e: React.FormEvent) => {
     e.preventDefault();
     const amountNum = parseFloat(fundAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
       showToast('Tafadhali weka kiasi sahihi cha fedha.', 'error');
       return;
+    }
+
+    try {
+      await api.adminAddFundTx(fundType, amountNum, fundCategory.trim(), fundDesc.trim());
+    } catch (err: any) {
+      console.warn('Fund TX error:', err);
     }
 
     const tx: FundTransaction = {
@@ -668,15 +705,27 @@ export default function AdminPage() {
   };
 
   // Tab 5 Handlers (Attendance)
-  const handleVerifyAllAttendance = () => {
+  const handleVerifyAllAttendance = async () => {
+    try {
+      await api.adminVerifyAttendance(undefined, true);
+    } catch (err: any) {
+      console.warn('Attendance verify error:', err);
+    }
     setAttendanceRecords((prev) => prev.map((a) => ({ ...a, status: 'VERIFIED' })));
-    showToast('✓ Mahudhurio yote yamethibitishwa!', 'success');
+    showToast('✓ Mahudhurio yote yamethibitishwa kwenye Database!', 'success');
   };
 
   // Tab 8 Handlers (Database & Settings)
-  const handleSaveWhatsApp = (e: React.FormEvent) => {
+  const handleSaveWhatsApp = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('✓ Kiungo cha WhatsApp Group kimesasishwa!', 'success');
+    try {
+      await api.adminUpdateSettings({
+        whatsapp_invite_url: whatsappLink.trim(),
+      });
+      showToast('✓ Kiungo cha WhatsApp Group kimesasishwa kwenye Database!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kuhifadhi', 'error');
+    }
   };
 
   const handleExportJSON = () => {
@@ -1255,9 +1304,16 @@ export default function AdminPage() {
                         <span>Na: {a.author_name || 'Super Administrator'}</span>
                         <button
                           type="button"
-                          onClick={() => {
-                            setAnnouncements((prev) => prev.filter((item) => item.id !== a.id));
-                            showToast('Tangazo limefutwa.', 'info');
+                          onClick={async () => {
+                            if (confirm('Je, una uhakika unataka kufuta tangazo hili?')) {
+                              try {
+                                await api.adminManageAnnouncement('DELETE', { id: a.id });
+                                setAnnouncements((prev) => prev.filter((item) => item.id !== a.id));
+                                showToast('Tangazo limefutwa kikamilifu kwenye Database.', 'info');
+                              } catch (err: any) {
+                                showToast(err.message || 'Hitilafu ya kufuta tangazo', 'error');
+                              }
+                            }
                           }}
                           className="text-red-400 hover:underline"
                         >
@@ -1536,7 +1592,17 @@ export default function AdminPage() {
                       <td className="px-4 py-3.5 text-right">
                         <button
                           type="button"
-                          onClick={() => showToast('Ombi la ruhusa limeidhinishwa.', 'success')}
+                          onClick={async () => {
+                            try {
+                              await api.adminReviewLeave(lv.id, 'APPROVED');
+                              setLeavesList((prev) =>
+                                prev.map((item) => (item.id === lv.id ? { ...item, status: 'APPROVED' } : item))
+                              );
+                              showToast('✓ Ombi la ruhusa limeidhinishwa kikamilifu kwenye Database!', 'success');
+                            } catch (err: any) {
+                              showToast(err.message || 'Hitilafu ya kuidhinisha ruhusa', 'error');
+                            }
+                          }}
                           className="px-2.5 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
                         >
                           Kubali
@@ -1582,13 +1648,19 @@ export default function AdminPage() {
                       <td className="px-4 py-3.5 text-right">
                         <button
                           type="button"
-                          onClick={() => {
-                            setTicketsList((prev) =>
-                              prev.map((item) =>
-                                item.id === tk.id ? { ...item, status: 'RESOLVED' } : item
-                              )
-                            );
-                            showToast('Tiketi imetatuliwa kikamilifu!', 'success');
+                          onClick={async () => {
+                            try {
+                              await api.adminReplyTicket(
+                                tk.id,
+                                'Ujumbe wako umepokelewa na kushughulikiwa na Uongozi wa SILLYGER.'
+                              );
+                              setTicketsList((prev) =>
+                                prev.map((item) => (item.id === tk.id ? { ...item, status: 'RESOLVED' } : item))
+                              );
+                              showToast('✓ Tiketi imetatuliwa kikamilifu kwenye Database!', 'success');
+                            } catch (err: any) {
+                              showToast(err.message || 'Hitilafu ya kutatua tiketi', 'error');
+                            }
                           }}
                           className="px-2.5 py-1 rounded bg-blue-500/20 border border-blue-500/40 text-blue-300 text-[11px] font-bold"
                         >

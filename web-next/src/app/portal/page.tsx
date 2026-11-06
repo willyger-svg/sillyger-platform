@@ -361,7 +361,7 @@ function PortalContent() {
     showToast('✓ Tiketi ya msaada imetumwa kwa Admin!');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPw.length < 6) {
       setPwModalMsg('Nenosiri jipya lazima liwe na herufi 6 au zaidi.');
@@ -371,26 +371,34 @@ function PortalContent() {
       setPwModalMsg('Nenosiri jipya na uthibitisho hayalingani.');
       return;
     }
-    setPwModalMsg(null);
-    setCurrentPw('');
-    setNewPw('');
-    setConfirmPw('');
-    setActiveModal(null);
-    showToast('✓ Nenosiri lako limebadilishwa kwa usalama (SHA-256)!');
+    try {
+      await api.changePassword(currentPw, newPw);
+      setPwModalMsg(null);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmPw('');
+      setActiveModal(null);
+      showToast('✓ Nenosiri lako limebadilishwa kwa usalama kwenye Database (SHA-256)!');
+    } catch (err: any) {
+      setPwModalMsg(err.message || 'Hitilafu ya kubadili nenosiri.');
+    }
   };
 
-  const handleEditProfile = (e: React.FormEvent) => {
+  const handleEditProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!member) return;
-    const updated: Member = {
-      ...member,
-      full_name: editFullName.trim() || member.full_name,
-      phone: editPhone.trim() || member.phone,
-    };
-    setMember(updated);
-    api.setSession(api.getToken() || '', updated);
-    setActiveModal(null);
-    showToast('✓ Wasifu wako umesasishwa!');
+    try {
+      const updated = await api.updateProfile({
+        full_name: editFullName.trim() || undefined,
+        phone: editPhone.trim() || undefined,
+      });
+      setMember(updated);
+      generateQr(updated);
+      setActiveModal(null);
+      showToast('✓ Wasifu wako umesasishwa kwenye Database!');
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kusasisha wasifu',);
+    }
   };
 
   const copyStudentId = () => {

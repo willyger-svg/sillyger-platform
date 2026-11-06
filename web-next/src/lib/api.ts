@@ -81,6 +81,7 @@ export interface PublicOverview {
   }[];
   announcements: Announcement[];
   active_session_title?: string;
+  whatsapp_invite_url?: string;
 }
 
 export interface AdminFullState {
@@ -266,6 +267,7 @@ class ApiClient {
         created_at: a.created_at || new Date().toISOString(),
       })),
       active_session_title: raw?.active_session_title || '',
+      whatsapp_invite_url: raw?.whatsapp_invite_url || 'https://chat.whatsapp.com/KRxyaSoVcUCGLq0PdOy6Jb?s=cl&p=a&iam=2',
     };
   }
 
@@ -406,9 +408,38 @@ class ApiClient {
     return this.callRpc('sg_submit_support_ticket', {
       p_session_token: token,
       p_category: category,
-      p_title: title.trim(),
+      p_subject: title.trim(),
       p_message: message.trim(),
     });
+  }
+
+  async updateProfile(updates: {
+    full_name?: string;
+    phone?: string;
+    learning_interest?: string;
+    avatar_url?: string;
+  }): Promise<Member> {
+    const token = this.getToken();
+    const res = await this.callRpc<any>('sg_update_own_profile', {
+      p_session_token: token,
+      p_full_name: updates.full_name || null,
+      p_phone: updates.phone || null,
+      p_learning_interest: updates.learning_interest || null,
+      p_avatar_url: updates.avatar_url || null,
+    });
+    const normalized = this.normalizeMember(res?.member || res);
+    if (token) this.setSession(token, normalized);
+    return normalized;
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
+    const token = this.getToken();
+    await this.callRpc<any>('sg_change_own_password', {
+      p_session_token: token,
+      p_current_password: currentPassword,
+      p_new_password: newPassword,
+    });
+    return true;
   }
 
   // --- Admin State & Control Center ---
@@ -462,24 +493,30 @@ class ApiClient {
 
   async adminUpdateDossier(
     targetUserId: string,
-    updates: { role?: string; status?: string; full_name?: string; phone?: string; email?: string }
+    updates: {
+      role?: string;
+      status?: string;
+      member_id?: string;
+      new_password?: string;
+      reason?: string;
+    }
   ): Promise<Member> {
     const token = this.getToken();
     const raw = await this.callRpc<any>('sg_admin_update_dossier', {
       p_session_token: token,
       p_target_user_id: targetUserId,
-      p_role: updates.role,
-      p_status: updates.status,
-      p_full_name: updates.full_name,
-      p_phone: updates.phone,
-      p_email: updates.email,
+      p_member_id: updates.member_id || null,
+      p_role: updates.role || null,
+      p_status: updates.status || null,
+      p_new_password: updates.new_password || null,
+      p_reason: updates.reason || 'Marekebisho ya Utawala',
     });
     return this.normalizeMember(raw);
   }
 
   async adminManageAnnouncement(
     op: 'CREATE' | 'UPDATE' | 'DELETE',
-    data: { id?: string; title?: string; content?: string; priority?: string; category?: string }
+    data: { id?: string; title?: string; content?: string; priority?: string }
   ): Promise<any> {
     const token = this.getToken();
     return this.callRpc('sg_admin_manage_announcement', {
@@ -489,7 +526,49 @@ class ApiClient {
       p_title: data.title || null,
       p_content: data.content || null,
       p_priority: data.priority || 'NORMAL',
-      p_category: data.category || 'General',
+    });
+  }
+
+  async adminAddFundTx(
+    type: 'INCOME' | 'EXPENSE',
+    amount: number,
+    category: string,
+    description: string
+  ): Promise<any> {
+    const token = this.getToken();
+    return this.callRpc('sg_admin_add_fund_tx', {
+      p_session_token: token,
+      p_type: type,
+      p_amount: amount,
+      p_category: category,
+      p_description: description,
+    });
+  }
+
+  async adminReviewLeave(leaveId: string, decision: 'APPROVED' | 'REJECTED'): Promise<any> {
+    const token = this.getToken();
+    return this.callRpc('sg_admin_review_leave', {
+      p_session_token: token,
+      p_leave_id: leaveId,
+      p_decision: decision,
+    });
+  }
+
+  async adminReplyTicket(ticketId: string, response: string): Promise<any> {
+    const token = this.getToken();
+    return this.callRpc('sg_admin_reply_ticket', {
+      p_session_token: token,
+      p_ticket_id: ticketId,
+      p_response: response,
+    });
+  }
+
+  async adminVerifyAttendance(recordId?: string, verifyAll: boolean = false): Promise<any> {
+    const token = this.getToken();
+    return this.callRpc('sg_admin_verify_attendance', {
+      p_session_token: token,
+      p_record_id: recordId || null,
+      p_verify_all: verifyAll,
     });
   }
 
@@ -593,6 +672,10 @@ class ApiClient {
       reg_number: approved.reg_number || 'SG-ACTIVE',
       member_id: approved.reg_number || approved.id,
     };
+  }
+
+  async deleteMember(id: string): Promise<boolean> {
+    return this.adminDeleteMember(id);
   }
 
   // Realtime WebSocket Helper

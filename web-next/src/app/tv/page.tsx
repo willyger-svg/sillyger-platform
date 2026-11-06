@@ -17,9 +17,14 @@ export default function TvPage() {
   const [isMuted, setIsMuted] = useState(true);
   const [volume, setVolume] = useState(100);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [whatsappUrl, setWhatsappUrl] = useState('https://chat.whatsapp.com/KRxyaSoVcUCGLq0PdOy6Jb?s=cl&p=a&iam=2');
 
   const loadTvData = async () => {
     try {
+      const overview = await api.getPublicOverview();
+      if (overview?.whatsapp_invite_url) {
+        setWhatsappUrl(overview.whatsapp_invite_url);
+      }
       const data = await api.getTvBroadcast();
       if (data) {
         setTvData(data);
@@ -234,7 +239,7 @@ export default function TvPage() {
 
             {/* WhatsApp Discuss */}
             <a
-              href="https://chat.whatsapp.com/SILLYGER_OFFICIAL"
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition active:scale-95"

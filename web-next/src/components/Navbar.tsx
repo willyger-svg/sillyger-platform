@@ -14,6 +14,65 @@ export default function Navbar() {
     setUserMember(api.getCurrentMember());
   }, [pathname]);
 
+  if (pathname === '/admin') {
+    return (
+      <header className="sticky top-0 z-50 sg-glass border-b border-purple-900/50 bg-slate-950/95">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-2 group" title="Fungua Tovuti Kuu">
+              <img
+                src="/assets/sillyger-logo-icon.svg"
+                alt="SILLYGER"
+                className="w-9 h-9 rounded-xl shadow-lg shadow-purple-500/30 group-hover:scale-105 transition"
+              />
+              <div>
+                <span className="font-extrabold text-white text-lg tracking-wider block leading-none">
+                  SILLYGER
+                </span>
+                <span className="text-[10px] font-mono-sg text-purple-400 block tracking-widest uppercase">
+                  Executive Command
+                </span>
+              </div>
+            </Link>
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-800 text-[10px] font-mono-sg text-purple-300 font-bold uppercase">
+              Article 7 & Appendix B Governance
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <Link
+              href="/portal"
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 text-slate-300 hover:text-cyan-400 transition inline-flex items-center gap-1 font-semibold"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="hidden sm:inline">Member Dashboard</span>
+              <span className="sm:hidden">Portal</span>
+            </Link>
+            <Link href="/constitution" className="text-xs text-slate-400 hover:text-purple-300 transition hidden md:inline">
+              Katiba v1.4
+            </Link>
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  api.clearSession();
+                  window.location.href = '/portal?tab=login';
+                }
+              }}
+              className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 hover:border-red-500/50 hover:bg-red-950/30 text-slate-400 hover:text-red-400 transition flex items-center gap-1.5"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Ondoka</span>
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

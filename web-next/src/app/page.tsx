@@ -52,9 +52,24 @@ export default function HomePage() {
               Unatamani kuelewa jinsi kompyuta, kodi, Linux, mitandao na usalama wa mifumo vinavyofanya kazi — ukiwa kwenye jumuiya ya wanafunzi wenzako badala ya kuhangaika peke yako?
             </p>
 
-            <p className="text-xs sm:text-sm text-blue-400 font-mono-sg mb-10">
+            <p className="text-xs sm:text-sm text-blue-400 font-mono-sg mb-6">
               Kama jibu lako ni <strong>&quot;Ndiyo&quot;</strong>, uko mahali sahihi kabisa. Chagua hatua yako hapa chini:
             </p>
+
+            {/* Quick App Download Link */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
+              <a
+                href="https://github.com/willyger-svg/sillyger-platform/releases/latest/download/sillyger-app.apk"
+                className="px-5 py-2.5 rounded-2xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/50 text-emerald-300 hover:text-white text-xs sm:text-sm font-extrabold flex items-center gap-2.5 transition shadow-lg shadow-emerald-500/10 transform hover:-translate-y-0.5"
+                title="Pakua SILLYGER Android Mobile App (APK)"
+              >
+                <span className="text-base">📱</span>
+                <span>Pakua App ya Android (SILLYGER Mobile APK)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-400 text-slate-950 font-mono-sg uppercase font-black">
+                  Bure
+                </span>
+              </a>
+            </div>
           </div>
 
           {/* Interactive Student Choice Cards right at the start */}

@@ -76,103 +76,17 @@ export default function AdminPage() {
   const [adminId, setAdminId] = useState('SG-000001');
 
   // Telemetry counters
-  const [pendingCount, setPendingCount] = useState(4);
-  const [activeCount, setActiveCount] = useState(14);
-  const [totalCount, setTotalCount] = useState(18);
-  const [fundBalance, setFundBalance] = useState(1250000);
-  const [auditLogsCount, setAuditLogsCount] = useState(24);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [fundBalance, setFundBalance] = useState(0);
+  const [auditLogsCount, setAuditLogsCount] = useState(0);
 
   // Tab 1: Queue (Pending Applicants)
-  const [pendingApplicants, setPendingApplicants] = useState<ApplicantRecord[]>([
-    {
-      id: 'app_1',
-      full_name: 'Juma Shabani Bakari',
-      username: 'jumabakari',
-      phone: '+255712345678',
-      email: 'juma.bakari@gmail.com',
-      track: 'SG Student Community',
-      experience: 'Mwanafunzi Mpya',
-      motivation: 'Ninapenda kujifunza Linux, Web Development na Python ili niweze kujenga mifumo.',
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-      status: 'PENDING',
-    },
-    {
-      id: 'app_2',
-      full_name: 'Amina Selemani Rashid',
-      username: 'aminash',
-      phone: '+255754987654',
-      email: 'amina.rashid@yahoo.com',
-      track: 'SG Student Community',
-      experience: 'Mwanafunzi Mpya',
-      motivation: 'Natamani sana kufahamu misingi ya Cybersecurity, Ethical Hacking na Networking.',
-      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-      status: 'PENDING',
-    },
-    {
-      id: 'app_3',
-      full_name: 'Baraka Emmanuel Mollel',
-      username: 'barakamollel',
-      phone: '+255788112233',
-      email: 'baraka.mollel@outlook.com',
-      track: 'SG Student Community',
-      experience: 'Mwanafunzi Mpya',
-      motivation: 'Napenda software engineering, Git version control na ujenzi wa API za Go.',
-      created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
-      status: 'PENDING',
-    },
-    {
-      id: 'app_4',
-      full_name: 'Zuhura Hassan Ally',
-      username: 'zuhuraally',
-      phone: '+255765443322',
-      email: 'zuhura.ally@gmail.com',
-      track: 'SG Student Community',
-      experience: 'Mwanafunzi Mpya',
-      motivation: 'Natafuta jumuiya ya wanafunzi wenzangu wa IT ili tusome na kufanya project pamoja.',
-      created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
-      status: 'PENDING',
-    },
-  ]);
+  const [pendingApplicants, setPendingApplicants] = useState<ApplicantRecord[]>([]);
 
   // Tab 2: Members Directory
-  const [membersList, setMembersList] = useState<ApplicantRecord[]>([
-    {
-      id: 'mem_1',
-      full_name: 'William Gerishom William',
-      username: 'willyger',
-      phone: '+255700000001',
-      email: 'willyger@sillyger.org',
-      reg_number: 'SG-000001',
-      role: 'Super Administrator',
-      status: 'ACTIVE',
-      track: 'SG Student Community',
-      created_at: '2026-01-01T00:00:00Z',
-    },
-    {
-      id: 'mem_2',
-      full_name: 'Kelvin Daniel Mrosso',
-      username: 'kelvinmrosso',
-      phone: '+255714001122',
-      email: 'kelvin.m@sillyger.org',
-      reg_number: 'SG-000002',
-      role: 'Administrator',
-      status: 'ACTIVE',
-      track: 'SG Student Community',
-      created_at: '2026-01-05T10:00:00Z',
-    },
-    {
-      id: 'mem_3',
-      full_name: 'Neema Josephat Mushi',
-      username: 'neemamushi',
-      phone: '+255784998877',
-      email: 'neema.mushi@gmail.com',
-      reg_number: 'SG-000003',
-      role: 'Member',
-      status: 'ACTIVE',
-      track: 'SG Student Community',
-      created_at: '2026-01-10T14:30:00Z',
-    },
-  ]);
+  const [membersList, setMembersList] = useState<ApplicantRecord[]>([]);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
 
   // Tab 3: Announcements
@@ -182,24 +96,7 @@ export default function AdminPage() {
   const [newAncContent, setNewAncContent] = useState('');
 
   // Tab 4: Fund Ledger
-  const [fundTransactions, setFundTransactions] = useState<FundTransaction[]>([
-    {
-      id: 'tx_1',
-      date: '2026-02-01',
-      type: 'INCOME',
-      amount: 1500000,
-      category: 'Community Sponsorship',
-      description: 'Mchango wa maendeleo ya miundombinu ya server na Cloud hosting.',
-    },
-    {
-      id: 'tx_2',
-      date: '2026-02-15',
-      type: 'EXPENSE',
-      amount: 250000,
-      category: 'Domain & SSL Security',
-      description: 'Gharama za uhakiki wa Domain, DNS na SSL encryption kwa ajili ya usalama wa mfumo.',
-    },
-  ]);
+  const [fundTransactions, setFundTransactions] = useState<FundTransaction[]>([]);
   const [fundType, setFundType] = useState<'INCOME' | 'EXPENSE'>('INCOME');
   const [fundAmount, setFundAmount] = useState('');
   const [fundCategory, setFundCategory] = useState('');
@@ -207,81 +104,22 @@ export default function AdminPage() {
 
   // Tab 5: Attendance
   const [activeSessionTitle, setActiveSessionTitle] = useState(
-    'Kipindi cha Jumamosi: Level 2 Digital Logic & ALU'
+    'Kipindi cha Jumuiya: Systems & Cloud Engineering'
   );
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([
-    {
-      id: 'att_1',
-      member_id: 'SG-000003',
-      name: 'Neema Josephat Mushi',
-      session_title: 'Level 2 Digital Logic & ALU',
-      date: '2026-02-28',
-      status: 'VERIFIED',
-    },
-    {
-      id: 'att_2',
-      member_id: 'SG-000002',
-      name: 'Kelvin Daniel Mrosso',
-      session_title: 'Level 2 Digital Logic & ALU',
-      date: '2026-02-28',
-      status: 'VERIFIED',
-    },
-  ]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
   // Tab 6: Leaves & Tickets
-  const [leavesList, setLeavesList] = useState<LeaveRequest[]>([
-    {
-      id: 'lv_1',
-      member_id: 'SG-000003',
-      name: 'Neema Josephat Mushi',
-      type: 'Masomo / Mitihani ya Chuo',
-      duration: 'Wiki 2 (Machi 01 - 14)',
-      reason: 'Kujiandaa na mitihani ya muhula chuoni.',
-      status: 'APPROVED',
-    },
-  ]);
-  const [ticketsList, setTicketsList] = useState<SupportTicket[]>([
-    {
-      id: 'tk_1',
-      member_name: 'Kelvin Daniel',
-      title: 'Msaada wa Usanidi wa Docker kwenye Linux',
-      category: 'Teknolojia',
-      message: 'Habari viongozi, nimekwama kwenye hatua ya kuanzisha Docker container kwa ajili ya Postgres.',
-      status: 'OPEN',
-    },
-  ]);
+  const [leavesList, setLeavesList] = useState<LeaveRequest[]>([]);
+  const [ticketsList, setTicketsList] = useState<SupportTicket[]>([]);
 
   // Tab 7: Audit Logs
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
-    {
-      id: 'log_1',
-      timestamp: '2026-11-06 18:30:15',
-      action: 'SYSTEM_BOOT',
-      actor: 'Super Administrator',
-      target: 'Platform Core',
-      details: 'Next.js v2 & Go Engine sync successfully verified.',
-    },
-    {
-      id: 'log_2',
-      timestamp: '2026-11-06 17:45:00',
-      action: 'MEMBER_APPROVED',
-      actor: 'William Gerishom',
-      target: 'SG-000003',
-      details: 'Mwanachama amepewa kitambulisho na kuunganishwa na WhatsApp Group.',
-    },
-    {
-      id: 'log_3',
-      timestamp: '2026-11-06 16:12:30',
-      action: 'LOGIN',
-      actor: 'William Gerishom',
-      target: 'Executive Portal',
-      details: 'Kuingia kwa ufanisi kupitia kitambulisho cha SHA-256.',
-    },
-  ]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [auditFilter, setAuditFilter] = useState('');
 
   // Tab 8: Database & Settings
-  const [whatsappLink, setWhatsappLink] = useState('https://chat.whatsapp.com/sample_invite_link');
+  const [whatsappLink, setWhatsappLink] = useState(
+    'https://chat.whatsapp.com/KRxyaSoVcUCGLq0PdOy6Jb?s=cl&p=a&iam=2'
+  );
   const [currentAdminPassword, setCurrentAdminPassword] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
@@ -354,7 +192,7 @@ export default function AdminPage() {
             if (state.admin.reg_number) setAdminId(state.admin.reg_number);
           }
 
-          if (state.members && state.members.length > 0) {
+          if (state.members) {
             const mappedAll: ApplicantRecord[] = state.members.map((m: any) => ({
               id: m.id,
               full_name: m.full_name,
@@ -374,30 +212,34 @@ export default function AdminPage() {
             const active = mappedAll.filter((m) => m.status !== 'PENDING');
 
             setPendingApplicants(pending);
-            setMembersList(active.length > 0 ? active : mappedAll);
+            setMembersList(active);
             setPendingCount(pending.length);
             setActiveCount(active.length);
             setTotalCount(mappedAll.length);
           }
 
-          if (state.announcements && state.announcements.length > 0) {
+          if (state.announcements) {
             setAnnouncements(state.announcements);
           }
 
-          if (state.fund_ledger && state.fund_ledger.length > 0) {
-            setFundTransactions(
-              state.fund_ledger.map((f: any) => ({
-                id: f.id,
-                date: f.date || f.created_at || new Date().toISOString(),
-                type: f.type || 'INCOME',
-                amount: f.amount || 0,
-                category: f.category || 'Mchango',
-                description: f.description || '',
-              }))
+          if (state.fund_ledger) {
+            const mappedFunds = state.fund_ledger.map((f: any) => ({
+              id: f.id,
+              date: f.date || f.created_at || new Date().toISOString(),
+              type: f.type || 'INCOME',
+              amount: Number(f.amount) || 0,
+              category: f.category || 'Mchango',
+              description: f.description || '',
+            }));
+            setFundTransactions(mappedFunds);
+            const bal = mappedFunds.reduce(
+              (acc: number, tx: any) => (tx.type === 'INCOME' ? acc + tx.amount : acc - tx.amount),
+              0
             );
+            setFundBalance(bal);
           }
 
-          if (state.attendance && state.attendance.length > 0) {
+          if (state.attendance) {
             setAttendanceRecords(
               state.attendance.map((att: any) => ({
                 id: att.id,
@@ -410,7 +252,7 @@ export default function AdminPage() {
             );
           }
 
-          if (state.leave_requests && state.leave_requests.length > 0) {
+          if (state.leave_requests) {
             setLeavesList(
               state.leave_requests.map((l: any) => ({
                 id: l.id,
@@ -424,7 +266,7 @@ export default function AdminPage() {
             );
           }
 
-          if (state.support_tickets && state.support_tickets.length > 0) {
+          if (state.support_tickets) {
             setTicketsList(
               state.support_tickets.map((t: any) => ({
                 id: t.id,
@@ -437,7 +279,7 @@ export default function AdminPage() {
             );
           }
 
-          if (state.audit_logs && state.audit_logs.length > 0) {
+          if (state.audit_logs) {
             setAuditLogs(
               state.audit_logs.map((lg: any) => ({
                 id: lg.id || String(Math.random()),
@@ -1161,8 +1003,15 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40 text-xs">
-                {filteredMembers.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-900/40 transition">
+                {filteredMembers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                      Hakuna wanachama waliopatikana kwa kigezo hiki.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredMembers.map((m) => (
+                    <tr key={m.id} className="hover:bg-slate-900/40 transition">
                     <td className="px-4 py-3.5 font-mono-sg font-bold text-cyan-400">
                       {m.reg_number || 'PENDING'}
                     </td>
@@ -1199,7 +1048,8 @@ export default function AdminPage() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                ))
+              )}
               </tbody>
             </table>
           </div>
@@ -1432,27 +1282,35 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/40 text-xs font-mono-sg">
-                  {fundTransactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-slate-900/40 transition">
-                      <td className="px-4 py-3.5 text-slate-400">{tx.date}</td>
-                      <td className="px-4 py-3.5">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            tx.type === 'INCOME'
-                              ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
-                              : 'bg-rose-950/80 text-rose-300 border border-rose-800'
-                          }`}
-                        >
-                          {tx.type === 'INCOME' ? '+ MAPATO' : '- MATUMIZI'}
-                        </span>
+                  {fundTransactions.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                        Hakuna miamala iliyorekodiwa kwenye leja kwa sasa.
                       </td>
-                      <td className="px-4 py-3.5 font-bold text-white">
-                        TZS {tx.amount.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3.5 text-cyan-400">{tx.category}</td>
-                      <td className="px-4 py-3.5 text-slate-300 font-sans">{tx.description}</td>
                     </tr>
-                  ))}
+                  ) : (
+                    fundTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-slate-900/40 transition">
+                        <td className="px-4 py-3.5 text-slate-400">{tx.date}</td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              tx.type === 'INCOME'
+                                ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                                : 'bg-rose-950/80 text-rose-300 border border-rose-800'
+                            }`}
+                          >
+                            {tx.type === 'INCOME' ? '+ MAPATO' : '- MATUMIZI'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 font-bold text-white">
+                          TZS {tx.amount.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3.5 text-cyan-400">{tx.category}</td>
+                        <td className="px-4 py-3.5 text-slate-300 font-sans">{tx.description}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1513,41 +1371,49 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40 text-xs">
-                {attendanceRecords.map((att) => (
-                  <tr key={att.id} className="hover:bg-slate-900/40 transition">
-                    <td className="px-4 py-3.5 font-mono-sg text-cyan-400 font-bold">{att.member_id}</td>
-                    <td className="px-4 py-3.5 text-white font-semibold">{att.name}</td>
-                    <td className="px-4 py-3.5 text-slate-300">{att.session_title}</td>
-                    <td className="px-4 py-3.5 font-mono-sg text-slate-400">{att.date}</td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold ${
-                          att.status === 'VERIFIED'
-                            ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
-                            : 'bg-amber-950/80 text-amber-300 border border-amber-800'
-                        }`}
-                      >
-                        {att.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAttendanceRecords((prev) =>
-                            prev.map((item) =>
-                              item.id === att.id ? { ...item, status: 'VERIFIED' } : item
-                            )
-                          );
-                          showToast('Mahudhurio yamethibitishwa.', 'success');
-                        }}
-                        className="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
-                      >
-                        ✓ Thibitisha
-                      </button>
+                {attendanceRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                      Hakuna kumbukumbu za mahudhurio zilizorekodiwa bado.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  attendanceRecords.map((att) => (
+                    <tr key={att.id} className="hover:bg-slate-900/40 transition">
+                      <td className="px-4 py-3.5 font-mono-sg text-cyan-400 font-bold">{att.member_id}</td>
+                      <td className="px-4 py-3.5 text-white font-semibold">{att.name}</td>
+                      <td className="px-4 py-3.5 text-slate-300">{att.session_title}</td>
+                      <td className="px-4 py-3.5 font-mono-sg text-slate-400">{att.date}</td>
+                      <td className="px-4 py-3.5">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold ${
+                            att.status === 'VERIFIED'
+                              ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                              : 'bg-amber-950/80 text-amber-300 border border-amber-800'
+                          }`}
+                        >
+                          {att.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAttendanceRecords((prev) =>
+                              prev.map((item) =>
+                                item.id === att.id ? { ...item, status: 'VERIFIED' } : item
+                              )
+                            );
+                            showToast('Mahudhurio yamethibitishwa.', 'success');
+                          }}
+                          className="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
+                        >
+                          ✓ Thibitisha
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -1578,38 +1444,46 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/40 text-xs">
-                  {leavesList.map((lv) => (
-                    <tr key={lv.id} className="hover:bg-slate-900/40 transition">
-                      <td className="px-4 py-3.5 font-mono-sg text-cyan-400 font-bold">{lv.member_id}</td>
-                      <td className="px-4 py-3.5 text-white font-semibold">{lv.name}</td>
-                      <td className="px-4 py-3.5 text-blue-300 font-mono-sg">{lv.type} — {lv.duration}</td>
-                      <td className="px-4 py-3.5 text-slate-300">{lv.reason}</td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-emerald-950/80 border border-emerald-800 text-emerald-300">
-                          {lv.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await api.adminReviewLeave(lv.id, 'APPROVED');
-                              setLeavesList((prev) =>
-                                prev.map((item) => (item.id === lv.id ? { ...item, status: 'APPROVED' } : item))
-                              );
-                              showToast('✓ Ombi la ruhusa limeidhinishwa kikamilifu kwenye Database!', 'success');
-                            } catch (err: any) {
-                              showToast(err.message || 'Hitilafu ya kuidhinisha ruhusa', 'error');
-                            }
-                          }}
-                          className="px-2.5 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
-                        >
-                          Kubali
-                        </button>
+                  {leavesList.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                        Hakuna maombi ya ruhusa yaliyowasilishwa kwa sasa.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    leavesList.map((lv) => (
+                      <tr key={lv.id} className="hover:bg-slate-900/40 transition">
+                        <td className="px-4 py-3.5 font-mono-sg text-cyan-400 font-bold">{lv.member_id}</td>
+                        <td className="px-4 py-3.5 text-white font-semibold">{lv.name}</td>
+                        <td className="px-4 py-3.5 text-blue-300 font-mono-sg">{lv.type} — {lv.duration}</td>
+                        <td className="px-4 py-3.5 text-slate-300">{lv.reason}</td>
+                        <td className="px-4 py-3.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-emerald-950/80 border border-emerald-800 text-emerald-300">
+                            {lv.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await api.adminReviewLeave(lv.id, 'APPROVED');
+                                setLeavesList((prev) =>
+                                  prev.map((item) => (item.id === lv.id ? { ...item, status: 'APPROVED' } : item))
+                                );
+                                showToast('✓ Ombi la ruhusa limeidhinishwa kikamilifu kwenye Database!', 'success');
+                              } catch (err: any) {
+                                showToast(err.message || 'Hitilafu ya kuidhinisha ruhusa', 'error');
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
+                          >
+                            Kubali
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1635,40 +1509,48 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/40 text-xs">
-                  {ticketsList.map((tk) => (
-                    <tr key={tk.id} className="hover:bg-slate-900/40 transition">
-                      <td className="px-4 py-3.5 text-white font-semibold">{tk.member_name}</td>
-                      <td className="px-4 py-3.5 text-cyan-400 font-bold">{tk.title}</td>
-                      <td className="px-4 py-3.5 text-slate-300">{tk.message}</td>
-                      <td className="px-4 py-3.5">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-amber-950/80 border border-amber-800 text-amber-300">
-                          {tk.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            try {
-                              await api.adminReplyTicket(
-                                tk.id,
-                                'Ujumbe wako umepokelewa na kushughulikiwa na Uongozi wa SILLYGER.'
-                              );
-                              setTicketsList((prev) =>
-                                prev.map((item) => (item.id === tk.id ? { ...item, status: 'RESOLVED' } : item))
-                              );
-                              showToast('✓ Tiketi imetatuliwa kikamilifu kwenye Database!', 'success');
-                            } catch (err: any) {
-                              showToast(err.message || 'Hitilafu ya kutatua tiketi', 'error');
-                            }
-                          }}
-                          className="px-2.5 py-1 rounded bg-blue-500/20 border border-blue-500/40 text-blue-300 text-[11px] font-bold"
-                        >
-                          Tatua
-                        </button>
+                  {ticketsList.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                        Hakuna tiketi za msaada zilizowasilishwa kwa sasa.
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    ticketsList.map((tk) => (
+                      <tr key={tk.id} className="hover:bg-slate-900/40 transition">
+                        <td className="px-4 py-3.5 text-white font-semibold">{tk.member_name}</td>
+                        <td className="px-4 py-3.5 text-cyan-400 font-bold">{tk.title}</td>
+                        <td className="px-4 py-3.5 text-slate-300">{tk.message}</td>
+                        <td className="px-4 py-3.5">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-amber-950/80 border border-amber-800 text-amber-300">
+                            {tk.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await api.adminReplyTicket(
+                                  tk.id,
+                                  'Ujumbe wako umepokelewa na kushughulikiwa na Uongozi wa SILLYGER.'
+                                );
+                                setTicketsList((prev) =>
+                                  prev.map((item) => (item.id === tk.id ? { ...item, status: 'RESOLVED' } : item))
+                                );
+                                showToast('✓ Tiketi imetatuliwa kikamilifu kwenye Database!', 'success');
+                              } catch (err: any) {
+                                showToast(err.message || 'Hitilafu ya kutatua tiketi', 'error');
+                              }
+                            }}
+                            className="px-2.5 py-1 rounded bg-blue-500/20 border border-blue-500/40 text-blue-300 text-[11px] font-bold"
+                          >
+                            Tatua
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1717,19 +1599,27 @@ export default function AdminPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40 text-xs font-mono-sg">
-                {filteredAuditLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-900/40 transition">
-                    <td className="px-4 py-3.5 text-slate-500 text-[11px]">{log.timestamp}</td>
-                    <td className="px-4 py-3.5">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950/70 border border-purple-800 text-purple-300">
-                        {log.action}
-                      </span>
+                {filteredAuditLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                      Hakuna kumbukumbu za ukaguzi zilizorekodiwa kwa sasa.
                     </td>
-                    <td className="px-4 py-3.5 text-white font-semibold font-sans">{log.actor}</td>
-                    <td className="px-4 py-3.5 text-cyan-400">{log.target}</td>
-                    <td className="px-4 py-3.5 text-slate-300 font-sans">{log.details}</td>
                   </tr>
-                ))}
+                ) : (
+                  filteredAuditLogs.map((log) => (
+                    <tr key={log.id} className="hover:bg-slate-900/40 transition">
+                      <td className="px-4 py-3.5 text-slate-500 text-[11px]">{log.timestamp}</td>
+                      <td className="px-4 py-3.5">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-950/70 border border-purple-800 text-purple-300">
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-white font-semibold font-sans">{log.actor}</td>
+                      <td className="px-4 py-3.5 text-cyan-400">{log.target}</td>
+                      <td className="px-4 py-3.5 text-slate-300 font-sans">{log.details}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

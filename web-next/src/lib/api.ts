@@ -19,6 +19,7 @@ export interface Member {
   motivation?: string;
   avatar_url?: string;
   bio?: string;
+  learning_interest?: string;
   created_at?: string;
 }
 

@@ -90,6 +90,47 @@ const POSSIBLE_COURSES = [
   },
 ];
 
+// Profile Picture Real-time Compressor
+function compressImageToDataUrl(file: File, maxDimension = 280, quality = 0.82): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) {
+      return reject(new Error('Tafadhali chagua faili la picha (JPG, PNG, WebP).'));
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      return reject(new Error('Picha ni kubwa mno (zaidi ya 8MB). Chagua picha ndogo kidogo.'));
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDimension || h > maxDimension) {
+          if (w > h) {
+            h = Math.round((h * maxDimension) / w);
+            w = maxDimension;
+          } else {
+            w = Math.round((w * maxDimension) / h);
+            h = maxDimension;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('Hitilafu ya canvas.'));
+        ctx.drawImage(img, 0, 0, w, h);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('Hitilafu wakati wa kusoma picha.'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Hitilafu wakati wa kufungua faili.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 function PortalContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -116,23 +157,13 @@ function PortalContent() {
 
   // Dashboard Data
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [whatsappInviteUrl, setWhatsappInviteUrl] = useState(
+    'https://chat.whatsapp.com/KRxyaSoVcUCGLq0PdOy6Jb?s=cl&p=a&iam=2'
+  );
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [attendanceList, setAttendanceList] = useState<
     { id: string; title: string; date: string; status: 'VERIFIED' | 'PENDING' }[]
-  >([
-    {
-      id: 'att-1',
-      title: 'Utangulizi wa Jumuiya & Maono ya SILLYGER',
-      date: '01 Feb 2026',
-      status: 'VERIFIED',
-    },
-    {
-      id: 'att-2',
-      title: 'Misingi ya Linux & Bash Shell',
-      date: '04 Feb 2026',
-      status: 'VERIFIED',
-    },
-  ]);
+  >([]);
   const [checkinInput, setCheckinInput] = useState('');
   const [leaveRequests, setLeaveRequests] = useState<
     { id: string; category: string; duration: string; reason: string; date: string; status: 'APPROVED' | 'PENDING' }[]
@@ -157,6 +188,9 @@ function PortalContent() {
 
   const [editFullName, setEditFullName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editInterest, setEditInterest] = useState('');
+  const [pendingAvatar, setPendingAvatar] = useState('');
+  const [editProfileError, setEditProfileError] = useState<string | null>(null);
 
   // Toast / sync feedback
   const [toastMsg, setToastMsg] = useState<string | null>(null);
@@ -184,8 +218,10 @@ function PortalContent() {
     if (current) {
       setMember(current);
       generateQr(current);
-      setEditFullName(current.full_name);
-      setEditPhone(current.phone);
+      setEditFullName(current.full_name || '');
+      setEditPhone(current.phone || '');
+      setEditInterest(current.learning_interest || current.motivation || '');
+      setPendingAvatar(current.avatar_url || '');
 
       // Load portal state from Supabase
       api.getMyPortalState()
@@ -193,16 +229,47 @@ function PortalContent() {
           if (state && state.member) {
             setMember(state.member);
             generateQr(state.member);
-            if (state.announcements && state.announcements.length > 0) {
+            setEditFullName(state.member.full_name || '');
+            setEditPhone(state.member.phone || '');
+            setEditInterest(state.member.learning_interest || state.member.motivation || '');
+            setPendingAvatar(state.member.avatar_url || '');
+            if (state.whatsapp_invite_url) {
+              setWhatsappInviteUrl(state.whatsapp_invite_url);
+            }
+            if (state.announcements) {
               setAnnouncements(state.announcements);
             }
-            if (state.attendance && state.attendance.length > 0) {
+            if (state.attendance) {
               setAttendanceList(
                 state.attendance.map((att: any) => ({
                   id: att.id,
                   title: att.session_title,
-                  date: new Date(att.created_at).toLocaleDateString('sw-TZ'),
-                  status: att.status || 'VERIFIED',
+                  date: new Date(att.created_at || att.date).toLocaleDateString('sw-TZ'),
+                  status: att.status || (att.is_verified ? 'VERIFIED' : 'PENDING'),
+                }))
+              );
+            }
+            if (state.leave_requests) {
+              setLeaveRequests(
+                state.leave_requests.map((l: any) => ({
+                  id: l.id,
+                  category: l.category || 'Academic',
+                  duration: l.duration || 'Siku 1 - 3',
+                  reason: l.reason || '',
+                  date: new Date(l.created_at || l.date).toLocaleDateString('sw-TZ'),
+                  status: l.status || 'PENDING',
+                }))
+              );
+            }
+            if (state.support_tickets) {
+              setSupportTickets(
+                state.support_tickets.map((t: any) => ({
+                  id: t.id,
+                  category: t.category || 'General',
+                  title: t.subject || t.title || 'Msaada',
+                  message: t.message || '',
+                  date: new Date(t.created_at || t.date).toLocaleDateString('sw-TZ'),
+                  status: t.status || 'OPEN',
                 }))
               );
             }
@@ -281,16 +348,47 @@ function PortalContent() {
       if (state && state.member) {
         setMember(state.member);
         generateQr(state.member);
-        if (state.announcements && state.announcements.length > 0) {
+        setEditFullName(state.member.full_name || '');
+        setEditPhone(state.member.phone || '');
+        setEditInterest(state.member.learning_interest || state.member.motivation || '');
+        setPendingAvatar(state.member.avatar_url || '');
+        if (state.whatsapp_invite_url) {
+          setWhatsappInviteUrl(state.whatsapp_invite_url);
+        }
+        if (state.announcements) {
           setAnnouncements(state.announcements);
         }
-        if (state.attendance && state.attendance.length > 0) {
+        if (state.attendance) {
           setAttendanceList(
             state.attendance.map((att: any) => ({
               id: att.id,
               title: att.session_title,
-              date: new Date(att.created_at).toLocaleDateString('sw-TZ'),
-              status: att.status || 'VERIFIED',
+              date: new Date(att.created_at || att.date).toLocaleDateString('sw-TZ'),
+              status: att.status || (att.is_verified ? 'VERIFIED' : 'PENDING'),
+            }))
+          );
+        }
+        if (state.leave_requests) {
+          setLeaveRequests(
+            state.leave_requests.map((l: any) => ({
+              id: l.id,
+              category: l.category || 'Academic',
+              duration: l.duration || 'Siku 1 - 3',
+              reason: l.reason || '',
+              date: new Date(l.created_at || l.date).toLocaleDateString('sw-TZ'),
+              status: l.status || 'PENDING',
+            }))
+          );
+        }
+        if (state.support_tickets) {
+          setSupportTickets(
+            state.support_tickets.map((t: any) => ({
+              id: t.id,
+              category: t.category || 'General',
+              title: t.subject || t.title || 'Msaada',
+              message: t.message || '',
+              date: new Date(t.created_at || t.date).toLocaleDateString('sw-TZ'),
+              status: t.status || 'OPEN',
             }))
           );
         }
@@ -300,6 +398,61 @@ function PortalContent() {
       showToast('✓ Taarifa za hivi punde zimesawazishwa!');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const openEditProfileModal = () => {
+    if (member) {
+      setEditFullName(member.full_name || '');
+      setEditPhone(member.phone || '');
+      setEditInterest(member.learning_interest || member.motivation || '');
+      setPendingAvatar(member.avatar_url || '');
+      setEditProfileError(null);
+    }
+    setActiveModal('editProfile');
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    setEditProfileError(null);
+    try {
+      showToast('⏳ Inashinikiza picha...');
+      const compressed = await compressImageToDataUrl(file, 280, 0.82);
+      setPendingAvatar(compressed);
+      showToast('✓ Picha imechaguliwa! Bofya "Hifadhi Wasifu" kuikamilisha.');
+    } catch (err: any) {
+      setEditProfileError(err.message || 'Hitilafu ya kusoma picha.');
+      showToast(err.message || 'Hitilafu ya picha.');
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setPendingAvatar('');
+    showToast('Picha imeondolewa kwenye hakikisho. Bofya "Hifadhi Wasifu".');
+  };
+
+  const handleEditProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!member) return;
+    if (!editFullName.trim() || editFullName.trim().length < 3) {
+      setEditProfileError('Tafadhali weka jina lako kamili (angalau herufi 3).');
+      return;
+    }
+    try {
+      const updated = await api.updateProfile({
+        full_name: editFullName.trim(),
+        phone: editPhone.trim(),
+        learning_interest: editInterest.trim(),
+        avatar_url: pendingAvatar || '',
+      });
+      setMember(updated);
+      generateQr(updated);
+      setActiveModal(null);
+      showToast('✓ Wasifu wako na picha vimesasishwa kwenye Database!');
+    } catch (err: any) {
+      setEditProfileError(err.message || 'Hitilafu ya kusasisha wasifu.');
+      showToast(err.message || 'Hitilafu ya kusasisha wasifu');
     }
   };
 
@@ -384,22 +537,6 @@ function PortalContent() {
     }
   };
 
-  const handleEditProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!member) return;
-    try {
-      const updated = await api.updateProfile({
-        full_name: editFullName.trim() || undefined,
-        phone: editPhone.trim() || undefined,
-      });
-      setMember(updated);
-      generateQr(updated);
-      setActiveModal(null);
-      showToast('✓ Wasifu wako umesasishwa kwenye Database!');
-    } catch (err: any) {
-      showToast(err.message || 'Hitilafu ya kusasisha wasifu',);
-    }
-  };
 
   const copyStudentId = () => {
     if (member?.reg_number) {
@@ -606,11 +743,19 @@ function PortalContent() {
                     id="dash-avatar"
                     className="w-12 h-12 rounded-2xl bg-slate-900 border border-blue-500/30 flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/25 overflow-hidden"
                   >
-                    <img
-                      src="/assets/sillyger-logo-icon.svg"
-                      alt="SG"
-                      className="w-full h-full object-contain p-1.5"
-                    />
+                    {member.avatar_url ? (
+                      <img
+                        src={member.avatar_url}
+                        alt={member.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src="/assets/sillyger-logo-icon.svg"
+                        alt="SG"
+                        className="w-full h-full object-contain p-1.5"
+                      />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <h2 id="dash-full-name" className="text-sm sm:text-base font-extrabold text-white truncate">
@@ -920,7 +1065,7 @@ function PortalContent() {
                             </p>
                             <div className="flex flex-wrap gap-2.5">
                               <a
-                                href="https://chat.whatsapp.com/SILLYGER_OFFICIAL"
+                                href={whatsappInviteUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 inline-flex items-center gap-2 transition"
@@ -1023,7 +1168,11 @@ function PortalContent() {
 
                           <div className="flex items-center gap-3 py-1">
                             <div className="w-16 h-16 rounded-xl bg-slate-900 border border-blue-500/40 flex items-center justify-center shrink-0 overflow-hidden">
-                              <img src="/assets/sillyger-logo-icon.svg" alt="Avatar" className="w-full h-full p-2" />
+                              {member.avatar_url ? (
+                                <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src="/assets/sillyger-logo-icon.svg" alt="Avatar" className="w-full h-full p-2 object-contain" />
+                              )}
                             </div>
                             <div className="min-w-0 space-y-0.5">
                               <div className="text-xs font-extrabold text-white truncate">{member.full_name}</div>
@@ -1108,15 +1257,28 @@ function PortalContent() {
                     </div>
 
                     <div className="pt-2">
-                      <a
-                        href="https://chat.whatsapp.com/SILLYGER_OFFICIAL"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xl transition"
-                      >
-                        <span>Fungua Kundi la WhatsApp Moja kwa Moja</span>
-                        <span>&rarr;</span>
-                      </a>
+                      {member.status === 'ACTIVE' ? (
+                        <a
+                          href={whatsappInviteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xl transition"
+                        >
+                          <span>Fungua Kundi la WhatsApp Moja kwa Moja</span>
+                          <span>&rarr;</span>
+                        </a>
+                      ) : (
+                        <div className="p-4 rounded-2xl bg-amber-950/30 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <span>🔒 Kiungo cha WhatsApp kitafunguka hapa mara baada ya idhini ya Super Admin.</span>
+                          <button
+                            type="button"
+                            onClick={handleSyncDashboard}
+                            className="px-4 py-2 rounded-xl border border-blue-500/40 bg-blue-950/40 text-blue-300 text-xs font-semibold whitespace-nowrap"
+                          >
+                            🔄 Angalia Hali Sasa
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1221,15 +1383,21 @@ function PortalContent() {
                         </form>
 
                         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                          {attendanceList.map((att) => (
-                            <div key={att.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
-                              <div>
-                                <span className="text-white font-semibold block">{att.title}</span>
-                                <span className="text-[10px] text-slate-400 font-mono-sg">{att.date}</span>
+                          {attendanceList.length > 0 ? (
+                            attendanceList.map((att) => (
+                              <div key={att.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
+                                <div>
+                                  <span className="text-white font-semibold block">{att.title}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono-sg">{att.date}</span>
+                                </div>
+                                <span className="text-emerald-400 font-mono-sg text-[10px]">● Verified</span>
                               </div>
-                              <span className="text-emerald-400 font-mono-sg text-[10px]">● Verified</span>
+                            ))
+                          ) : (
+                            <div className="p-6 text-center text-xs text-slate-400 font-mono-sg">
+                              Huna kumbukumbu za mahudhurio zilizorekodiwa bado.
                             </div>
-                          ))}
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1335,13 +1503,30 @@ function PortalContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setActiveModal('editProfile')}
+                            onClick={openEditProfileModal}
                             className="px-3.5 py-1.5 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-900/50 text-xs font-semibold text-blue-300 hover:text-white transition flex items-center gap-1.5"
                           >
                             <span>✏️</span>
                             <span>Hariri Wasifu</span>
                           </button>
                         </div>
+
+                        {/* Avatar Profile Header */}
+                        <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+                          <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-blue-500/40 flex items-center justify-center shrink-0 overflow-hidden shadow-md">
+                            {member.avatar_url ? (
+                              <img src={member.avatar_url} alt={member.full_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <img src="/assets/sillyger-logo-icon.svg" alt="SG" className="w-full h-full object-contain p-2" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-sm font-extrabold text-white truncate">{member.full_name}</h4>
+                            <p className="text-xs font-mono-sg text-blue-400 font-bold">{member.reg_number || 'SG-PENDING'}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{member.email}</p>
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
                           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
                             <span className="text-slate-400 block mb-0.5">Jina Kamili</span>
@@ -1359,6 +1544,14 @@ function PortalContent() {
                             <span className="text-slate-400 block mb-0.5">SG-ID</span>
                             <span className="text-blue-400 font-bold font-mono-sg">{member.reg_number || 'Inasubiri'}</span>
                           </div>
+                        </div>
+
+                        {/* Learning Goals / Bio */}
+                        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
+                          <span className="text-slate-400 block mb-0.5 text-xs">Mada Unazopenda / Ujuzi Unaolenga (Learning Goals & Bio)</span>
+                          <span className="text-slate-200 text-xs leading-relaxed">
+                            {member.learning_interest || member.motivation || 'Bado hujaweka malengo yako ya masomo. Bofya "Hariri Wasifu" kuongeza.'}
+                          </span>
                         </div>
                       </div>
 
@@ -1386,8 +1579,30 @@ function PortalContent() {
                       </div>
                     </div>
 
-                    {/* Right Column: Support Tickets */}
+                    {/* Right Column: Support Tickets & Direct Admin WhatsApp Help */}
                     <div className="xl:col-span-5 space-y-6">
+                      {/* Direct Super Admin WhatsApp Help Card */}
+                      <div className="sg-glass p-5 rounded-3xl border border-emerald-500/35 bg-gradient-to-br from-emerald-950/25 to-slate-900/90 space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg shrink-0">
+                            💬
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-bold text-white">Msaada wa Moja kwa Moja WhatsApp</h4>
+                            <p className="text-[11px] text-slate-300">Una tatizo lolote la akaunti au swali la dharura? Ongea na Admin mara moja.</p>
+                          </div>
+                        </div>
+                        <a
+                          href={`https://wa.me/255750449373?text=${encodeURIComponent('Habari Super Admin SILLYGER, naitwa ' + member.full_name + ' (' + (member.reg_number || 'PENDING') + '). Nahitaji msaada kuhusu: ')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition"
+                        >
+                          <span>Fungua WhatsApp ya Admin</span>
+                          <span>&rarr;</span>
+                        </a>
+                      </div>
+
                       <div className="sg-glass p-6 rounded-3xl space-y-4">
                         <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
                           <div>
@@ -1444,7 +1659,7 @@ function PortalContent() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setActiveModal('editProfile')}
+                      onClick={openEditProfileModal}
                       className="px-4 py-2.5 rounded-2xl btn-sg-primary text-xs flex items-center gap-1.5 shrink-0"
                     >
                       <span>✏️</span>
@@ -1728,7 +1943,7 @@ function PortalContent() {
       {/* MODAL 4: HARIRI WASIFU */}
       {activeModal === 'editProfile' && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/40 max-w-md w-full shadow-2xl space-y-4 animate-fade-in">
+          <div className="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/40 max-w-md w-full shadow-2xl space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <span className="text-[10px] font-mono-sg text-blue-400 uppercase font-bold block">WASIFU WA MWANAFUNZI</span>
@@ -1736,27 +1951,92 @@ function PortalContent() {
               </div>
               <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-white p-1.5">✕</button>
             </div>
+
+            {editProfileError && (
+              <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/50 text-red-200 text-xs">
+                {editProfileError}
+              </div>
+            )}
+
             <form onSubmit={handleEditProfile} className="space-y-4">
+              {/* Profile Picture Upload & Preview */}
+              <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="relative shrink-0 mx-auto sm:mx-0">
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 p-0.5 shadow-lg shadow-blue-600/25 overflow-hidden">
+                    <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center overflow-hidden p-1">
+                      {pendingAvatar ? (
+                        <img src={pendingAvatar} alt="Preview" className="w-full h-full object-cover rounded-xl" />
+                      ) : member?.avatar_url ? (
+                        <img src={member.avatar_url} alt="Current" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <img src="/assets/sillyger-logo-icon.svg" alt="SG" className="w-full h-full object-contain p-2" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5 flex-grow text-center sm:text-left">
+                  <span className="block text-xs font-semibold text-slate-200">Picha ya Wasifu (Profile Picture)</span>
+                  <p className="text-[11px] text-slate-400">Picha itaonekana kwenye Dashboard na Kitambulisho chako cha SG-ID.</p>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                    <label htmlFor="ep-avatar-file" className="px-3.5 py-1.5 rounded-xl btn-sg-primary text-xs cursor-pointer inline-flex items-center gap-1.5">
+                      <span>📷</span>
+                      <span>Chagua Picha</span>
+                    </label>
+                    <input
+                      type="file"
+                      id="ep-avatar-file"
+                      accept="image/*"
+                      onChange={handleAvatarFileChange}
+                      className="hidden"
+                    />
+                    {(pendingAvatar || member?.avatar_url) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveAvatar}
+                        className="px-3 py-1.5 rounded-xl border border-red-500/40 bg-red-950/30 text-red-300 hover:text-white text-xs transition"
+                      >
+                        Ondoa Picha
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Jina Kamili</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Jina Kamili *</label>
                 <input
                   type="text"
                   value={editFullName}
                   onChange={(e) => setEditFullName(e.target.value)}
                   className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
+                  placeholder="mf. William Gerishom"
                   required
                 />
               </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Namba ya Simu (WhatsApp)</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Namba ya Simu / WhatsApp (Tanzania) *</label>
                 <input
                   type="tel"
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value)}
                   className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                  placeholder="mf. +2557XXXXXXXX"
                   required
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Mada Unazopenda / Ujuzi Unaolenga (Learning Goals & Bio)</label>
+                <textarea
+                  rows={3}
+                  value={editInterest}
+                  onChange={(e) => setEditInterest(e.target.value)}
+                  className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs leading-relaxed"
+                  placeholder="mf. Napenda Web Development, Cybersecurity na Python. Lengo langu ni kuwa Full-Stack Engineer."
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -1765,8 +2045,8 @@ function PortalContent() {
                 >
                   Ghairi
                 </button>
-                <button type="submit" className="px-5 py-2 rounded-xl btn-sg-primary text-xs">
-                  Hifadhi Wasifu
+                <button type="submit" className="px-5 py-2 rounded-xl btn-sg-primary text-xs flex items-center gap-1.5">
+                  <span>✓ Hifadhi Wasifu</span>
                 </button>
               </div>
             </form>

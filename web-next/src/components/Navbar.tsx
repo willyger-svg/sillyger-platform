@@ -115,20 +115,6 @@ export default function Navbar() {
           </Link>
 
           <Link
-            href="/courses"
-            className={`transition ${pathname === '/courses' ? 'text-white font-semibold' : 'hover:text-blue-400'}`}
-          >
-            Possible Courses
-          </Link>
-
-          <Link
-            href="/future-divisions"
-            className={`transition ${pathname === '/future-divisions' ? 'text-white font-semibold' : 'hover:text-blue-400'}`}
-          >
-            Future Vision
-          </Link>
-
-          <Link
             href="/constitution"
             className={`transition ${pathname === '/constitution' ? 'text-white font-semibold' : 'hover:text-blue-400'}`}
           >
@@ -202,20 +188,6 @@ export default function Navbar() {
           >
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
             <span>SILLYGER TV (Live)</span>
-          </Link>
-          <Link
-            href="/courses"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-300 hover:text-blue-400 py-1.5"
-          >
-            Possible Courses
-          </Link>
-          <Link
-            href="/future-divisions"
-            onClick={() => setMobileMenuOpen(false)}
-            className="block text-slate-300 hover:text-blue-400 py-1.5"
-          >
-            Future Vision (Vitengo vya Baadaye)
           </Link>
           <Link
             href="/constitution"

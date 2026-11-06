@@ -28,24 +28,6 @@ interface FundTransaction {
   description: string;
 }
 
-interface AttendanceRecord {
-  id: string;
-  member_id: string;
-  name: string;
-  session_title: string;
-  date: string;
-  status: 'VERIFIED' | 'PENDING';
-}
-
-interface LeaveRequest {
-  id: string;
-  member_id: string;
-  name: string;
-  type: string;
-  duration: string;
-  reason: string;
-  status: 'APPROVED' | 'PENDING' | 'REJECTED';
-}
 
 interface SupportTicket {
   id: string;
@@ -67,7 +49,7 @@ interface AuditLog {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
-    'queue' | 'members' | 'announcements' | 'fund' | 'attendance' | 'leaves' | 'audit' | 'database' | 'tv'
+    'queue' | 'members' | 'announcements' | 'fund' | 'tickets' | 'audit' | 'database' | 'tv'
   >('queue');
 
   // Admin Profile info
@@ -102,14 +84,7 @@ export default function AdminPage() {
   const [fundCategory, setFundCategory] = useState('');
   const [fundDesc, setFundDesc] = useState('');
 
-  // Tab 5: Attendance
-  const [activeSessionTitle, setActiveSessionTitle] = useState(
-    'Kipindi cha Jumuiya: Systems & Cloud Engineering'
-  );
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-
-  // Tab 6: Leaves & Tickets
-  const [leavesList, setLeavesList] = useState<LeaveRequest[]>([]);
+  // Tab 5: Tickets (Support)
   const [ticketsList, setTicketsList] = useState<SupportTicket[]>([]);
 
   // Tab 7: Audit Logs
@@ -173,6 +148,118 @@ export default function AdminPage() {
     return match ? match[1] : input.trim();
   };
 
+  // Reusable Realtime Admin State Synchronizer
+  const reloadAdminState = async (showNotification = false) => {
+    try {
+      const state = await api.getAdminFullState();
+      if (state) {
+        if (state.admin) {
+          setAdminName(state.admin.full_name || 'William Gerishom William');
+          setAdminRole(state.admin.role || 'Super Administrator');
+          if (state.admin.reg_number) setAdminId(state.admin.reg_number);
+        }
+
+        if (state.members) {
+          const mappedAll: ApplicantRecord[] = state.members.map((m: any) => ({
+            id: m.id,
+            full_name: m.full_name,
+            username: m.username || m.full_name.toLowerCase().replace(/\s+/g, '_'),
+            phone: m.phone,
+            email: m.email,
+            track: m.track || 'SG Student Community',
+            experience: m.experience || 'Mwanafunzi',
+            motivation: m.motivation || 'Kujifunza teknolojia pamoja na wenzangu.',
+            created_at: m.created_at || new Date().toISOString(),
+            status: (m.status || 'ACTIVE') as any,
+            reg_number: m.member_id || m.reg_number,
+            role: m.role || 'Member',
+          }));
+
+          const pending = mappedAll.filter((m) => m.status === 'PENDING');
+          const active = mappedAll.filter((m) => m.status !== 'PENDING');
+
+          setPendingApplicants(pending);
+          setMembersList(active);
+          setPendingCount(pending.length);
+          setActiveCount(active.length);
+          setTotalCount(mappedAll.length);
+        }
+
+        if (state.announcements) {
+          setAnnouncements(state.announcements);
+        }
+
+        if (state.fund_ledger) {
+          const mappedFunds = state.fund_ledger.map((f: any) => ({
+            id: f.id,
+            date: f.date || f.created_at || new Date().toISOString(),
+            type: f.type || 'INCOME',
+            amount: Number(f.amount) || 0,
+            category: f.category || 'Mchango',
+            description: f.description || '',
+          }));
+          setFundTransactions(mappedFunds);
+          const bal = mappedFunds.reduce(
+            (acc: number, tx: any) => (tx.type === 'INCOME' ? acc + tx.amount : acc - tx.amount),
+            0
+          );
+          setFundBalance(bal);
+        }
+
+        if (state.support_tickets) {
+          setTicketsList(
+            state.support_tickets.map((t: any) => ({
+              id: t.id,
+              member_name: t.full_name || t.member_name || 'Mwanafunzi',
+              title: t.title || 'Msaada wa Akaunti',
+              category: t.category || 'General',
+              message: t.message || '',
+              status: (t.status || 'OPEN') as any,
+            }))
+          );
+        }
+
+        if (state.audit_logs) {
+          setAuditLogs(
+            state.audit_logs.map((lg: any) => ({
+              id: lg.id || String(Math.random()),
+              timestamp: lg.timestamp || lg.created_at || new Date().toISOString(),
+              action: lg.action || 'ACTIVITY',
+              actor: lg.actor || 'System',
+              target: lg.target || '',
+              details: lg.details || '',
+            }))
+          );
+          setAuditLogsCount(state.audit_logs.length);
+        }
+
+        if (state.settings) {
+          if (state.settings.whatsapp_invite_url) {
+            setWhatsappLink(state.settings.whatsapp_invite_url);
+          }
+          if (state.settings.tv_live_url) {
+            setTvUrl(state.settings.tv_live_url);
+            const vId = extractVideoId(state.settings.tv_live_url);
+            if (vId) setTvParsedVideoId(vId);
+          }
+          if (state.settings.tv_live_title) {
+            setTvTitle(state.settings.tv_live_title);
+          }
+          if (state.settings.tv_is_live !== undefined) {
+            setTvIsLive(state.settings.tv_is_live === 'true');
+          }
+        }
+      }
+      if (showNotification) {
+        showToast('✓ Data zote za Admin zimesawazishwa kutoka Database!', 'success');
+      }
+    } catch (err: any) {
+      if (showNotification) {
+        showToast(err.message || 'Hitilafu ya kusawazisha data za Database.', 'error');
+      }
+    }
+  };
+
   // Initial load
   useEffect(() => {
     const session = api.getCurrentMember();
@@ -182,169 +269,21 @@ export default function AdminPage() {
       if (session.reg_number) setAdminId(session.reg_number);
     }
 
-    // Load full admin state from Supabase Cloud Engine
-    api.getAdminFullState()
-      .then((state) => {
-        if (state) {
-          if (state.admin) {
-            setAdminName(state.admin.full_name || 'William Gerishom William');
-            setAdminRole(state.admin.role || 'Super Administrator');
-            if (state.admin.reg_number) setAdminId(state.admin.reg_number);
-          }
+    reloadAdminState(false);
 
-          if (state.members) {
-            const mappedAll: ApplicantRecord[] = state.members.map((m: any) => ({
-              id: m.id,
-              full_name: m.full_name,
-              username: m.username || m.full_name.toLowerCase().replace(/\s+/g, '_'),
-              phone: m.phone,
-              email: m.email,
-              track: m.track || 'SG Student Community',
-              experience: m.experience || 'Mwanafunzi',
-              motivation: m.motivation || 'Kujifunza teknolojia pamoja na wenzangu.',
-              created_at: m.created_at || new Date().toISOString(),
-              status: (m.status || 'ACTIVE') as any,
-              reg_number: m.member_id || m.reg_number,
-              role: m.role || 'Member',
-            }));
-
-            const pending = mappedAll.filter((m) => m.status === 'PENDING');
-            const active = mappedAll.filter((m) => m.status !== 'PENDING');
-
-            setPendingApplicants(pending);
-            setMembersList(active);
-            setPendingCount(pending.length);
-            setActiveCount(active.length);
-            setTotalCount(mappedAll.length);
-          }
-
-          if (state.announcements) {
-            setAnnouncements(state.announcements);
-          }
-
-          if (state.fund_ledger) {
-            const mappedFunds = state.fund_ledger.map((f: any) => ({
-              id: f.id,
-              date: f.date || f.created_at || new Date().toISOString(),
-              type: f.type || 'INCOME',
-              amount: Number(f.amount) || 0,
-              category: f.category || 'Mchango',
-              description: f.description || '',
-            }));
-            setFundTransactions(mappedFunds);
-            const bal = mappedFunds.reduce(
-              (acc: number, tx: any) => (tx.type === 'INCOME' ? acc + tx.amount : acc - tx.amount),
-              0
-            );
-            setFundBalance(bal);
-          }
-
-          if (state.attendance) {
-            setAttendanceRecords(
-              state.attendance.map((att: any) => ({
-                id: att.id,
-                member_id: att.member_id,
-                name: att.full_name || att.member_name || att.member_id,
-                session_title: att.session_title || 'Kipindi cha Jumuiya',
-                date: att.created_at || att.date || new Date().toISOString(),
-                status: (att.status || 'VERIFIED') as any,
-              }))
-            );
-          }
-
-          if (state.leave_requests) {
-            setLeavesList(
-              state.leave_requests.map((l: any) => ({
-                id: l.id,
-                member_id: l.member_id,
-                name: l.full_name || l.member_name || 'Mwanachama',
-                type: l.category || 'Academic',
-                duration: l.duration || 'Siku 1 - 3',
-                reason: l.reason || '',
-                status: (l.status || 'PENDING') as any,
-              }))
-            );
-          }
-
-          if (state.support_tickets) {
-            setTicketsList(
-              state.support_tickets.map((t: any) => ({
-                id: t.id,
-                member_name: t.full_name || t.member_name || 'Mwanafunzi',
-                title: t.title || 'Msaada wa Akaunti',
-                category: t.category || 'General',
-                message: t.message || '',
-                status: (t.status || 'OPEN') as any,
-              }))
-            );
-          }
-
-          if (state.audit_logs) {
-            setAuditLogs(
-              state.audit_logs.map((lg: any) => ({
-                id: lg.id || String(Math.random()),
-                timestamp: lg.timestamp || lg.created_at || new Date().toISOString(),
-                action: lg.action || 'ACTIVITY',
-                actor: lg.actor || 'System',
-                target: lg.target || '',
-                details: lg.details || '',
-              }))
-            );
-            setAuditLogsCount(state.audit_logs.length);
-          }
-
-          if (state.settings) {
-            if (state.settings.whatsapp_invite_url) {
-              setWhatsappLink(state.settings.whatsapp_invite_url);
-            }
-            if (state.settings.tv_live_url) {
-              setTvUrl(state.settings.tv_live_url);
-              const vId = extractVideoId(state.settings.tv_live_url);
-              if (vId) setTvParsedVideoId(vId);
-            }
-            if (state.settings.tv_live_title) {
-              setTvTitle(state.settings.tv_live_title);
-            }
-            if (state.settings.tv_is_live !== undefined) {
-              setTvIsLive(state.settings.tv_is_live === 'true');
-            }
-          }
-
-          // Also load real TV archive from Supabase
-          api.getPublicOverview().then((ov) => {
-            if (ov && ov.tv_archive && ov.tv_archive.length > 0) {
-              setTvArchive(
-                ov.tv_archive.map((a: any) => ({
-                  id: a.id,
-                  videoId: a.video_id,
-                  title: a.title,
-                  desc: a.description,
-                }))
-              );
-            }
-          }).catch(() => {});
-        }
-      })
-      .catch(() => {
-        // Fallback to public overview if session is not active admin
-        api.getPublicOverview()
-          .then((ov) => {
-            if (ov) {
-              setPendingCount(ov.stats.pendingApplicants);
-              setActiveCount(ov.stats.activeMembers);
-              setTotalCount(ov.stats.totalRegistered);
-              if (ov.announcements) setAnnouncements(ov.announcements);
-              if (ov.tv_stream) {
-                setTvTitle(ov.tv_stream.title);
-                setTvUrl(ov.tv_stream.url);
-                setTvIsLive(ov.tv_stream.is_live);
-                const vId = extractVideoId(ov.tv_stream.url);
-                if (vId) setTvParsedVideoId(vId);
-              }
-            }
-          })
-          .catch(() => {});
-      });
+    // Also load real TV archive from Supabase
+    api.getPublicOverview().then((ov) => {
+      if (ov && ov.tv_archive && ov.tv_archive.length > 0) {
+        setTvArchive(
+          ov.tv_archive.map((a: any) => ({
+            id: a.id,
+            videoId: a.video_id,
+            title: a.title,
+            desc: a.description,
+          }))
+        );
+      }
+    }).catch(() => {});
   }, []);
 
   // Update total counts
@@ -357,25 +296,18 @@ export default function AdminPage() {
   // Handlers for Tab 1 (Queue)
   const handleApprove = async (applicant: ApplicantRecord) => {
     try {
-      let regNumber = applicant.reg_number;
-      try {
-        const res = await api.approveMember(applicant.id);
-        if (res && res.reg_number) regNumber = res.reg_number;
-      } catch (_) {
-        // Fallback generator
-        const nextNum = (membersList.length + 1).toString().padStart(6, '0');
-        regNumber = `SG-${nextNum}`;
-      }
+      const res = await api.approveMember(applicant.id);
+      const regNumber = res?.reg_number || applicant.reg_number || 'SG-ACTIVE';
 
       const approved: ApplicantRecord = {
         ...applicant,
         status: 'ACTIVE',
-        reg_number: regNumber || `SG-${(membersList.length + 1).toString().padStart(6, '0')}`,
+        reg_number: regNumber,
         role: 'Member',
       };
 
       setPendingApplicants((prev) => prev.filter((a) => a.id !== applicant.id));
-      setMembersList((prev) => [approved, ...prev]);
+      setMembersList((prev) => [approved, ...prev.filter((m) => m.id !== applicant.id)]);
 
       // Record Audit
       setAuditLogs((prev) => [
@@ -395,7 +327,7 @@ export default function AdminPage() {
         setInspectingMember(null);
       }
     } catch (e: any) {
-      showToast(e.message || 'Hitilafu wakati wa kuidhinisha.', 'error');
+      showToast(e.message || 'Hitilafu: Imeshindikana kuidhinisha kwenye database.', 'error');
     }
   };
 
@@ -409,16 +341,17 @@ export default function AdminPage() {
   };
 
   const handleReject = async (id: string, name: string) => {
-    if (confirm(`Je, una uhakika unataka kukataa ombi la ${name}?`)) {
+    if (confirm(`Je, una uhakika unataka kukataa na kufuta ombi la ${name}?`)) {
       try {
         await api.deleteMember(id);
+        setPendingApplicants((prev) => prev.filter((a) => a.id !== id));
+        setMembersList((prev) => prev.filter((m) => m.id !== id));
+        showToast(`Ombi la ${name} limeondolewa kikamilifu kwenye Database.`, 'info');
+        if (inspectingMember && inspectingMember.id === id) {
+          setInspectingMember(null);
+        }
       } catch (err: any) {
-        console.warn('Delete error:', err);
-      }
-      setPendingApplicants((prev) => prev.filter((a) => a.id !== id));
-      showToast(`Ombi la ${name} limeondolewa.`, 'info');
-      if (inspectingMember && inspectingMember.id === id) {
-        setInspectingMember(null);
+        showToast(err.message || 'Hitilafu: Imeshindikana kufuta ombi kwenye Database.', 'error');
       }
     }
   };
@@ -496,21 +429,8 @@ export default function AdminPage() {
       setNewAncTitle('');
       setNewAncContent('');
       showToast('📢 Tangazo limechapishwa kwa wanachama wote!', 'success');
-    } catch (_) {
-      // Local fallback
-      const fallback: Announcement = {
-        id: 'anc_' + Date.now(),
-        title: newAncTitle.trim(),
-        content: newAncContent.trim(),
-        priority: newAncPriority,
-        category: 'Official',
-        author_name: adminName,
-        created_at: new Date().toISOString(),
-      };
-      setAnnouncements((prev) => [fallback, ...prev]);
-      setNewAncTitle('');
-      setNewAncContent('');
-      showToast('📢 Tangazo limechapishwa kikamilifu!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kuchapisha tangazo kwenye Database.', 'error');
     }
   };
 
@@ -525,36 +445,43 @@ export default function AdminPage() {
 
     try {
       await api.adminAddFundTx(fundType, amountNum, fundCategory.trim(), fundDesc.trim());
+      const tx: FundTransaction = {
+        id: 'tx_' + Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        type: fundType,
+        amount: amountNum,
+        category: fundCategory.trim(),
+        description: fundDesc.trim(),
+      };
+
+      setFundTransactions((prev) => [tx, ...prev]);
+      setFundBalance((prev) => (fundType === 'INCOME' ? prev + amountNum : prev - amountNum));
+      setFundAmount('');
+      setFundCategory('');
+      setFundDesc('');
+      showToast('✓ Muamala umerekodiwa rasmi kwenye leja ya Database!', 'success');
     } catch (err: any) {
-      console.warn('Fund TX error:', err);
+      showToast(err.message || 'Hitilafu ya kurekodi muamala kwenye Database.', 'error');
     }
-
-    const tx: FundTransaction = {
-      id: 'tx_' + Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      type: fundType,
-      amount: amountNum,
-      category: fundCategory.trim(),
-      description: fundDesc.trim(),
-    };
-
-    setFundTransactions((prev) => [tx, ...prev]);
-    setFundBalance((prev) => (fundType === 'INCOME' ? prev + amountNum : prev - amountNum));
-    setFundAmount('');
-    setFundCategory('');
-    setFundDesc('');
-    showToast('✓ Muamala umerekodiwa rasmi kwenye leja!', 'success');
   };
 
-  // Tab 5 Handlers (Attendance)
-  const handleVerifyAllAttendance = async () => {
+  // Tab 5 Handlers (Support Tickets)
+  const handleReplyTicket = async (ticket: SupportTicket) => {
+    const reply = window.prompt(
+      `Andika jibu rasmi la Admin kwa ajili ya "${ticket.member_name}" (${ticket.title}):`,
+      'Ujumbe wako umepokelewa na kufanyiwa kazi na Uongozi wa SILLYGER.'
+    );
+    if (!reply || !reply.trim()) return;
+
     try {
-      await api.adminVerifyAttendance(undefined, true);
+      await api.adminReplyTicket(ticket.id, reply.trim());
+      setTicketsList((prev) =>
+        prev.map((item) => (item.id === ticket.id ? { ...item, status: 'RESOLVED' } : item))
+      );
+      showToast(`✓ Tiketi ya ${ticket.member_name} imejibiwa kikamilifu kwenye Database!`, 'success');
     } catch (err: any) {
-      console.warn('Attendance verify error:', err);
+      showToast(err.message || 'Hitilafu ya kujibu tiketi kwenye Database.', 'error');
     }
-    setAttendanceRecords((prev) => prev.map((a) => ({ ...a, status: 'VERIFIED' })));
-    showToast('✓ Mahudhurio yote yamethibitishwa kwenye Database!', 'success');
   };
 
   // Tab 8 Handlers (Database & Settings)
@@ -570,6 +497,36 @@ export default function AdminPage() {
     }
   };
 
+  const handleAdminChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newAdminPassword.length < 6) {
+      showToast('Nenosiri jipya lazima liwe na herufi 6 au zaidi.', 'error');
+      return;
+    }
+    if (newAdminPassword !== confirmAdminPassword) {
+      showToast('Nenosiri jipya na uthibitisho hayalingani.', 'error');
+      return;
+    }
+    try {
+      await api.changePassword(currentAdminPassword, newAdminPassword);
+      showToast('✓ Nenosiri la Super Administrator limesasishwa kikamilifu kwenye Database!', 'success');
+      setCurrentAdminPassword('');
+      setNewAdminPassword('');
+      setConfirmAdminPassword('');
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kubadili nenosiri la Admin. Hakiki nenosiri lako la sasa.', 'error');
+    }
+  };
+
+  const handleCopySchema = () => {
+    const text = `-- SILLYGER Supabase Cloud Database Configuration
+Project URL: https://inxmxykulzaqxrnpbvwd.supabase.co
+Database Engine: PostgreSQL 15 + RLS + PL/pgSQL
+Security: Tanzania PDPA 2022 Compliant`;
+    navigator.clipboard?.writeText(text);
+    showToast('✓ Taarifa za Supabase Cloud zimenakiliwa kwenye clipboard!', 'success');
+  };
+
   const handleExportJSON = () => {
     const data = {
       exported_at: new Date().toISOString(),
@@ -577,7 +534,7 @@ export default function AdminPage() {
       members: membersList,
       pending: pendingApplicants,
       fund: { balance: fundBalance, transactions: fundTransactions },
-      attendance: attendanceRecords,
+      tickets: ticketsList,
       auditLogs,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -604,8 +561,8 @@ export default function AdminPage() {
         is_live: tvIsLive,
       });
       showToast('🚀 SILLYGER TV imerushwa Live sasa hivi!', 'success');
-    } catch (_) {
-      showToast('🚀 SILLYGER TV imesasishwa moja kwa moja!', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kusasisha SILLYGER TV kwenye Database.', 'error');
     }
   };
 
@@ -619,8 +576,10 @@ export default function AdminPage() {
         video_id: tvParsedVideoId,
         is_live: false,
       });
-    } catch (_) {}
-    showToast('⏸️ SILLYGER TV imewekwa kwenye hali ya Standby.', 'info');
+      showToast('⏸️ SILLYGER TV imewekwa kwenye hali ya Standby.', 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Hitilafu ya kusitisha SILLYGER TV kwenye Database.', 'error');
+    }
   };
 
   // Filtered members
@@ -769,36 +728,25 @@ export default function AdminPage() {
           <span>SG Community Fund</span>
         </button>
 
-        {/* Tab 5: Attendance */}
+        {/* Tab 5: Tickets */}
         <button
           type="button"
-          onClick={() => setActiveTab('attendance')}
+          onClick={() => setActiveTab('tickets')}
           className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap ${
-            activeTab === 'attendance'
-              ? 'bg-purple-600/20 border border-purple-500/50 text-white shadow-md shadow-purple-500/10'
-              : 'border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60'
-          }`}
-        >
-          <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span>Mahudhurio</span>
-        </button>
-
-        {/* Tab 6: Leaves & Tickets */}
-        <button
-          type="button"
-          onClick={() => setActiveTab('leaves')}
-          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap ${
-            activeTab === 'leaves'
+            activeTab === 'tickets'
               ? 'bg-purple-600/20 border border-purple-500/50 text-white shadow-md shadow-purple-500/10'
               : 'border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60'
           }`}
         >
           <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
           </svg>
-          <span>Ruhusa & Tiketi</span>
+          <span>Tiketi za Msaada</span>
+          {ticketsList.filter((t) => t.status === 'OPEN').length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-blue-500 text-slate-950 font-mono-sg text-[10px] font-black">
+              {ticketsList.filter((t) => t.status === 'OPEN').length}
+            </span>
+          )}
         </button>
 
         {/* Tab 7: Audit */}
@@ -882,7 +830,7 @@ export default function AdminPage() {
               )}
               <button
                 type="button"
-                onClick={() => showToast('Queue imesasishwa moja kwa moja!', 'info')}
+                onClick={() => reloadAdminState(true)}
                 className="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/60 border border-purple-500/50 text-purple-300 hover:text-white font-bold text-xs flex items-center gap-2 transition shadow-md shadow-purple-500/10"
               >
                 <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1318,97 +1266,70 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* TAB PANE 5: ATTENDANCE */}
-      {activeTab === 'attendance' && (
+      {/* TAB PANE 5: SUPPORT TICKETS */}
+      {activeTab === 'tickets' && (
         <div className="space-y-4">
-          <div className="sg-glass p-5 rounded-2xl border border-slate-800 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="flex-grow max-w-xl">
-              <label
-                className="block text-xs font-bold text-cyan-400 font-mono-sg uppercase mb-1"
-                htmlFor="active-session-title-input"
-              >
-                Kipindi cha Sasa (Inaonekana kwenye Check-in ya Wanachama)
-              </label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  id="active-session-title-input"
-                  value={activeSessionTitle}
-                  onChange={(e) => setActiveSessionTitle(e.target.value)}
-                  className="flex-grow sg-input px-3.5 py-2 rounded-xl text-xs"
-                  placeholder="mf. Kipindi cha Jumamosi: Level 2 Digital Logic & ALU"
-                />
-                <button
-                  type="button"
-                  onClick={() => showToast('✓ Kipindi cha sasa kimesasishwa!', 'success')}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition whitespace-nowrap"
-                >
-                  Weka Kipindi
-                </button>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <button
-                type="button"
-                onClick={handleVerifyAllAttendance}
-                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-500/20"
-              >
-                ✓ Thibitisha Zote Zilizopo (Verify All)
-              </button>
+              <h2 className="text-xl font-bold text-white">Tiketi za Msaada na Maoni (Support Tickets — Art. 6.12)</h2>
+              <p className="text-xs text-slate-400">
+                Jibu maswali au maombi ya msaada yaliyotumwa na wanachama kupitia Member Portal.
+              </p>
             </div>
+            <button
+              type="button"
+              onClick={() => reloadAdminState(true)}
+              className="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/60 border border-purple-500/50 text-purple-300 hover:text-white font-bold text-xs flex items-center gap-2 transition"
+            >
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <span>Sasisha Tiketi</span>
+            </button>
           </div>
 
           <div className="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
-                  <th className="px-4 py-3.5">Member ID</th>
-                  <th className="px-4 py-3.5">Jina</th>
-                  <th className="px-4 py-3.5">Kipindi / Session Title</th>
-                  <th className="px-4 py-3.5">Tarehe</th>
-                  <th className="px-4 py-3.5">Hali ya Uthibitisho</th>
-                  <th className="px-4 py-3.5 text-right">Uamuzi</th>
+                  <th className="px-4 py-3.5">Mwanachama</th>
+                  <th className="px-4 py-3.5">Kichwa & Aina</th>
+                  <th className="px-4 py-3.5">Ujumbe</th>
+                  <th className="px-4 py-3.5">Hali</th>
+                  <th className="px-4 py-3.5 text-right">Hatua</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/40 text-xs">
-                {attendanceRecords.length === 0 ? (
+                {ticketsList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
-                      Hakuna kumbukumbu za mahudhurio zilizorekodiwa bado.
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
+                      Hakuna tiketi za msaada zilizowasilishwa kwa sasa.
                     </td>
                   </tr>
                 ) : (
-                  attendanceRecords.map((att) => (
-                    <tr key={att.id} className="hover:bg-slate-900/40 transition">
-                      <td className="px-4 py-3.5 font-mono-sg text-cyan-400 font-bold">{att.member_id}</td>
-                      <td className="px-4 py-3.5 text-white font-semibold">{att.name}</td>
-                      <td className="px-4 py-3.5 text-slate-300">{att.session_title}</td>
-                      <td className="px-4 py-3.5 font-mono-sg text-slate-400">{att.date}</td>
+                  ticketsList.map((tk) => (
+                    <tr key={tk.id} className="hover:bg-slate-900/40 transition">
+                      <td className="px-4 py-3.5 text-white font-semibold">{tk.member_name}</td>
+                      <td className="px-4 py-3.5 text-cyan-400 font-bold">{tk.title}</td>
+                      <td className="px-4 py-3.5 text-slate-300">{tk.message}</td>
                       <td className="px-4 py-3.5">
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold ${
-                            att.status === 'VERIFIED'
-                              ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
-                              : 'bg-amber-950/80 text-amber-300 border border-amber-800'
+                            tk.status === 'RESOLVED'
+                              ? 'bg-emerald-950/80 border border-emerald-800 text-emerald-300'
+                              : 'bg-amber-950/80 border border-amber-800 text-amber-300'
                           }`}
                         >
-                          {att.status}
+                          {tk.status}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-right">
                         <button
                           type="button"
-                          onClick={() => {
-                            setAttendanceRecords((prev) =>
-                              prev.map((item) =>
-                                item.id === att.id ? { ...item, status: 'VERIFIED' } : item
-                              )
-                            );
-                            showToast('Mahudhurio yamethibitishwa.', 'success');
-                          }}
-                          className="px-2.5 py-1 rounded bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
+                          onClick={() => handleReplyTicket(tk)}
+                          className="px-2.5 py-1 rounded bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/40 text-blue-300 text-[11px] font-bold transition"
                         >
-                          ✓ Thibitisha
+                          {tk.status === 'RESOLVED' ? 'Jibu Tena' : 'Tatua & Jibu'}
                         </button>
                       </td>
                     </tr>
@@ -1416,144 +1337,6 @@ export default function AdminPage() {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB PANE 6: LEAVES & TICKETS */}
-      {activeTab === 'leaves' && (
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-bold text-white">Maombi ya Ruhusa ya Kutoshiriki (Article 10)</h2>
-              <p className="text-xs text-slate-400">
-                Katiba inalinda wanachama: Dharura za kazi, masomo, afya au mitandao si sababu ya kufukuzwa moja kwa moja.
-              </p>
-            </div>
-
-            <div className="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
-                    <th className="px-4 py-3.5">Member ID</th>
-                    <th className="px-4 py-3.5">Jina</th>
-                    <th className="px-4 py-3.5">Aina & Muda</th>
-                    <th className="px-4 py-3.5">Sababu / Maelezo</th>
-                    <th className="px-4 py-3.5">Hali</th>
-                    <th className="px-4 py-3.5 text-right">Uamuzi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/40 text-xs">
-                  {leavesList.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
-                        Hakuna maombi ya ruhusa yaliyowasilishwa kwa sasa.
-                      </td>
-                    </tr>
-                  ) : (
-                    leavesList.map((lv) => (
-                      <tr key={lv.id} className="hover:bg-slate-900/40 transition">
-                        <td className="px-4 py-3.5 font-mono-sg text-cyan-400 font-bold">{lv.member_id}</td>
-                        <td className="px-4 py-3.5 text-white font-semibold">{lv.name}</td>
-                        <td className="px-4 py-3.5 text-blue-300 font-mono-sg">{lv.type} — {lv.duration}</td>
-                        <td className="px-4 py-3.5 text-slate-300">{lv.reason}</td>
-                        <td className="px-4 py-3.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-emerald-950/80 border border-emerald-800 text-emerald-300">
-                            {lv.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await api.adminReviewLeave(lv.id, 'APPROVED');
-                                setLeavesList((prev) =>
-                                  prev.map((item) => (item.id === lv.id ? { ...item, status: 'APPROVED' } : item))
-                                );
-                                showToast('✓ Ombi la ruhusa limeidhinishwa kikamilifu kwenye Database!', 'success');
-                              } catch (err: any) {
-                                showToast(err.message || 'Hitilafu ya kuidhinisha ruhusa', 'error');
-                              }
-                            }}
-                            className="px-2.5 py-1 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold"
-                          >
-                            Kubali
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-bold text-white">Tiketi za Msaada na Maoni (Support Tickets — Article 6.12)</h2>
-              <p className="text-xs text-slate-400">
-                Jibu maswali au maombi ya msaada yaliyotumwa na wanachama kupitia Member Portal.
-              </p>
-            </div>
-
-            <div className="sg-glass rounded-2xl border border-slate-800 overflow-x-auto shadow-xl">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-[11px] font-mono-sg uppercase text-slate-400 bg-slate-950/70">
-                    <th className="px-4 py-3.5">Mwanachama</th>
-                    <th className="px-4 py-3.5">Kichwa & Aina</th>
-                    <th className="px-4 py-3.5">Ujumbe</th>
-                    <th className="px-4 py-3.5">Hali</th>
-                    <th className="px-4 py-3.5 text-right">Hatua</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/40 text-xs">
-                  {ticketsList.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500 font-mono-sg">
-                        Hakuna tiketi za msaada zilizowasilishwa kwa sasa.
-                      </td>
-                    </tr>
-                  ) : (
-                    ticketsList.map((tk) => (
-                      <tr key={tk.id} className="hover:bg-slate-900/40 transition">
-                        <td className="px-4 py-3.5 text-white font-semibold">{tk.member_name}</td>
-                        <td className="px-4 py-3.5 text-cyan-400 font-bold">{tk.title}</td>
-                        <td className="px-4 py-3.5 text-slate-300">{tk.message}</td>
-                        <td className="px-4 py-3.5">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono-sg font-bold bg-amber-950/80 border border-amber-800 text-amber-300">
-                            {tk.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await api.adminReplyTicket(
-                                  tk.id,
-                                  'Ujumbe wako umepokelewa na kushughulikiwa na Uongozi wa SILLYGER.'
-                                );
-                                setTicketsList((prev) =>
-                                  prev.map((item) => (item.id === tk.id ? { ...item, status: 'RESOLVED' } : item))
-                                );
-                                showToast('✓ Tiketi imetatuliwa kikamilifu kwenye Database!', 'success');
-                              } catch (err: any) {
-                                showToast(err.message || 'Hitilafu ya kutatua tiketi', 'error');
-                              }
-                            }}
-                            className="px-2.5 py-1 rounded bg-blue-500/20 border border-blue-500/40 text-blue-300 text-[11px] font-bold"
-                          >
-                            Tatua
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
       )}
@@ -1674,20 +1457,7 @@ export default function AdminPage() {
                 EXECUTIVE SECURITY (SHA-256)
               </span>
               <h3 className="text-sm font-bold text-white">Badili Nenosiri la Super Administrator</h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (newAdminPassword !== confirmAdminPassword) {
-                    showToast('Manenosiri hayafanani.', 'error');
-                    return;
-                  }
-                  showToast('✓ Nenosiri la Super Admin limesasishwa!', 'success');
-                  setCurrentAdminPassword('');
-                  setNewAdminPassword('');
-                  setConfirmAdminPassword('');
-                }}
-                className="space-y-2.5"
-              >
+              <form onSubmit={handleAdminChangePassword} className="space-y-2.5">
                 <input
                   type="password"
                   value={currentAdminPassword}
@@ -1737,7 +1507,7 @@ export default function AdminPage() {
               </div>
               <button
                 type="button"
-                onClick={() => showToast('✓ Schema SQL imenakiliwa!', 'success')}
+                onClick={handleCopySchema}
                 className="shrink-0 px-4 py-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-bold text-xs font-mono-sg transition flex items-center gap-2"
               >
                 <span>📋 Nakili schema.sql Yote</span>

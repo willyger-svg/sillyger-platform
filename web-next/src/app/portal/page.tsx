@@ -147,12 +147,12 @@ function PortalContent() {
 
   // Student Dashboard State
   const [currentStudentTab, setCurrentStudentTab] = useState<
-    'overview' | 'whatsapp' | 'updates' | 'attendance' | 'courses' | 'profile' | 'settings'
+    'overview' | 'whatsapp' | 'updates' | 'courses' | 'profile' | 'settings'
   >('overview');
 
   // Modals
   const [activeModal, setActiveModal] = useState<
-    'leave' | 'ticket' | 'changePassword' | 'editProfile' | null
+    'ticket' | 'changePassword' | 'editProfile' | null
   >(null);
 
   // Dashboard Data
@@ -161,21 +161,9 @@ function PortalContent() {
     'https://chat.whatsapp.com/KRxyaSoVcUCGLq0PdOy6Jb?s=cl&p=a&iam=2'
   );
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [attendanceList, setAttendanceList] = useState<
-    { id: string; title: string; date: string; status: 'VERIFIED' | 'PENDING' }[]
-  >([]);
-  const [checkinInput, setCheckinInput] = useState('');
-  const [leaveRequests, setLeaveRequests] = useState<
-    { id: string; category: string; duration: string; reason: string; date: string; status: 'APPROVED' | 'PENDING' }[]
-  >([]);
   const [supportTickets, setSupportTickets] = useState<
     { id: string; category: string; title: string; message: string; date: string; status: 'OPEN' | 'RESOLVED' }[]
   >([]);
-
-  // Modal form states
-  const [leaveCategory, setLeaveCategory] = useState('Academic');
-  const [leaveDuration, setLeaveDuration] = useState('Siku 1 - 3');
-  const [leaveReason, setLeaveReason] = useState('');
 
   const [ticketCategory, setTicketCategory] = useState('Account & Approval');
   const [ticketTitle, setTicketTitle] = useState('');
@@ -238,28 +226,6 @@ function PortalContent() {
             }
             if (state.announcements) {
               setAnnouncements(state.announcements);
-            }
-            if (state.attendance) {
-              setAttendanceList(
-                state.attendance.map((att: any) => ({
-                  id: att.id,
-                  title: att.session_title,
-                  date: new Date(att.created_at || att.date).toLocaleDateString('sw-TZ'),
-                  status: att.status || (att.is_verified ? 'VERIFIED' : 'PENDING'),
-                }))
-              );
-            }
-            if (state.leave_requests) {
-              setLeaveRequests(
-                state.leave_requests.map((l: any) => ({
-                  id: l.id,
-                  category: l.category || 'Academic',
-                  duration: l.duration || 'Siku 1 - 3',
-                  reason: l.reason || '',
-                  date: new Date(l.created_at || l.date).toLocaleDateString('sw-TZ'),
-                  status: l.status || 'PENDING',
-                }))
-              );
             }
             if (state.support_tickets) {
               setSupportTickets(
@@ -358,28 +324,6 @@ function PortalContent() {
         if (state.announcements) {
           setAnnouncements(state.announcements);
         }
-        if (state.attendance) {
-          setAttendanceList(
-            state.attendance.map((att: any) => ({
-              id: att.id,
-              title: att.session_title,
-              date: new Date(att.created_at || att.date).toLocaleDateString('sw-TZ'),
-              status: att.status || (att.is_verified ? 'VERIFIED' : 'PENDING'),
-            }))
-          );
-        }
-        if (state.leave_requests) {
-          setLeaveRequests(
-            state.leave_requests.map((l: any) => ({
-              id: l.id,
-              category: l.category || 'Academic',
-              duration: l.duration || 'Siku 1 - 3',
-              reason: l.reason || '',
-              date: new Date(l.created_at || l.date).toLocaleDateString('sw-TZ'),
-              status: l.status || 'PENDING',
-            }))
-          );
-        }
         if (state.support_tickets) {
           setSupportTickets(
             state.support_tickets.map((t: any) => ({
@@ -456,43 +400,6 @@ function PortalContent() {
     }
   };
 
-  const handleCheckin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!checkinInput.trim()) return;
-    try {
-      await api.studentCheckin(checkinInput.trim());
-    } catch (_) {}
-    const newRecord = {
-      id: 'att-' + Date.now(),
-      title: checkinInput.trim(),
-      date: new Date().toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'VERIFIED' as const,
-    };
-    setAttendanceList([newRecord, ...attendanceList]);
-    setCheckinInput('');
-    showToast('✓ Mahudhurio yamerekodiwa kwenye Cloud!');
-  };
-
-  const handleLeaveSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!leaveReason.trim()) return;
-    try {
-      await api.submitLeaveRequest(leaveCategory, leaveDuration, leaveReason.trim());
-    } catch (_) {}
-    const newLeave = {
-      id: 'leave-' + Date.now(),
-      category: leaveCategory,
-      duration: leaveDuration,
-      reason: leaveReason.trim(),
-      date: new Date().toLocaleDateString('sw-TZ', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: 'PENDING' as const,
-    };
-    setLeaveRequests([newLeave, ...leaveRequests]);
-    setLeaveReason('');
-    setActiveModal(null);
-    showToast('✓ Ombi la ruhusa limewasilishwa kwa Admin!');
-  };
-
   const handleTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ticketTitle.trim() || !ticketMessage.trim()) return;
@@ -558,8 +465,6 @@ function PortalContent() {
   const exportMyData = () => {
     const data = {
       member,
-      attendance: attendanceList,
-      leaves: leaveRequests,
       tickets: supportTickets,
       exported_at: new Date().toISOString(),
       compliance: 'PDPA 2022 Certified',
@@ -838,19 +743,6 @@ function PortalContent() {
 
                 <button
                   type="button"
-                  onClick={() => setCurrentStudentTab('attendance')}
-                  className={`student-nav-btn w-full px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 whitespace-nowrap text-left transition ${
-                    currentStudentTab === 'attendance'
-                      ? 'btn-sg-primary font-bold'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/70'
-                  }`}
-                >
-                  <span>✅</span>
-                  <span>Check-in & Ruhusa</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => setCurrentStudentTab('courses')}
                   className={`student-nav-btn w-full px-3.5 py-2.5 rounded-2xl text-xs font-semibold flex items-center gap-2.5 whitespace-nowrap text-left transition ${
                     currentStudentTab === 'courses'
@@ -1000,19 +892,19 @@ function PortalContent() {
                       <div className="text-[11px] text-slate-400">Bofya kuangalia &rarr;</div>
                     </div>
 
-                    {/* KPI 3: Attendance */}
+                    {/* KPI 3: Possible Courses */}
                     <div
-                      onClick={() => setCurrentStudentTab('attendance')}
+                      onClick={() => setCurrentStudentTab('courses')}
                       className="sg-glass p-4 sm:p-5 rounded-2xl space-y-1.5 cursor-pointer hover:border-blue-500/40 transition"
                     >
                       <div className="flex items-center justify-between text-xs text-slate-400">
-                        <span>Vipindi Ulivyoshiriki</span>
-                        <span>✅</span>
+                        <span>Mada za Masomo</span>
+                        <span>📚</span>
                       </div>
                       <div className="text-base sm:text-lg font-extrabold font-mono-sg text-white">
-                        {attendanceList.length}
+                        10 Mada
                       </div>
-                      <div className="text-[11px] text-emerald-400">{attendanceList.length} Imethibitishwa</div>
+                      <div className="text-[11px] text-blue-400">Possible Courses &rarr;</div>
                     </div>
 
                     {/* KPI 4: Updates */}
@@ -1344,108 +1236,6 @@ function PortalContent() {
               )}
 
               {/* ================================================== */}
-              {/* PANE 4: CHECK-IN & RUHUSA                          */}
-              {/* ================================================== */}
-              {currentStudentTab === 'attendance' && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Check-in ya Kipindi */}
-                    <div className="sg-glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-800/80">
-                          <div>
-                            <span className="font-mono-sg text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-0.5">
-                              MAHUDHURIO YA VIPINDI
-                            </span>
-                            <h2 className="text-base font-bold text-white">Check-in ya Kipindi</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Rekodi ushiriki wako tunapokuwa na kipindi cha pamoja.</p>
-                          </div>
-                          <span className="px-2.5 py-1 rounded-lg badge-active text-[11px] font-mono-sg font-bold shrink-0">
-                            {attendanceList.length} Verified
-                          </span>
-                        </div>
-
-                        <form onSubmit={handleCheckin} className="flex flex-col sm:flex-row gap-2">
-                          <input
-                            type="text"
-                            value={checkinInput}
-                            onChange={(e) => setCheckinInput(e.target.value)}
-                            className="flex-grow sg-input px-3.5 py-2.5 rounded-xl text-xs"
-                            placeholder="Mada ya kipindi (mf. Linux Basics)"
-                            required
-                          />
-                          <button
-                            type="submit"
-                            className="px-4 py-2.5 rounded-xl btn-sg-emerald text-xs whitespace-nowrap"
-                          >
-                            ✓ Check-in
-                          </button>
-                        </form>
-
-                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                          {attendanceList.length > 0 ? (
-                            attendanceList.map((att) => (
-                              <div key={att.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
-                                <div>
-                                  <span className="text-white font-semibold block">{att.title}</span>
-                                  <span className="text-[10px] text-slate-400 font-mono-sg">{att.date}</span>
-                                </div>
-                                <span className="text-emerald-400 font-mono-sg text-[10px]">● Verified</span>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-6 text-center text-xs text-slate-400 font-mono-sg">
-                              Huna kumbukumbu za mahudhurio zilizorekodiwa bado.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Maombi ya Ruhusa */}
-                    <div className="sg-glass p-6 rounded-3xl flex flex-col justify-between space-y-4">
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-800/80">
-                          <div>
-                            <span className="font-mono-sg text-[10px] font-bold text-blue-400 uppercase tracking-wider block mb-0.5">
-                              UDHURU & TAARIFA
-                            </span>
-                            <h2 className="text-base font-bold text-white">Maombi ya Ruhusa</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Toa taarifa mapema endapo una mitihani au dharura.</p>
-                          </div>
-                          <button
-                            onClick={() => setActiveModal('leave')}
-                            className="px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold text-xs transition whitespace-nowrap shrink-0"
-                          >
-                            + Omba Ruhusa
-                          </button>
-                        </div>
-
-                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                          {leaveRequests.length > 0 ? (
-                            leaveRequests.map((l) => (
-                              <div key={l.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs space-y-1">
-                                <div className="flex items-center justify-between font-bold text-white">
-                                  <span>{l.category}</span>
-                                  <span className="text-amber-400 text-[10px] font-mono-sg">{l.status}</span>
-                                </div>
-                                <div className="text-slate-300 text-[11px]">{l.reason}</div>
-                                <div className="text-[10px] text-slate-500 font-mono-sg">{l.duration} · {l.date}</div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-6 text-center text-xs text-slate-400 font-mono-sg">
-                              Huna ombi lolote la ruhusa kwa sasa.
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ================================================== */}
               {/* PANE 5: POSSIBLE COURSES                           */}
               {/* ================================================== */}
               {currentStudentTab === 'courses' && (
@@ -1461,10 +1251,10 @@ function PortalContent() {
                       </p>
                     </div>
                     <Link
-                      href="/future-divisions"
+                      href="/constitution"
                       className="text-xs font-semibold text-blue-400 hover:underline shrink-0"
                     >
-                      Tazama Future Vision &rarr;
+                      Soma Katiba v1.4 &rarr;
                     </Link>
                   </div>
 
@@ -1733,76 +1523,6 @@ function PortalContent() {
       {/* ============================================================== */}
       {/* MODALS                                                         */}
       {/* ============================================================== */}
-
-      {/* MODAL 1: OMBA RUHUSA */}
-      {activeModal === 'leave' && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="sg-glass p-6 sm:p-8 rounded-3xl border border-blue-500/40 max-w-md w-full shadow-2xl space-y-4 animate-fade-in">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
-                <span className="text-[10px] font-mono-sg text-blue-400 uppercase font-bold block">TAARIFA YA UDHURU</span>
-                <h3 className="text-lg font-bold text-white">Wasilisha Ombi la Ruhusa</h3>
-              </div>
-              <button onClick={() => setActiveModal(null)} className="text-slate-400 hover:text-white p-1.5">✕</button>
-            </div>
-            <form onSubmit={handleLeaveSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="leave-category">Sababu Kuu</label>
-                <select
-                  id="leave-category"
-                  value={leaveCategory}
-                  onChange={(e) => setLeaveCategory(e.target.value)}
-                  className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
-                >
-                  <option value="Academic">Masomo / Mitihani (Academic)</option>
-                  <option value="Technical">Changamoto ya Mtandao au Kifaa</option>
-                  <option value="Health">Afya / Matibabu</option>
-                  <option value="Work">Majukumu Mengine</option>
-                  <option value="Family">Dharura ya Familia / Binafsi</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="leave-duration">Muda wa Ruhusa</label>
-                <select
-                  id="leave-duration"
-                  value={leaveDuration}
-                  onChange={(e) => setLeaveDuration(e.target.value)}
-                  className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
-                >
-                  <option value="Siku 1 - 3">Siku 1 - 3</option>
-                  <option value="Siku 4 - 7">Wiki 1 (Siku 4 - 7)</option>
-                  <option value="Wiki 2">Wiki 2</option>
-                  <option value="Zaidi ya Wiki 2">Zaidi ya Wiki 2</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1" htmlFor="leave-reason">Maelezo Mafupi</label>
-                <textarea
-                  id="leave-reason"
-                  rows={3}
-                  value={leaveReason}
-                  onChange={(e) => setLeaveReason(e.target.value)}
-                  className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
-                  placeholder="Andika kwa ufupi sababu yako..."
-                  required
-                />
-              </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveModal(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800"
-                >
-                  Ghairi
-                </button>
-                <button type="submit" className="px-5 py-2 rounded-xl btn-sg-primary text-xs">
-                  Tuma Ombi
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* MODAL 2: TIKETI YA MSAADA */}
       {activeModal === 'ticket' && (

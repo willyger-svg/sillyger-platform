@@ -36,12 +36,6 @@ export default function Footer() {
           <Link href="/portal" className="hover:text-white transition">
             Student Dashboard
           </Link>
-          <Link href="/courses" className="hover:text-white transition">
-            Possible Courses
-          </Link>
-          <Link href="/future-divisions" className="hover:text-white transition">
-            Future Vision
-          </Link>
           <Link href="/constitution" className="hover:text-white transition">
             Katiba v1.4
           </Link>

@@ -88,7 +88,7 @@ export default function HomePage() {
 
             {/* Choice 2: Curious what we learn */}
             <Link
-              href="/courses"
+              href="/portal"
               className="sg-glass sg-glass-hover p-6 rounded-3xl flex flex-col justify-between gap-5 group"
             >
               <div className="space-y-3">
@@ -202,8 +202,8 @@ export default function HomePage() {
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
                 <strong>Hapana.</strong> Kwa sasa hakuna vitengo vilivyogawanywa — tunaingia wote kama jumuiya moja ya wanafunzi (<em>SG Student Community</em>). Vitengo 11 ni{' '}
-                <Link href="/future-divisions" className="text-blue-400 hover:underline">
-                  dira ya baadaye (Future Vision)
+                <Link href="/constitution" className="text-blue-400 hover:underline">
+                  dira ya baadaye (Katiba v1.4)
                 </Link>.
               </p>
             </div>
@@ -328,10 +328,10 @@ export default function HomePage() {
                 </svg>
               </Link>
               <Link
-                href="/future-divisions"
+                href="/constitution"
                 className="w-full sm:w-auto px-6 py-4 rounded-2xl border border-slate-700 hover:border-blue-400 text-slate-200 font-semibold text-xs sm:text-sm transition"
               >
-                Soma Future Vision Yetu
+                Soma Katiba Yetu v1.4
               </Link>
             </div>
           </div>

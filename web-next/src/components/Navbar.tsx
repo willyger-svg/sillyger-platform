@@ -1,182 +1,171 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useI18n } from '../lib/i18n';
-import { Tv, BookOpen, ScrollText, UserCheck, Shield, Menu, X, Bell, Globe, Sparkles } from 'lucide-react';
+import api from '../lib/api';
 
 export default function Navbar() {
-  const { t, language, setLanguage } = useI18n();
   const pathname = usePathname();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(2); // Example live notification count (WhatsApp style)
-  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMember, setUserMember] = useState<any>(null);
 
-  const toggleLanguage = () => {
-    setLanguage(language === 'sw' ? 'en' : 'sw');
-  };
-
-  const navLinks = [
-    { href: '/', label: t('nav_home') },
-    { href: '/tv', label: t('nav_tv'), icon: Tv, highlight: true },
-    { href: '/courses', label: t('nav_courses'), icon: BookOpen },
-    { href: '/constitution', label: t('nav_constitution'), icon: ScrollText },
-    { href: '/portal', label: t('nav_portal'), icon: UserCheck },
-    { href: '/admin', label: t('nav_admin'), icon: Shield },
-  ];
+  useEffect(() => {
+    setUserMember(api.getCurrentMember());
+  }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-50 glass-panel border-b border-slate-800/80 bg-slate-950/80">
+    <header className="sticky top-0 z-50 sg-glass border-b border-slate-800/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand & Logo */}
+        {/* Brand */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-cyan-400 p-0.5 shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform duration-300">
-            <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <span className="font-black text-lg text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-                SG
-              </span>
-            </div>
-          </div>
+          <img
+            src="/assets/sillyger-logo-icon.svg"
+            alt="SILLYGER"
+            className="w-10 h-10 rounded-xl shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform"
+          />
           <div>
-            <div className="font-extrabold text-lg tracking-wider text-white group-hover:text-blue-400 transition-colors">
+            <span className="text-lg sm:text-xl font-extrabold tracking-wide text-white block leading-none">
               SILLYGER
-            </div>
-            <div className="text-[10px] text-blue-400/80 font-mono tracking-widest hidden sm:block">
-              COMMUNITY v2.0
-            </div>
+            </span>
+            <span className="text-[10px] font-mono-sg text-blue-400 block tracking-widest uppercase mt-0.5">
+              Student Tech Community
+            </span>
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-1 lg:gap-2">
-          {navLinks.map((link) => {
-            const active = pathname === link.href;
-            const Icon = link.icon;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
-                  active
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-900/60'
-                }`}
-              >
-                {Icon && <Icon className={`w-4 h-4 ${link.highlight ? 'text-rose-500 animate-pulse' : ''}`} />}
-                <span>{link.label}</span>
-                {link.highlight && (
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping ml-0.5" />
-                )}
-              </Link>
-            );
-          })}
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-300">
+          <Link
+            href="/"
+            className={`transition ${pathname === '/' ? 'text-white font-semibold' : 'hover:text-blue-400'}`}
+          >
+            Nyumbani
+          </Link>
+
+          <Link
+            href="/tv"
+            className={`flex items-center gap-1.5 transition ${
+              pathname === '/tv'
+                ? 'text-red-400 font-bold'
+                : 'text-red-400 font-bold hover:text-red-300'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            <span>SILLYGER TV</span>
+          </Link>
+
+          <Link
+            href="/courses"
+            className={`transition ${pathname === '/courses' ? 'text-white font-semibold' : 'hover:text-blue-400'}`}
+          >
+            Possible Courses
+          </Link>
+
+          <Link
+            href="/constitution"
+            className={`transition ${pathname === '/constitution' ? 'text-white font-semibold' : 'hover:text-blue-400'}`}
+          >
+            Katiba
+          </Link>
+
+          <Link
+            href="/admin"
+            className={`transition ${pathname === '/admin' ? 'text-white font-semibold' : 'text-slate-400 hover:text-blue-400'}`}
+          >
+            Utawala
+          </Link>
         </nav>
 
-        {/* Action Controls: Notifications, Language Switcher, Drawer */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* WhatsApp-style Notification Badge */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowNotificationPopup(!showNotificationPopup);
-                setUnreadCount(0); // clear on click like WhatsApp!
-              }}
-              className="p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition relative"
-              title="Notifications"
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-emerald-500 text-slate-950 font-bold text-[10px] rounded-full flex items-center justify-center animate-bounce shadow-md shadow-emerald-500/30">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notification Dropdown */}
-            {showNotificationPopup && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl glass-panel p-4 shadow-2xl border border-slate-700/60 z-50">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-blue-400" />
-                    {t('unread_notifications')}
-                  </h4>
-                  <span className="text-xs text-blue-400 font-mono">Realtime</span>
-                </div>
-                <div className="mt-3 space-y-2.5">
-                  <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 text-xs">
-                    <div className="font-semibold text-white">🔴 SILLYGER TV Moja kwa Moja</div>
-                    <div className="text-slate-400 mt-0.5">Kipindi kipya cha teknolojia kimeanza sasa hivi. Ungana nasi!</div>
-                  </div>
-                  <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 text-xs">
-                    <div className="font-semibold text-white">📢 Tangazo la Uongozi</div>
-                    <div className="text-slate-400 mt-0.5">Ratiba mpya ya masomo na mfumo rasmi wa kadi za kidijitali umewashwa.</div>
-                  </div>
-                </div>
-              </div>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-2.5">
+            {userMember ? (
+              <Link
+                href="/portal"
+                className="px-4 py-2 rounded-xl bg-slate-900 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center gap-2 hover:bg-slate-800 transition"
+              >
+                <span>👤</span>
+                <span>{userMember.full_name?.split(' ')[0] || 'Dashboard'}</span>
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/portal"
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-300 hover:text-white transition"
+                >
+                  Ingia Dashboard
+                </Link>
+                <Link
+                  href="/portal?tab=register"
+                  className="px-4 py-2 rounded-xl btn-sg-primary text-xs font-bold shadow-md"
+                >
+                  Ndiyo, Nataka Kujiunga
+                </Link>
+              </>
             )}
           </div>
 
-          {/* Multilingual Switcher Button */}
+          {/* Mobile Menu Button */}
           <button
-            onClick={toggleLanguage}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-900/80 hover:border-blue-500/40 text-xs font-semibold text-slate-200 transition"
-            title="Badili Lugha / Switch Language"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-slate-300 hover:text-white p-2"
+            aria-label="Fungua menyu"
           >
-            <Globe className="w-3.5 h-3.5 text-blue-400" />
-            <span>{language === 'sw' ? 'SW' : 'EN'}</span>
-          </button>
-
-          {/* 3-Bar Hamburger Drawer Toggle */}
-          <button
-            onClick={() => setDrawerOpen(!drawerOpen)}
-            className="p-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-slate-900 transition"
-            aria-label="Toggle Menu"
-          >
-            {drawerOpen ? <X className="w-6 h-6 text-blue-400" /> : <Menu className="w-6 h-6" />}
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
           </button>
         </div>
       </div>
 
-      {/* Mobile / Slide-Over Navigation Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 top-16 bg-slate-950/95 backdrop-blur-xl z-40 p-6 flex flex-col justify-between border-t border-slate-800/80 animate-fadeIn">
-          <div className="space-y-3">
-            <div className="text-xs font-mono text-blue-400 uppercase tracking-widest px-3 mb-2">
-              Menu Kuu
-            </div>
-            {navLinks.map((link) => {
-              const active = pathname === link.href;
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setDrawerOpen(false)}
-                  className={`flex items-center justify-between p-3.5 rounded-2xl text-base font-semibold transition ${
-                    active
-                      ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
-                      : 'text-slate-300 hover:bg-slate-900/80'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {Icon && <Icon className="w-5 h-5 text-blue-400" />}
-                    <span>{link.label}</span>
-                  </div>
-                  {link.highlight && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500 text-white font-mono uppercase font-bold">
-                      Live
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="pt-6 border-t border-slate-800/80 text-center">
-            <p className="text-xs text-slate-500 font-mono">
-              SILLYGER Community Platform • Version 2.0 Fullstack
-            </p>
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-800 bg-sgcard/95 px-4 pt-3 pb-5 space-y-2.5 text-sm">
+          <Link
+            href="/"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-white font-semibold py-1.5"
+          >
+            Nyumbani
+          </Link>
+          <Link
+            href="/tv"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-red-400 font-bold py-1.5 flex items-center gap-2"
+          >
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+            <span>SILLYGER TV (Live)</span>
+          </Link>
+          <Link
+            href="/courses"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-slate-300 hover:text-blue-400 py-1.5"
+          >
+            Possible Courses
+          </Link>
+          <Link
+            href="/constitution"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-slate-300 hover:text-blue-400 py-1.5"
+          >
+            Katiba v1.4
+          </Link>
+          <Link
+            href="/portal"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block text-blue-400 font-semibold py-1.5"
+          >
+            Ingia Student Dashboard
+          </Link>
+          <div className="pt-2">
+            <Link
+              href="/portal?tab=register"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-center w-full py-2.5 rounded-xl btn-sg-primary text-sm font-bold"
+            >
+              Ndiyo, Nataka Kujifunza Nanyi
+            </Link>
           </div>
         </div>
       )}

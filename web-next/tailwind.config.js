@@ -5,17 +5,17 @@ module.exports = {
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        brand: {
-          blue: "#0066FF",
-          navy: "#0A192F",
-          dark: "#030712",
-          surface: "#0F172A",
-          accent: "#38BDF8",
-          emerald: "#10B981",
-        },
+        sgbg: '#0b1120',
+        sgcard: '#111a2e',
+        sgblue: '#3b82f6',
+        sgdark: '#060a14',
+      },
+      fontFamily: {
+        mono: ['Fira Code', 'monospace'],
       },
     },
   },

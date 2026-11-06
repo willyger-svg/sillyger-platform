@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 240" width="880" height="240">
+  <defs>
+    <linearGradient id="navCyanBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F5FF"/>
+      <stop offset="60%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <linearGradient id="navBlueViolet" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <linearGradient id="navTextGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#CBD5E1"/>
+    </linearGradient>
+
+    <filter id="navGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800;900&amp;family=JetBrains+Mono:wght@600;700&amp;display=swap');
+    .nav-title {
+      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      font-size: 78px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      fill: url(#navTextGrad);
+    }
+    .nav-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.36em;
+      fill: #38bdf8;
+    }
+  </style>
+
+  <!-- Left Icon Emblem Group -->
+  <g transform="translate(20, 20) scale(0.39)">
+    <rect width="512" height="512" rx="120" fill="#050b18" stroke="url(#navCyanBlue)" stroke-width="6"/>
+
+    <!-- 'S' Upper -->
+    <path d="M 326 142 
+             C 272 142, 186 150, 186 210
+             C 186 252, 238 266, 280 278
+             L 316 288
+             C 334 294, 348 304, 348 322
+             C 348 344, 324 354, 290 354
+             C 250 354, 212 338, 196 324
+             L 172 358
+             C 198 380, 246 394, 292 394
+             C 356 394, 396 362, 396 318
+             C 396 274, 354 256, 308 244
+             L 272 234
+             C 246 226, 234 218, 234 204
+             C 234 188, 252 178, 286 178
+             C 320 178, 350 190, 368 202
+             L 388 168
+             C 368 152, 336 142, 326 142 Z" 
+          fill="url(#navCyanBlue)"/>
+
+    <!-- 'G' Lower -->
+    <path d="M 374 252 L 284 252 L 284 286 L 336 286 L 336 310
+             C 336 340, 296 354, 260 354
+             C 208 354, 168 316, 168 256
+             C 168 196, 208 158, 260 158
+             C 292 158, 324 170, 342 186
+             L 364 154
+             C 338 132, 298 122, 258 122
+             C 184 122, 126 178, 126 256
+             C 126 334, 184 390, 258 390
+             C 328 390, 376 346, 376 296
+             L 376 252 Z"
+          fill="url(#navBlueViolet)"/>
+
+    <polygon points="256,244 266,256 256,268 246,256" fill="#00F5FF" filter="url(#navGlow)"/>
+    <circle cx="376" cy="252" r="8" fill="#00F5FF"/>
+  </g>
+
+  <!-- Typography Right Side -->
+  <text x="254" y="126" class="nav-title">SILLYGER</text>
+  <text x="258" y="172" class="nav-sub">STUDENT TECHNOLOGY PLATFORM</text>
+  
+  <line x1="256" y1="192" x2="780" y2="192" stroke="#1e293b" stroke-width="2"/>
+  <line x1="256" y1="192" x2="380" y2="192" stroke="url(#navCyanBlue)" stroke-width="2.5"/>
+</svg>

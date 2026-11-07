@@ -159,7 +159,7 @@ export default function AdminPage() {
     },
   ]);
   const [newResTitle, setNewResTitle] = useState('');
-  const [newResCategory, setNewResCategory] = useState('Tools & Apps');
+  const [newResCategory, setNewResCategory] = useState('Apps za Simu');
   const [newResType, setNewResType] = useState('APK');
   const [newResSize, setNewResSize] = useState('25 MB');
   const [newResVersion, setNewResVersion] = useState('v1.0');
@@ -1940,24 +1940,30 @@ Security: Tanzania PDPA 2022 Compliant`;
 
                 <div>
                   <label className="block text-xs font-bold text-white mb-1.5">
-                    Kitengo (Category)
+                    Kitengo (Play Store Category)
                   </label>
                   <select
                     value={newResCategory}
-                    onChange={(e) => setNewResCategory(e.target.value)}
+                    onChange={(e) => {
+                      const cat = e.target.value;
+                      setNewResCategory(cat);
+                      if (cat.includes('Simu')) setNewResType('APK');
+                      else if (cat.includes('Nyaraka')) setNewResType('PDF');
+                      else if (cat.includes('Kompyuta')) setNewResType('EXE');
+                      else if (cat.includes('Tovuti')) setNewResType('WEB');
+                    }}
                     className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
                   >
-                    <option value="Tools & Apps">Tools & Apps (Programu)</option>
-                    <option value="Mazoezi ya Vitendo">Mazoezi ya Vitendo (Labs)</option>
-                    <option value="Miongozo & PDF">Miongozo & PDF (Guides)</option>
-                    <option value="Cybersecurity">Cybersecurity & Linux</option>
-                    <option value="Programming">Programming & Systems</option>
+                    <option value="Apps za Simu">📱 Apps za Simu (APK)</option>
+                    <option value="Nyaraka & Vitabu">📄 Nyaraka & Vitabu (PDF)</option>
+                    <option value="Apps za Kompyuta">💻 Apps za Kompyuta (Desktop)</option>
+                    <option value="Tovuti & Viungo">🌐 Tovuti & Viungo (Web)</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-white mb-1.5">
-                    Aina ya Faili (Type)
+                    Aina ya Faili (File Type)
                   </label>
                   <select
                     value={newResType}
@@ -1966,9 +1972,10 @@ Security: Tanzania PDPA 2022 Compliant`;
                   >
                     <option value="APK">APK (Android App)</option>
                     <option value="PDF">PDF (Kitabu / Mwongozo)</option>
+                    <option value="EXE">EXE (Windows Installer)</option>
+                    <option value="DEB">DEB (Linux Package)</option>
                     <option value="ZIP">ZIP (Kifurushi cha Mazoezi)</option>
                     <option value="WEB">WEB (Kiungo cha Tovuti)</option>
-                    <option value="TOOL">TOOL (Chombo Kingine)</option>
                   </select>
                 </div>
               </div>

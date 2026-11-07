@@ -1148,7 +1148,7 @@ function renderProfileAndTickets(member) {
         if (qrContainer && typeof QRCode !== "undefined") {
             try {
                 qrContainer.innerHTML = "";
-                const verifyUrl = `https://sillyger.netlify.app/index.html?verify_id=${encodeURIComponent(safeId)}&name=${encodeURIComponent(safeName)}`;
+                const verifyUrl = `https://sillyger-platform.vercel.app/?verify_id=${encodeURIComponent(safeId)}&name=${encodeURIComponent(safeName)}`;
                 new QRCode(qrContainer, {
                     text: verifyUrl,
                     width: 80,

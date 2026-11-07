@@ -410,3 +410,387 @@ if (typeof window !== "undefined") {
 if (typeof module !== "undefined" && module.exports) {
     module.exports = { SG_CONFIG, SGUtils };
 }
+
+/* ==========================================================================
+   SILLYGER EMERGENCY MIGRATION NOTICE & REDIRECT (Netlify -> Vercel)
+   Inawajulisha wageni wanaoingia Netlify kuwa tovuti imehamia Vercel rasmi,
+   ikiwa na countdown na button inayowapeleka moja kwa moja kwenye mfumo mpya.
+   ========================================================================== */
+(function () {
+    if (typeof window === "undefined" || !window.location) return;
+
+    var hostname = (window.location.hostname || "").toLowerCase();
+    var isVercel = hostname.includes("vercel.app");
+    var isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname === "";
+    var forcePreview = window.location.search.indexOf("show_migration=1") !== -1;
+
+    // Usionyeshe kama tayari yuko Vercel au localhost (isipokuwa show_migration=1 imetumika)
+    if (isVercel && !forcePreview) {
+        return;
+    }
+    if (isLocal && !forcePreview && hostname.indexOf("netlify") === -1) {
+        return;
+    }
+
+    // Ruta lengwa kwenye jukwaa jipya la Vercel
+    var targetBase = "https://sillyger-platform.vercel.app";
+    var path = (window.location.pathname || "").toLowerCase();
+    var search = window.location.search || "";
+    
+    // Ondoa query ya forcePreview kama ilikuwepo
+    search = search.replace(/[?&]show_migration=1/, "").replace(/^&/, "?");
+
+    var targetPath = "/";
+    if (path.indexOf("admin") !== -1) {
+        targetPath = "/admin";
+    } else if (path.indexOf("member-portal") !== -1 || path.indexOf("portal") !== -1) {
+        targetPath = "/portal";
+    } else if (path.indexOf("register") !== -1 || path.indexOf("jiunge") !== -1) {
+        targetPath = "/register";
+    } else if (path.indexOf("constitution") !== -1 || path.indexOf("katiba") !== -1) {
+        targetPath = "/constitution";
+    } else if (path.indexOf("tv") !== -1) {
+        targetPath = "/tv";
+    } else if (path.indexOf("download") !== -1) {
+        targetPath = "/download";
+    }
+
+    var fullTargetUrl = targetBase + targetPath + (search && search !== "?" ? search : "");
+
+    function setupNotice() {
+        if (document.getElementById("sg-migration-modal-wrap")) return;
+
+        // 1. Ingiza Stylesheets maalum za Taarifa
+        var styleEl = document.createElement("style");
+        styleEl.id = "sg-migration-styles";
+        styleEl.textContent = `
+            #sg-migration-banner {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 999998;
+                background: linear-gradient(90deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+                border-bottom: 2px solid #6366f1;
+                color: #e0e7ff;
+                padding: 10px 16px;
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+                font-size: 13px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            #sg-migration-banner .sg-banner-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+                min-width: 260px;
+            }
+            #sg-migration-banner .sg-banner-badge {
+                background: #ef4444;
+                color: #ffffff;
+                font-size: 10px;
+                font-weight: 800;
+                padding: 4px 8px;
+                border-radius: 9999px;
+                letter-spacing: 0.5px;
+                text-transform: uppercase;
+                white-space: nowrap;
+                animation: sgPulse 1.8s infinite;
+            }
+            #sg-migration-banner .sg-banner-text {
+                font-weight: 500;
+                line-height: 1.4;
+            }
+            #sg-migration-banner .sg-banner-link {
+                background: linear-gradient(135deg, #3b82f6, #4f46e5);
+                color: #ffffff !important;
+                font-weight: 700;
+                text-decoration: none;
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-size: 12px;
+                white-space: nowrap;
+                border: 1px solid rgba(255, 255, 255, 0.25);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                transition: transform 0.2s, box-shadow 0.2s;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+            #sg-migration-banner .sg-banner-link:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(59, 130, 246, 0.6);
+            }
+            @keyframes sgPulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(0.97); }
+            }
+
+            #sg-migration-modal-wrap {
+                position: fixed;
+                inset: 0;
+                z-index: 999999;
+                background: rgba(3, 7, 18, 0.88);
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+                box-sizing: border-box;
+                font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            }
+            #sg-migration-modal {
+                background: #0b1120;
+                border: 1px solid rgba(99, 102, 241, 0.4);
+                border-radius: 20px;
+                max-width: 520px;
+                width: 100%;
+                color: #f8fafc;
+                box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.8), 0 0 50px rgba(99, 102, 241, 0.25);
+                overflow: hidden;
+                animation: sgModalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            @keyframes sgModalIn {
+                from { opacity: 0; transform: scale(0.92) translateY(12px); }
+                to { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            .sg-m-head {
+                background: linear-gradient(135deg, rgba(30, 27, 75, 0.9), rgba(49, 46, 129, 0.6));
+                padding: 24px;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                text-align: center;
+            }
+            .sg-m-icon {
+                width: 64px;
+                height: 64px;
+                background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+                border-radius: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 14px;
+                font-size: 32px;
+                box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+            }
+            .sg-m-title {
+                font-size: 21px;
+                font-weight: 800;
+                color: #ffffff;
+                margin: 0 0 8px;
+                line-height: 1.3;
+            }
+            .sg-m-badge {
+                display: inline-block;
+                background: rgba(239, 68, 68, 0.18);
+                color: #f87171;
+                border: 1px solid rgba(239, 68, 68, 0.35);
+                font-size: 11px;
+                font-weight: 700;
+                padding: 3px 10px;
+                border-radius: 9999px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            .sg-m-body {
+                padding: 22px 24px;
+                font-size: 14px;
+                line-height: 1.6;
+                color: #cbd5e1;
+            }
+            .sg-m-body p {
+                margin: 0 0 12px;
+            }
+            .sg-m-body strong {
+                color: #ffffff;
+            }
+            .sg-m-box {
+                background: rgba(15, 23, 42, 0.7);
+                border: 1px solid rgba(99, 102, 241, 0.25);
+                border-radius: 12px;
+                padding: 12px 14px;
+                margin: 14px 0;
+            }
+            .sg-m-box-title {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: #94a3b8;
+                font-weight: 700;
+                margin-bottom: 4px;
+            }
+            .sg-m-url {
+                color: #38bdf8;
+                font-family: 'Fira Code', monospace, monospace;
+                font-size: 12.5px;
+                word-break: break-all;
+                display: block;
+            }
+            .sg-m-timer {
+                background: rgba(59, 130, 246, 0.12);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                color: #93c5fd;
+                border-radius: 10px;
+                padding: 10px 14px;
+                text-align: center;
+                font-weight: 600;
+                font-size: 13px;
+                margin-top: 14px;
+            }
+            .sg-m-timer span {
+                color: #ffffff;
+                font-weight: 800;
+                font-size: 16px;
+                display: inline-block;
+                min-width: 14px;
+            }
+            .sg-m-actions {
+                padding: 0 24px 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .sg-btn-primary {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                background: linear-gradient(135deg, #2563eb, #4f46e5);
+                color: #ffffff !important;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                padding: 13px 20px;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.45);
+                transition: transform 0.2s, box-shadow 0.2s;
+                border: none;
+                cursor: pointer;
+                text-align: center;
+            }
+            .sg-btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.65);
+            }
+            .sg-btn-secondary {
+                background: transparent;
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                color: #94a3b8;
+                font-size: 13px;
+                font-weight: 600;
+                padding: 10px;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: background 0.2s, color 0.2s;
+                font-family: inherit;
+            }
+            .sg-btn-secondary:hover {
+                background: rgba(255, 255, 255, 0.06);
+                color: #f1f5f9;
+            }
+        `;
+        document.head.appendChild(styleEl);
+
+        // 2. Ingiza Top Banner ya Kudumu
+        var banner = document.createElement("div");
+        banner.id = "sg-migration-banner";
+        banner.innerHTML = `
+            <div class="sg-banner-content">
+                <span class="sg-banner-badge">Uhamiaji Rasmi</span>
+                <span class="sg-banner-text">Tovuti ya SILLYGER imehamia mfumo mpya wa Vercel wenye maboresho yote ya hivi karibuni.</span>
+            </div>
+            <a href="${fullTargetUrl}" class="sg-banner-link">
+                Fungua Vercel Sasa &rarr;
+            </a>
+        `;
+        document.body.prepend(banner);
+        document.body.style.paddingTop = "52px";
+
+        // Angalia kama modal imefungwa katika session hii
+        var dismissed = false;
+        try {
+            dismissed = sessionStorage.getItem("sg_migration_dismissed") === "1";
+        } catch (e) {}
+
+        if (dismissed) {
+            return;
+        }
+
+        // 3. Ingiza Full Modal yenye Maelezo na Countdown
+        var modalWrap = document.createElement("div");
+        modalWrap.id = "sg-migration-modal-wrap";
+        modalWrap.innerHTML = `
+            <div id="sg-migration-modal" role="dialog" aria-modal="true" aria-labelledby="sg-m-title">
+                <div class="sg-m-head">
+                    <div class="sg-m-icon">🚀</div>
+                    <span class="sg-m-badge">Tovuti Imebadilika</span>
+                    <h2 class="sg-m-title" id="sg-m-title">SILLYGER Tumehamia Vercel!</h2>
+                </div>
+                <div class="sg-m-body">
+                    <p>
+                        Habari kiongozi au mwanachama! Tovuti hii ya zamani ya <strong>Netlify</strong> haitapokea tena masasisho (updates) mapya.
+                    </p>
+                    <p>
+                        Mfumo wote umeboreshwa na kuhamishiwa jukwaa rasmi la <strong>Vercel</strong> ukiwa na muundo mpya, huduma ya kupakua Sillyger App (v1.0.9), Resource Hub ya vifaa vya maabara, na huduma zote mpya za jumuiya.
+                    </p>
+                    <div class="sg-m-box">
+                        <div class="sg-m-box-title">Ukurasa wako kwenye mfumo mpya:</div>
+                        <span class="sg-m-url">${fullTargetUrl}</span>
+                    </div>
+                    <div class="sg-m-timer" id="sg-countdown-box">
+                        Utahamishwa kiotomatiki baada ya <span id="sg-countdown-num">6</span> sekunde...
+                    </div>
+                </div>
+                <div class="sg-m-actions">
+                    <a href="${fullTargetUrl}" class="sg-btn-primary" id="sg-redirect-now">
+                        <span>Elekea Kwenye Tovuti Mpya Sasa</span>
+                        <span>&rarr;</span>
+                    </a>
+                    <button type="button" class="sg-btn-secondary" id="sg-stay-btn">
+                        Baki hapa kwa muda (Sitisha Uhamisho)
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modalWrap);
+
+        // Countdown Timer Logic (sekunde 6 hadi auto-redirect)
+        var secondsLeft = 6;
+        var countdownNum = document.getElementById("sg-countdown-num");
+        var timerInterval = setInterval(function () {
+            secondsLeft -= 1;
+            if (countdownNum) {
+                countdownNum.textContent = secondsLeft;
+            }
+            if (secondsLeft <= 0) {
+                clearInterval(timerInterval);
+                window.location.href = fullTargetUrl;
+            }
+        }, 1000);
+
+        // Kitufe cha kusitisha uhamisho na kubaki kwenye ukurasa
+        var stayBtn = document.getElementById("sg-stay-btn");
+        if (stayBtn) {
+            stayBtn.addEventListener("click", function () {
+                clearInterval(timerInterval);
+                try {
+                    sessionStorage.setItem("sg_migration_dismissed", "1");
+                } catch (e) {}
+                if (modalWrap && modalWrap.parentNode) {
+                    modalWrap.parentNode.removeChild(modalWrap);
+                }
+            });
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", setupNotice);
+    } else {
+        setupNotice();
+    }
+})();

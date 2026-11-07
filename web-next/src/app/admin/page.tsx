@@ -49,7 +49,7 @@ interface AuditLog {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<
-    'queue' | 'members' | 'announcements' | 'fund' | 'tickets' | 'audit' | 'database' | 'tv'
+    'queue' | 'members' | 'announcements' | 'fund' | 'tickets' | 'audit' | 'database' | 'tv' | 'resources'
   >('queue');
 
   // Admin Profile info
@@ -121,6 +121,52 @@ export default function AdminPage() {
       desc: 'Kutengeneza Web Servers zenye kasi ya juu na usalama thabiti.',
     },
   ]);
+
+  // Tab 10: Vifaa & Mazoezi (Resource Hub)
+  const [resourcesList, setResourcesList] = useState<any[]>([
+    {
+      id: 'res_termux',
+      title: 'Termux Linux Terminal (Android)',
+      category: 'Tools & Apps',
+      fileType: 'APK',
+      fileSize: '98 MB',
+      version: 'v0.118.1',
+      downloadUrl: 'https://github.com/termux/termux-app/releases/latest/download/termux-app_v0.118.1+github-debug_universal.apk',
+      description: 'Mazingira kamili ya Linux na Bash terminal kwenye simu yako ya Android.',
+      instructions: 'Pakua na usakinishe. Andika "pkg update && pkg upgrade".',
+    },
+    {
+      id: 'res_acode',
+      title: 'Acode Code Editor (Android)',
+      category: 'Tools & Apps',
+      fileType: 'APK',
+      fileSize: '15 MB',
+      version: 'v1.10.4',
+      downloadUrl: 'https://github.com/deadlyjack/Acode/releases/latest/download/Acode.apk',
+      description: 'Programu ya kuandikia kodi (HTML, CSS, JS, Python) kwenye simu.',
+      instructions: 'Programu itakusaidia kuandika kodi moja kwa moja kwa simu.',
+    },
+    {
+      id: 'res_linux_cheatsheet',
+      title: 'Mwongozo wa Amri za Linux (PDF)',
+      category: 'Miongozo & PDF',
+      fileType: 'PDF',
+      fileSize: '2.4 MB',
+      version: 'v1.2',
+      downloadUrl: 'https://files.fosswire.com/2007/08/fwunixref.pdf',
+      description: 'Mwongozo wa PDF wenye amri zote muhimu za Linux.',
+      instructions: 'Fungua PDF na ufanye mazoezi kwenye Termux.',
+    },
+  ]);
+  const [newResTitle, setNewResTitle] = useState('');
+  const [newResCategory, setNewResCategory] = useState('Tools & Apps');
+  const [newResType, setNewResType] = useState('APK');
+  const [newResSize, setNewResSize] = useState('25 MB');
+  const [newResVersion, setNewResVersion] = useState('v1.0');
+  const [newResUrl, setNewResUrl] = useState('');
+  const [newResDesc, setNewResDesc] = useState('');
+  const [newResInstructions, setNewResInstructions] = useState('');
+  const [isPublishingRes, setIsPublishingRes] = useState(false);
 
   // Modal: Member Dossier
   const [inspectingMember, setInspectingMember] = useState<ApplicantRecord | null>(null);
@@ -798,6 +844,20 @@ Security: Tanzania PDPA 2022 Compliant`;
               LIVE
             </span>
           )}
+        </button>
+
+        {/* Tab 10: Vifaa & Mazoezi (Resource Hub) */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('resources')}
+          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition whitespace-nowrap ${
+            activeTab === 'resources'
+              ? 'bg-purple-600/20 border border-purple-500/50 text-white shadow-md shadow-purple-500/10'
+              : 'border border-transparent text-slate-400 hover:text-white hover:bg-slate-800/60'
+          }`}
+        >
+          <span className="text-emerald-400 text-sm">🛠️</span>
+          <span>Vifaa & Mazoezi</span>
         </button>
       </div>
 
@@ -1790,6 +1850,268 @@ Security: Tanzania PDPA 2022 Compliant`;
                   >
                     Rusha Hii Sasa
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB PANE 10: VIFAA & MAZOEZI (RESOURCE HUB) */}
+      {activeTab === 'resources' && (
+        <div className="space-y-6">
+          <div className="sg-glass p-6 sm:p-8 rounded-3xl border border-emerald-500/30 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+              <div>
+                <span className="text-xs font-mono-sg text-emerald-400 font-bold uppercase tracking-wider block">
+                  RESOURCE HUB & TOOLS MANAGEMENT
+                </span>
+                <h2 className="text-xl font-extrabold text-white">
+                  Tuma Vifaa, Programu & Mazoezi Kwenye App ya Simu
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Chombo chochote au mwongozo wa PDF unaoongeza hapa utaonekana moja kwa moja kwenye simu za wanafunzi wote.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold font-mono-sg">
+                <span>Vifaa Vilivyopo:</span>
+                <strong className="text-white">{resourcesList.length}</strong>
+              </div>
+            </div>
+
+            {/* Form to add resource */}
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newResTitle.trim() || !newResUrl.trim()) {
+                  showToast('Tafadhali jaza jina la chombo na kiungo cha kupakua.', 'error');
+                  return;
+                }
+                setIsPublishingRes(true);
+                try {
+                  const newResource = {
+                    id: 'res_' + Date.now().toString(),
+                    title: newResTitle.trim(),
+                    category: newResCategory,
+                    file_type: newResType,
+                    file_size: newResSize.trim() || 'N/A',
+                    version: newResVersion.trim() || 'v1.0',
+                    download_url: newResUrl.trim(),
+                    description: newResDesc.trim() || 'Hakuna maelezo ya ziada.',
+                    instructions: newResInstructions.trim(),
+                    is_featured: false,
+                    created_at: new Date().toISOString(),
+                  };
+                  const updated = [newResource, ...resourcesList];
+                  setResourcesList(updated);
+                  
+                  // Save to Supabase platform_settings
+                  await api.adminUpdateSettings({
+                    app_resources: JSON.stringify(updated),
+                  });
+
+                  setNewResTitle('');
+                  setNewResUrl('');
+                  setNewResDesc('');
+                  setNewResInstructions('');
+                  showToast('✓ Chombo kimechapishwa na kutumwa kwenye app kikamilifu!', 'success');
+                } catch (err: any) {
+                  showToast('Hitilafu wakati wa kutuma: ' + (err?.message || err), 'error');
+                } finally {
+                  setIsPublishingRes(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-white mb-1.5">
+                    Jina la Chombo / App / Zoezi <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newResTitle}
+                    onChange={(e) => setNewResTitle(e.target.value)}
+                    placeholder="k.m. Termux Terminal, Acode Editor, au Lab 01 Python"
+                    className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-semibold"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5">
+                    Kitengo (Category)
+                  </label>
+                  <select
+                    value={newResCategory}
+                    onChange={(e) => setNewResCategory(e.target.value)}
+                    className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
+                  >
+                    <option value="Tools & Apps">Tools & Apps (Programu)</option>
+                    <option value="Mazoezi ya Vitendo">Mazoezi ya Vitendo (Labs)</option>
+                    <option value="Miongozo & PDF">Miongozo & PDF (Guides)</option>
+                    <option value="Cybersecurity">Cybersecurity & Linux</option>
+                    <option value="Programming">Programming & Systems</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white mb-1.5">
+                    Aina ya Faili (Type)
+                  </label>
+                  <select
+                    value={newResType}
+                    onChange={(e) => setNewResType(e.target.value)}
+                    className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                  >
+                    <option value="APK">APK (Android App)</option>
+                    <option value="PDF">PDF (Kitabu / Mwongozo)</option>
+                    <option value="ZIP">ZIP (Kifurushi cha Mazoezi)</option>
+                    <option value="WEB">WEB (Kiungo cha Tovuti)</option>
+                    <option value="TOOL">TOOL (Chombo Kingine)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-white mb-1.5">
+                    Kiungo cha Kupakua (Download URL / Link) <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="url"
+                    value={newResUrl}
+                    onChange={(e) => setNewResUrl(e.target.value)}
+                    placeholder="https://github.com/... au https://drive.google.com/..."
+                    className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1.5">
+                      Ukubwa (Size)
+                    </label>
+                    <input
+                      type="text"
+                      value={newResSize}
+                      onChange={(e) => setNewResSize(e.target.value)}
+                      placeholder="k.m. 25 MB"
+                      className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-white mb-1.5">
+                      Toleo (Version)
+                    </label>
+                    <input
+                      type="text"
+                      value={newResVersion}
+                      onChange={(e) => setNewResVersion(e.target.value)}
+                      placeholder="v1.0"
+                      className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs font-mono-sg"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1.5">
+                  Maelezo Mafupi (Description)
+                </label>
+                <textarea
+                  rows={2}
+                  value={newResDesc}
+                  onChange={(e) => setNewResDesc(e.target.value)}
+                  placeholder="Eleza jinsi chombo hiki kinavyosaidia wanafunzi kujifunza..."
+                  className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white mb-1.5">
+                  Maelekezo ya Kutumia (Instructions / Quick Steps)
+                </label>
+                <input
+                  type="text"
+                  value={newResInstructions}
+                  onChange={(e) => setNewResInstructions(e.target.value)}
+                  placeholder="k.m. Pakua, fungua kisha andika 'pkg install python'..."
+                  className="w-full sg-input px-3.5 py-2.5 rounded-xl text-xs"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isPublishingRes}
+                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-xl shadow-emerald-600/30 transition active:scale-95 disabled:opacity-50"
+                >
+                  <span>🚀</span>
+                  <span>{isPublishingRes ? 'Inatuma...' : 'Chapisha Chombo Kwenye App'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* List of Published Resources */}
+          <div className="sg-glass p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <span>📚</span>
+              <span>Orodha ya Vifaa & Mazoezi Vilivyopo ({resourcesList.length})</span>
+            </h3>
+
+            <div className="space-y-3">
+              {resourcesList.map((res, index) => (
+                <div
+                  key={res.id || index}
+                  className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 font-mono-sg text-[10px] font-bold border border-emerald-500/40">
+                        {res.fileType || res.file_type || 'TOOL'}
+                      </span>
+                      <h4 className="text-sm font-bold text-white">{res.title}</h4>
+                      <span className="text-[10px] text-slate-400 font-mono-sg">
+                        ({res.fileSize || res.file_size || 'N/A'} · {res.version || 'v1.0'})
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300">{res.description}</p>
+                    <span className="text-[10px] text-blue-400 font-mono-sg block">
+                      {res.category} · {res.downloadUrl || res.download_url}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+                    <a
+                      href={res.downloadUrl || res.download_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 text-xs font-bold transition flex items-center gap-1"
+                    >
+                      Jaribu Kiungo ↗
+                    </a>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const updated = resourcesList.filter((_, i) => i !== index);
+                        setResourcesList(updated);
+                        try {
+                          await api.adminUpdateSettings({
+                            app_resources: JSON.stringify(updated),
+                          });
+                          showToast('✓ Chombo kimeondolewa.', 'info');
+                        } catch (err: any) {
+                          showToast('Hitilafu: ' + (err?.message || err), 'error');
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-red-600/15 text-red-400 hover:bg-red-600/30 text-xs font-bold transition"
+                    >
+                      Futa
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

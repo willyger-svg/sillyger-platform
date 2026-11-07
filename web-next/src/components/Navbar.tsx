@@ -131,8 +131,8 @@ export default function Navbar() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2.5">
-          <a
-            href="https://github.com/willyger-svg/sillyger-platform/releases/latest/download/sillyger-app.apk"
+          <Link
+            href="/download"
             className="hidden sm:flex px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 hover:text-emerald-300 text-xs font-bold items-center gap-1.5 transition"
             title="Pakua SILLYGER Android Mobile App (APK)"
           >
@@ -140,7 +140,7 @@ export default function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             <span>Pakua App</span>
-          </a>
+          </Link>
 
           <div className="hidden sm:flex items-center gap-2.5">
             {userMember ? (
@@ -207,8 +207,8 @@ export default function Navbar() {
           >
             Katiba v1.4
           </Link>
-          <a
-            href="https://github.com/willyger-svg/sillyger-platform/releases/latest/download/sillyger-app.apk"
+          <Link
+            href="/download"
             onClick={() => setMobileMenuOpen(false)}
             className="block text-emerald-400 font-bold py-1.5 flex items-center gap-2"
           >
@@ -216,7 +216,7 @@ export default function Navbar() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             <span>📱 Pakua App ya Android (.APK)</span>
-          </a>
+          </Link>
           <Link
             href="/portal"
             onClick={() => setMobileMenuOpen(false)}

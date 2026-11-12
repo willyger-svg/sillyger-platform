@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="sw" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SILLYGER Live Teaching Studio — Presenter Command Center</title>
+    <link rel="icon" type="image/svg+xml" href="assets/sillyger-logo-icon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sgbg: '#070b14',
+                        sgcard: '#0f172a',
+                        sgblue: '#3b82f6',
+                        sgdark: '#030712'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/custom.css?v=2.9">
+    <style>
+        .vu-meter-bar {
+            transition: width 0.08s ease-out;
+        }
+        .slide-glow {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.15);
+        }
+        .laser-dot {
+            pointer-events: none;
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #ef4444;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #ef4444, 0 0 24px #dc2626;
+            transform: translate(-50%, -50%);
+            transition: left 0.05s ease-out, top 0.05s ease-out;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="bg-sgbg text-slate-100 min-h-screen flex flex-col font-sans select-none">
+
+    <!-- Top Studio Bar -->
+    <header class="bg-slate-950/90 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-50 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <a href="admin-portal.html" class="flex items-center gap-2 group">
+                <img src="assets/sillyger-logo-icon.svg" alt="SG" class="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-extrabold text-sm sm:text-base tracking-wider text-white">SILLYGER</span>
+                        <span class="px-2 py-0.5 rounded-full text-[9px] font-mono-sg font-black bg-blue-600/20 border border-blue-500/40 text-blue-400 uppercase">STUDIO</span>
+                    </div>
+                    <span class="text-[9px] font-mono-sg text-slate-400 block -mt-0.5">Live Presenter & Screen Share Hub</span>
+                </div>
+            </a>
+
+            <!-- Session Status Badge -->
+            <div id="studio-status-badge" class="ml-2 sm:ml-4 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono-sg font-bold bg-emerald-950/80 border border-emerald-500/50 text-emerald-300">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span id="studio-status-text">KIPINDI KIKO LIVE</span>
+            </div>
+
+            <!-- Viewer Counter -->
+            <div class="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono-sg bg-slate-900 border border-slate-800 text-slate-300">
+                <span class="text-blue-400">👥</span>
+                <span id="studio-viewer-count" class="font-bold text-white">0</span>
+                <span class="text-slate-400 text-[11px]">Wanafunzi</span>
+            </div>
+        </div>
+
+        <!-- Controls: Deck Selector & Action Buttons -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <div class="hidden lg:flex items-center gap-2">
+                <label for="deck-select" class="text-xs text-slate-400 font-medium">Slide Deck:</label>
+                <select id="deck-select" onchange="handleDeckChange(this.value)" class="bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-blue-500 max-w-xs truncate">
+                    <option value="">Inapakia Decks...</option>
+                </select>
+            </div>
+
+            <button type="button" id="btn-toggle-live" onclick="toggleSessionLiveState()" class="px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-red-600/30 transition">
+                <span id="btn-live-icon">⏹️</span>
+                <span id="btn-live-text">Maliza Kipindi</span>
+            </button>
+
+            <a href="classroom.html" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-semibold text-xs flex items-center gap-1.5 transition">
+                <span>↗</span>
+                <span class="hidden sm:inline">Tazama Kama Mwanafunzi</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Workspace (Stage + Sidebar) -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-[calc(100vh-53px)]">
+
+        <!-- STAGE (Left 8 or 9 cols) -->
+        <section class="lg:col-span-8 xl:col-span-9 flex flex-col bg-slate-950/70 border-r border-slate-800/80 overflow-y-auto">
+
+            <!-- Stage Control Toolbar -->
+            <div class="bg-slate-900/80 border-b border-slate-800/80 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-30">
+                <!-- Modes -->
+                <div class="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+                    <button type="button" id="mode-btn-slides" onclick="switchPresentationMode('SLIDES')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-blue-600 text-white shadow">
+                        <span>📊</span>
+                        <span>Interactive Slides</span>
+                    </button>
+                    <button type="button" id="mode-btn-screen" onclick="switchPresentationMode('SCREEN_SHARE')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60">
+                        <span>🖥️</span>
+                        <span>Share Screen</span>
+                    </button>
+                </div>
+
+                <!-- Mic & Voice Controls -->
+                <div class="flex items-center gap-3">
+                    <button type="button" id="btn-toggle-mic" onclick="toggleMicrophone()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold flex items-center gap-2 transition">
+                        <span id="mic-icon">🎙️</span>
+                        <span id="mic-label">Washa Mic (Audio)</span>
+                    </button>
+
+                    <!-- VU Meter -->
+                    <div class="hidden sm:flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800">
+                        <span class="text-[10px] font-mono-sg text-slate-500">VOICE:</span>
+                        <div class="w-16 h-2 bg-slate-800 rounded-full overflow-hidden flex items-center">
+                            <div id="vu-meter" class="vu-meter-bar h-full bg-emerald-500 w-0"></div>
+                        </div>
+                    </div>
+
+                    <!-- Laser Pointer Toggle -->
+                    <button type="button" id="btn-toggle-laser" onclick="toggleLaserPointer()" class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 text-xs font-medium flex items-center gap-1.5 transition">
+                        <span class="text-red-500">●</span>
+                        <span id="laser-label" class="hidden sm:inline">Laser Pointer</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Slide / Screen Presentation Stage Container -->
+            <div id="presentation-stage" class="flex-1 p-4 sm:p-6 lg:p-8 flex items-center justify-center relative overflow-hidden bg-slate-950">
+
+                <!-- 1. SLIDES VIEW -->
+                <div id="stage-slides-container" class="w-full max-w-5xl h-full min-h-[500px] flex flex-col justify-between p-6 sm:p-8 lg:p-10 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-blue-500/30 slide-glow relative overflow-hidden">
+                    <!-- Laser Dot (if active) -->
+                    <div id="laser-dot" class="laser-dot hidden"></div>
+
+                    <!-- Slide Header -->
+                    <div>
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <span id="slide-category-badge" class="px-3 py-1 rounded-full text-[11px] font-mono-sg font-black tracking-wider uppercase bg-blue-600/20 border border-blue-500/40 text-blue-400">
+                                LOW-LEVEL ARCHITECTURE
+                            </span>
+                            <span id="slide-deck-title-mini" class="text-xs font-mono-sg text-slate-400 truncate max-w-xs">
+                                SILLYGER Masterclass
+                            </span>
+                        </div>
+                        <h1 id="slide-title" class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                            Inapakia Somo...
+                        </h1>
+                        <p id="slide-subtitle" class="text-sm sm:text-base text-slate-300 mt-2 font-medium">
+                            Tafadhali subiri kidogo...
+                        </p>
+                    </div>
+
+                    <!-- Slide Body: Content Bullets & Code Block -->
+                    <div class="my-6 grid grid-cols-1 gap-6">
+                        <!-- Bullet Points -->
+                        <div id="slide-bullets-container" class="space-y-3">
+                            <!-- Injected dynamically -->
+                        </div>
+
+                        <!-- Code Snippet (if available) -->
+                        <div id="slide-code-wrapper" class="hidden">
+                            <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 font-mono-sg text-xs sm:text-sm text-emerald-400 overflow-x-auto shadow-inner relative">
+                                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/80 text-[10px] text-slate-400">
+                                    <span id="slide-code-lang">CODE (C / ASM)</span>
+                                    <button type="button" onclick="copyCurrentCode()" class="hover:text-white px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Nakili Code</button>
+                                </div>
+                                <pre id="slide-code-snippet" class="whitespace-pre"><code>// code</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide Footer -->
+                    <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono-sg">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                            <span>SILLYGER Live Interactive Slides</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span id="slide-counter-badge" class="font-bold text-white bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                                1 / 9
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. SCREEN SHARE VIEW (Shown when Admin shares screen) -->
+                <div id="stage-screen-container" class="hidden w-full max-w-6xl h-full min-h-[500px] flex flex-col rounded-2xl bg-black border border-emerald-500/40 overflow-hidden shadow-2xl relative">
+                    <div class="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800 text-xs">
+                        <div class="flex items-center gap-2 text-emerald-400 font-mono-sg font-bold">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>KIOO CHAKO KINARUSHWA LIVE KWA WANAFUNZI</span>
+                        </div>
+                        <button type="button" onclick="stopScreenShare()" class="px-2.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-bold text-[11px] transition">
+                            Acha Ku-share Kioo
+                        </button>
+                    </div>
+                    <div class="flex-1 bg-black flex items-center justify-center overflow-hidden">
+                        <video id="studio-screen-video" autoplay playsinline muted class="w-full h-full object-contain"></video>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom Slide Navigation Bar -->
+            <div class="bg-slate-900/90 border-t border-slate-800/80 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sticky bottom-0 z-30">
+                <button type="button" id="btn-prev-slide" onclick="navigateSlide(-1)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-2 border border-slate-700 transition">
+                    <span>◀</span>
+                    <span>Slide Iliyopita</span>
+                </button>
+
+                <!-- Slide Thumbnails / Indicator Pills -->
+                <div id="slide-pills-bar" class="flex items-center gap-1.5 overflow-x-auto max-w-md py-1">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <button type="button" id="btn-next-slide" onclick="navigateSlide(1)" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/30 transition">
+                    <span>Slide Inayofuata</span>
+                    <span>▶</span>
+                </button>
+            </div>
+
+        </section>
+
+        <!-- SIDEBAR: INSTRUCTOR NOTES & LIVE STUDENT Q&A (Right 4 or 3 cols) -->
+        <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-slate-900/60 border-t lg:border-t-0 border-slate-800">
+
+            <!-- Sidebar Tab Navigation -->
+            <div class="flex items-center border-b border-slate-800 bg-slate-950/70 p-1 gap-1">
+                <button type="button" id="side-tab-notes-btn" onclick="switchSidebarTab('notes')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition flex items-center justify-center gap-1.5">
+                    <span>📝</span>
+                    <span>Muongozo wa Mwalimu</span>
+                </button>
+                <button type="button" id="side-tab-chat-btn" onclick="switchSidebarTab('chat')" class="flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5">
+                    <span>💬</span>
+                    <span>Maswali ya Wanafunzi</span>
+                    <span id="chat-unread-badge" class="hidden px-1.5 py-0.5 rounded-full text-[9px] bg-blue-600 text-white font-mono-sg">0</span>
+                </button>
+            </div>
+
+            <!-- Tab 1: INSTRUCTOR NOTES -->
+            <div id="side-pane-notes" class="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4">
+                <div class="p-3.5 rounded-xl bg-blue-950/30 border border-blue-500/30">
+                    <div class="flex items-center gap-2 text-blue-400 font-mono-sg text-xs font-bold mb-1">
+                        <span>💡</span>
+                        <span>DOKEZO LA SOMO (SPEAKER NOTES)</span>
+                    </div>
+                    <p id="instructor-notes-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed italic">
+                        Hakuna maelezo maalum kwa slide hii.
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono-sg">Vifupisho vya Keyboard:</h3>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] font-mono-sg">
+                        <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-400">Next Slide:</span>
+                            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-200">Space / &rarr;</kbd>
+                        </div>
+                        <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-400">Prev Slide:</span>
+                            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-200">&larr;</kbd>
+                        </div>
+                        <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-400">Laser:</span>
+                            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-200">L</kbd>
+                        </div>
+                        <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+                            <span class="text-slate-400">Mic Mute:</span>
+                            <kbd class="px-1.5 py-0.5 bg-slate-800 rounded text-slate-200">M</kbd>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deck Info Box -->
+                <div class="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs">
+                    <div class="text-slate-400 font-mono-sg text-[10px] uppercase">Slide Deck Inayotumika:</div>
+                    <div id="deck-info-title" class="font-bold text-white leading-tight">Inapakia...</div>
+                    <div id="deck-info-subject" class="text-blue-400 text-[11px]">...</div>
+                </div>
+            </div>
+
+            <!-- Tab 2: LIVE CHAT & STUDENT QUESTIONS -->
+            <div id="side-pane-chat" class="hidden flex-1 flex flex-col h-full overflow-hidden">
+                <div id="chat-messages-container" class="flex-1 p-4 overflow-y-auto space-y-3">
+                    <div class="text-center text-xs text-slate-500 font-mono-sg py-4">
+                        Hakuna ujumbe au swali lolote kwa sasa. Maswali ya wanafunzi yataonekana hapa moja kwa moja.
+                    </div>
+                </div>
+
+                <!-- Instructor Quick Broadcast / Reply -->
+                <form id="chat-send-form" onsubmit="handleSendChat(event)" class="p-3 border-t border-slate-800 bg-slate-950 flex items-center gap-2">
+                    <input type="text" id="chat-input" placeholder="Tuma ujumbe au jibu kwa wanafunzi..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="p-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition">
+                        <span>➤</span>
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+    </main>
+
+    <!-- Supabase & Custom Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/store.js"></script>
+    <script>
+        // STUDIO STATE
+        let supabaseClient = null;
+        let currentSession = null;
+        let currentDeck = null;
+        let availableDecks = [];
+        let currentSlideIndex = 0;
+        let presentationMode = 'SLIDES'; // 'SLIDES' or 'SCREEN_SHARE'
+        let isLive = true;
+        let isAudioActive = false;
+        let isLaserActive = false;
+        let screenStream = null;
+        let audioStream = null;
+        let audioContext = null;
+        let analyser = null;
+        let vuAnimationId = null;
+        let realtimeChannel = null;
+
+        // Initialize Supabase & Studio
+        document.addEventListener('DOMContentLoaded', async () => {
+            const admin = SGStore.getCurrentSession();
+            if (!admin || !SGStore.isAdminUser(admin)) {
+                alert('Unahitaji kuwa Admin kuingia Studio ya Kufundishia.');
+                window.location.href = 'admin-portal.html';
+                return;
+            }
+
+            try {
+                supabaseClient = supabase.createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY);
+            } catch (e) {
+                console.error('Supabase init error:', e);
+            }
+
+            await loadStudioState();
+            setupKeyboardShortcuts();
+            setupLaserPointerTracking();
+            subscribeRealtimeChannel();
+        });
+
+        // Load Active Session & Decks from DB
+        async function loadStudioState() {
+            try {
+                const { data, error } = await supabaseClient.rpc('sg_classroom_get_state');
+                if (error) throw error;
+
+                if (data) {
+                    currentSession = data.session;
+                    currentDeck = data.deck;
+                    availableDecks = data.available_decks || [];
+                    currentSlideIndex = currentSession?.current_slide_index || 0;
+                    presentationMode = currentSession?.presentation_mode || 'SLIDES';
+                    isLive = currentSession?.status === 'LIVE';
+
+                    populateDeckDropdown();
+                    renderCurrentSlide();
+                    renderStatusIndicators();
+                    renderChatMessages(data.chat || []);
+                }
+            } catch (err) {
+                console.error('Failed to load studio state:', err);
+                SGUtils.showToast('Imeshindwa kupakia taarifa za Studio.', 'error');
+            }
+        }
+
+        // Subscribe to Supabase Realtime for instant chat & presence
+        function subscribeRealtimeChannel() {
+            if (!supabaseClient) return;
+
+            realtimeChannel = supabaseClient.channel('classroom_realtime')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'classroom_live_chat' }, payload => {
+                    appendChatMessage(payload.new);
+                })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classroom_sessions' }, payload => {
+                    const updated = payload.new;
+                    if (updated.id === currentSession?.id) {
+                        currentSession = updated;
+                        renderStatusIndicators();
+                    }
+                })
+                .subscribe();
+        }
+
+        // Render Dropdown Decks
+        function populateDeckDropdown() {
+            const sel = document.getElementById('deck-select');
+            if (!sel) return;
+            sel.innerHTML = availableDecks.map(d => `
+                <option value="${d.id}" ${d.id === currentDeck?.id ? 'selected' : ''}>
+                    ${SGUtils.escapeHtml(d.title)} (${d.slide_count} slides)
+                </option>
+            `).join('');
+
+            const titleEl = document.getElementById('deck-info-title');
+            const subEl = document.getElementById('deck-info-subject');
+            if (titleEl && currentDeck) titleEl.textContent = currentDeck.title;
+            if (subEl && currentDeck) subEl.textContent = currentDeck.subject;
+        }
+
+        // Render Current Slide
+        function renderCurrentSlide() {
+            if (!currentDeck || !currentDeck.slides || !currentDeck.slides.length) return;
+            const slides = currentDeck.slides;
+            if (currentSlideIndex < 0) currentSlideIndex = 0;
+            if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1;
+
+            const slide = slides[currentSlideIndex];
+
+            // Slide elements
+            document.getElementById('slide-category-badge').textContent = slide.category || 'SOMO LA TEHAMA';
+            document.getElementById('slide-title').textContent = slide.title || `Slide ${currentSlideIndex + 1}`;
+            document.getElementById('slide-subtitle').textContent = slide.subtitle || '';
+            document.getElementById('slide-counter-badge').textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+            document.getElementById('instructor-notes-text').textContent = slide.instructor_notes || 'Hakuna maelezo maalum kwa slide hii.';
+
+            // Render Bullets
+            const bulletsContainer = document.getElementById('slide-bullets-container');
+            if (slide.bullet_points && slide.bullet_points.length) {
+                bulletsContainer.innerHTML = slide.bullet_points.map(b => `
+                    <div class="flex items-start gap-3 p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-200 text-sm leading-relaxed">
+                        <span class="text-blue-400 font-bold shrink-0 text-base">•</span>
+                        <span>${SGUtils.escapeHtml(b)}</span>
+                    </div>
+                `).join('');
+                bulletsContainer.classList.remove('hidden');
+            } else {
+                bulletsContainer.innerHTML = '';
+                bulletsContainer.classList.add('hidden');
+            }
+
+            // Render Code Snippet
+            const codeWrapper = document.getElementById('slide-code-wrapper');
+            const codeSnippet = document.getElementById('slide-code-snippet');
+            const codeLang = document.getElementById('slide-code-lang');
+            if (slide.code_snippet && slide.code_snippet.trim().length > 0) {
+                codeSnippet.textContent = slide.code_snippet;
+                codeLang.textContent = (slide.code_language || 'C / ASSEMBLY').toUpperCase();
+                codeWrapper.classList.remove('hidden');
+            } else {
+                codeWrapper.classList.add('hidden');
+            }
+
+            // Render Thumbnails/Pills
+            renderSlidePills(slides.length);
+        }
+
+        // Render Slide Pills
+        function renderSlidePills(total) {
+            const bar = document.getElementById('slide-pills-bar');
+            if (!bar) return;
+            let html = '';
+            for (let i = 0; i < total; i++) {
+                const isActive = (i === currentSlideIndex);
+                html += `
+                    <button type="button" onclick="jumpToSlide(${i})" class="shrink-0 w-7 h-7 rounded-lg text-[11px] font-mono-sg font-bold transition flex items-center justify-center ${
+                        isActive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/50 scale-105' : 'bg-slate-800 text-slate-400 hover:text-white'
+                    }">
+                        ${i + 1}
+                    </button>
+                `;
+            }
+            bar.innerHTML = html;
+        }
+
+        // Navigate Slides (+1 or -1)
+        async function navigateSlide(step) {
+            if (!currentDeck || !currentDeck.slides) return;
+            const nextIdx = currentSlideIndex + step;
+            if (nextIdx < 0 || nextIdx >= currentDeck.slides.length) return;
+
+            jumpToSlide(nextIdx);
+        }
+
+        // Jump to specific slide & broadcast to students
+        async function jumpToSlide(idx) {
+            currentSlideIndex = idx;
+            renderCurrentSlide();
+
+            // Broadcast to Supabase DB so all students sync
+            if (!currentSession) return;
+            const admin = SGStore.getCurrentSession();
+            try {
+                await supabaseClient.rpc('sg_classroom_admin_control', {
+                    p_session_token: admin.token,
+                    p_action: 'UPDATE_SLIDE',
+                    p_payload: {
+                        session_id: currentSession.id,
+                        slide_index: currentSlideIndex
+                    }
+                });
+            } catch (e) {
+                console.error('Failed to sync slide to database:', e);
+            }
+        }
+
+        // Switch Deck
+        async function handleDeckChange(deckId) {
+            if (!deckId || deckId === currentDeck?.id) return;
+            const admin = SGStore.getCurrentSession();
+            try {
+                const { data, error } = await supabaseClient.rpc('sg_classroom_admin_control', {
+                    p_session_token: admin.token,
+                    p_action: 'SWITCH_DECK',
+                    p_payload: {
+                        session_id: currentSession.id,
+                        deck_id: deckId
+                    }
+                });
+                if (error) throw error;
+
+                // Reload state
+                await loadStudioState();
+                SGUtils.showToast('Slide deck imebadilishwa kikamilifu!', 'success');
+            } catch (err) {
+                console.error(err);
+                SGUtils.showToast('Imeshindwa kubadilisha slide deck.', 'error');
+            }
+        }
+
+        // Presentation Mode Switcher (Slides vs Screen Share)
+        async function switchPresentationMode(mode) {
+            presentationMode = mode;
+            const btnSlides = document.getElementById('mode-btn-slides');
+            const btnScreen = document.getElementById('mode-btn-screen');
+            const slidesView = document.getElementById('stage-slides-container');
+            const screenView = document.getElementById('stage-screen-container');
+
+            if (mode === 'SLIDES') {
+                btnSlides.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-blue-600 text-white shadow";
+                btnScreen.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60";
+                slidesView.classList.remove('hidden');
+                screenView.classList.add('hidden');
+                stopScreenShare();
+            } else {
+                btnScreen.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-emerald-600 text-white shadow";
+                btnSlides.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800/60";
+                slidesView.classList.add('hidden');
+                screenView.classList.remove('hidden');
+                await startScreenShare();
+            }
+
+            // Sync mode to DB
+            if (currentSession) {
+                const admin = SGStore.getCurrentSession();
+                await supabaseClient.rpc('sg_classroom_admin_control', {
+                    p_session_token: admin.token,
+                    p_action: 'SET_MODE',
+                    p_payload: {
+                        session_id: currentSession.id,
+                        presentation_mode: mode,
+                        is_screen_sharing: (mode === 'SCREEN_SHARE')
+                    }
+                });
+            }
+        }
+
+        // Screen Share Engine
+        async function startScreenShare() {
+            try {
+                screenStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: {
+                        cursor: "always",
+                        displaySurface: "monitor"
+                    },
+                    audio: true
+                });
+
+                const videoEl = document.getElementById('studio-screen-video');
+                videoEl.srcObject = screenStream;
+
+                // When user clicks "Stop Sharing" on browser bar
+                screenStream.getVideoTracks()[0].onended = () => {
+                    switchPresentationMode('SLIDES');
+                };
+
+                SGUtils.showToast('Kioo chako kinarushwa hewani sasa!', 'success');
+            } catch (err) {
+                console.warn('Screen share canceled or denied:', err);
+                switchPresentationMode('SLIDES');
+            }
+        }
+
+        function stopScreenShare() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+            }
+            const videoEl = document.getElementById('studio-screen-video');
+            if (videoEl) videoEl.srcObject = null;
+        }
+
+        // Live Audio / Microphone Engine
+        async function toggleMicrophone() {
+            if (isAudioActive) {
+                // Turn off
+                if (audioStream) {
+                    audioStream.getTracks().forEach(t => t.stop());
+                    audioStream = null;
+                }
+                if (vuAnimationId) cancelAnimationFrame(vuAnimationId);
+                document.getElementById('vu-meter').style.width = '0%';
+                isAudioActive = false;
+                document.getElementById('mic-icon').textContent = '🎙️';
+                document.getElementById('mic-label').textContent = 'Washa Mic (Audio)';
+                document.getElementById('btn-toggle-mic').classList.remove('bg-red-600', 'text-white');
+            } else {
+                // Turn on
+                try {
+                    audioStream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
+
+                    // Audio level analyzer (VU Meter)
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioContext.createMediaStreamSource(audioStream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 64;
+                    source.connect(analyser);
+
+                    startVuMeter();
+
+                    isAudioActive = true;
+                    document.getElementById('mic-icon').textContent = '🔊';
+                    document.getElementById('mic-label').textContent = 'Zima Mic (Live)';
+                    document.getElementById('btn-toggle-mic').classList.add('bg-red-600', 'text-white');
+                    SGUtils.showToast('Microphone ipo LIVE! Wanafunzi wanasikia sauti yako.', 'success');
+                } catch (err) {
+                    console.error('Mic access error:', err);
+                    SGUtils.showToast('Imeshindwa kufungua Microphone. Hakikisha umeruhusu.', 'error');
+                }
+            }
+
+            // Sync audio state to DB
+            if (currentSession) {
+                const admin = SGStore.getCurrentSession();
+                await supabaseClient.rpc('sg_classroom_admin_control', {
+                    p_session_token: admin.token,
+                    p_action: 'SET_AUDIO',
+                    p_payload: {
+                        session_id: currentSession.id,
+                        is_audio_active: isAudioActive
+                    }
+                });
+            }
+        }
+
+        function startVuMeter() {
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            const vuBar = document.getElementById('vu-meter');
+
+            function updateVU() {
+                analyser.getByteFrequencyData(dataArray);
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                let average = sum / dataArray.length;
+                let percent = Math.min(100, Math.round((average / 128) * 100));
+                vuBar.style.width = `${percent}%`;
+
+                if (percent > 70) {
+                    vuBar.className = 'vu-meter-bar h-full bg-red-500';
+                } else if (percent > 30) {
+                    vuBar.className = 'vu-meter-bar h-full bg-yellow-400';
+                } else {
+                    vuBar.className = 'vu-meter-bar h-full bg-emerald-500';
+                }
+
+                vuAnimationId = requestAnimationFrame(updateVU);
+            }
+            updateVU();
+        }
+
+        // Laser Pointer Tracking
+        function toggleLaserPointer() {
+            isLaserActive = !isLaserActive;
+            const btn = document.getElementById('btn-toggle-laser');
+            const dot = document.getElementById('laser-dot');
+            if (isLaserActive) {
+                btn.classList.add('bg-red-950', 'border-red-500/50', 'text-red-400');
+                dot.classList.remove('hidden');
+            } else {
+                btn.classList.remove('bg-red-950', 'border-red-500/50', 'text-red-400');
+                dot.classList.add('hidden');
+            }
+        }
+
+        function setupLaserPointerTracking() {
+            const stage = document.getElementById('stage-slides-container');
+            const dot = document.getElementById('laser-dot');
+
+            stage.addEventListener('mousemove', (e) => {
+                if (!isLaserActive) return;
+                const rect = stage.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                dot.style.left = `${x}px`;
+                dot.style.top = `${y}px`;
+            });
+        }
+
+        // Toggle Live State (Start / End Session)
+        async function toggleSessionLiveState() {
+            const admin = SGStore.getCurrentSession();
+            if (isLive) {
+                if (!confirm('Je, una uhakika unataka kumaliza kipindi hiki cha moja kwa moja?')) return;
+                try {
+                    await supabaseClient.rpc('sg_classroom_admin_control', {
+                        p_session_token: admin.token,
+                        p_action: 'END_SESSION',
+                        p_payload: { session_id: currentSession?.id }
+                    });
+                    isLive = false;
+                    renderStatusIndicators();
+                    SGUtils.showToast('Kipindi kimemalizika.', 'info');
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                try {
+                    const { data, error } = await supabaseClient.rpc('sg_classroom_admin_control', {
+                        p_session_token: admin.token,
+                        p_action: 'START_SESSION',
+                        p_payload: {
+                            title: 'Darasa la Moja kwa Moja: SILLYGER Live Masterclass',
+                            deck_id: currentDeck?.id
+                        }
+                    });
+                    if (error) throw error;
+                    isLive = true;
+                    if (data?.session_id) {
+                        currentSession = { id: data.session_id, status: 'LIVE' };
+                    }
+                    renderStatusIndicators();
+                    SGUtils.showToast('Kipindi kimeanza LIVE!', 'success');
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        }
+
+        function renderStatusIndicators() {
+            const badge = document.getElementById('studio-status-badge');
+            const text = document.getElementById('studio-status-text');
+            const btn = document.getElementById('btn-toggle-live');
+            const btnText = document.getElementById('btn-live-text');
+            const btnIcon = document.getElementById('btn-live-icon');
+
+            if (isLive) {
+                badge.className = "ml-2 sm:ml-4 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono-sg font-bold bg-emerald-950/80 border border-emerald-500/50 text-emerald-300";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span><span>KIPINDI KIKO LIVE</span>`;
+                btn.className = "px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-red-600/30 transition";
+                btnText.textContent = "Maliza Kipindi";
+                btnIcon.textContent = "⏹️";
+            } else {
+                badge.className = "ml-2 sm:ml-4 flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono-sg font-bold bg-slate-800 text-slate-400";
+                badge.innerHTML = `<span>⏸️ HAIJAANZA</span>`;
+                btn.className = "px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/30 transition";
+                btnText.textContent = "Anzisha Kipindi";
+                btnIcon.textContent = "🔴";
+            }
+        }
+
+        // Sidebar Tabs Switcher
+        function switchSidebarTab(tab) {
+            const btnNotes = document.getElementById('side-tab-notes-btn');
+            const btnChat = document.getElementById('side-tab-chat-btn');
+            const paneNotes = document.getElementById('side-pane-notes');
+            const paneChat = document.getElementById('side-pane-chat');
+
+            if (tab === 'notes') {
+                btnNotes.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition flex items-center justify-center gap-1.5";
+                btnChat.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5";
+                paneNotes.classList.remove('hidden');
+                paneChat.classList.add('hidden');
+            } else {
+                btnChat.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-slate-800 text-white transition flex items-center justify-center gap-1.5";
+                btnNotes.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5";
+                paneChat.classList.remove('hidden');
+                paneNotes.classList.add('hidden');
+            }
+        }
+
+        // Chat & Questions
+        function renderChatMessages(messages) {
+            const container = document.getElementById('chat-messages-container');
+            if (!container) return;
+            if (!messages || !messages.length) return;
+
+            container.innerHTML = messages.map(m => createChatMessageHTML(m)).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendChatMessage(msg) {
+            const container = document.getElementById('chat-messages-container');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.innerHTML = createChatMessageHTML(msg);
+            container.appendChild(el.firstElementChild);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function createChatMessageHTML(m) {
+            const isQuestion = m.is_question;
+            const isInstructor = m.role === 'INSTRUCTOR';
+
+            return `
+                <div class="p-3 rounded-xl border ${
+                    isQuestion
+                        ? 'bg-amber-950/30 border-amber-500/40'
+                        : isInstructor
+                            ? 'bg-blue-950/30 border-blue-500/40'
+                            : 'bg-slate-950 border-slate-800'
+                } space-y-1">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-bold ${isInstructor ? 'text-blue-400' : 'text-slate-300'}">
+                            ${SGUtils.escapeHtml(m.sender_name)}
+                        </span>
+                        ${isQuestion ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-mono-sg font-black bg-amber-500/20 text-amber-300 uppercase">SWALI</span>' : ''}
+                    </div>
+                    <p class="text-xs text-slate-200 leading-relaxed">${SGUtils.escapeHtml(m.message)}</p>
+                </div>
+            `;
+        }
+
+        async function handleSendChat(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !currentSession) return;
+
+            const admin = SGStore.getCurrentSession();
+            try {
+                await supabaseClient.rpc('sg_classroom_send_chat', {
+                    p_session_token: admin.token,
+                    p_session_id: currentSession.id,
+                    p_message: text,
+                    p_is_question: false
+                });
+                input.value = '';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function copyCurrentCode() {
+            const codeEl = document.getElementById('slide-code-snippet');
+            if (codeEl) {
+                SGUtils.copyText(codeEl.textContent, 'Code imenakiliwa kikamilifu!');
+            }
+        }
+
+        function setupKeyboardShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault();
+                    navigateSlide(1);
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    navigateSlide(-1);
+                } else if (e.key.toLowerCase() === 'm') {
+                    toggleMicrophone();
+                } else if (e.key.toLowerCase() === 'l') {
+                    toggleLaserPointer();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

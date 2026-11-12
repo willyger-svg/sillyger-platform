@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="sw" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SILLYGER Live Classroom — Darasa la Moja kwa Moja la Tehama</title>
+    <link rel="icon" type="image/svg+xml" href="assets/sillyger-logo-icon.svg">
+    <!-- Social Meta -->
+    <meta property="og:type" content="video.other">
+    <meta property="og:title" content="SILLYGER Live Classroom — Darasa la Moja kwa Moja la Coding & Cybersecurity">
+    <meta property="og:description" content="Jiunge na darasa la moja kwa moja la mifumo ya kompyuta, Assembly, C Programming na usalama wa mtandao.">
+    <meta property="og:image" content="https://willyger-svg.github.io/sillyger-platform/assets/SILLYGER_LOGO_WHATSAPP.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sgbg: '#070b14',
+                        sgcard: '#0f172a',
+                        sgblue: '#3b82f6',
+                        sgdark: '#030712'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/custom.css?v=2.9">
+    <style>
+        .slide-glow {
+            box-shadow: 0 0 35px rgba(59, 130, 246, 0.12);
+        }
+        .laser-dot {
+            pointer-events: none;
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #ef4444;
+            border-radius: 50%;
+            box-shadow: 0 0 12px #ef4444, 0 0 24px #dc2626;
+            transform: translate(-50%, -50%);
+            transition: left 0.05s ease-out, top 0.05s ease-out;
+            z-index: 50;
+        }
+        @keyframes pulse-wave {
+            0%, 100% { height: 6px; }
+            50% { height: 18px; }
+        }
+        .wave-bar {
+            animation: pulse-wave 1s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-sgbg text-slate-100 min-h-screen flex flex-col font-sans select-none selection:bg-blue-600 selection:text-white">
+
+    <!-- Unified Top Navigation -->
+    <header class="bg-slate-950/90 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-50 backdrop-blur-md">
+        <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-2 group">
+                <img src="assets/sillyger-logo-icon.svg" alt="SILLYGER" class="w-8 h-8 rounded-lg group-hover:scale-105 transition-transform">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-extrabold text-sm sm:text-base tracking-wider text-white">SILLYGER</span>
+                        <span class="px-2 py-0.5 rounded-full text-[9px] font-mono-sg font-black bg-red-600/20 border border-red-500/40 text-red-400 uppercase flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                            LIVE CLASSROOM
+                        </span>
+                    </div>
+                    <span class="text-[9px] font-mono-sg text-blue-400 block -mt-0.5">Interactive Lecture Hall</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Instructor Voice & Live Indicator -->
+        <div class="flex items-center gap-3">
+            <!-- Audio Indicator -->
+            <div id="audio-status-box" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs">
+                <div class="flex items-center gap-1 h-4">
+                    <span class="wave-bar w-1 bg-emerald-400 rounded-full" style="animation-delay: 0.1s;"></span>
+                    <span class="wave-bar w-1 bg-emerald-400 rounded-full" style="animation-delay: 0.3s;"></span>
+                    <span class="wave-bar w-1 bg-emerald-400 rounded-full" style="animation-delay: 0.2s;"></span>
+                </div>
+                <span id="audio-status-label" class="text-emerald-400 font-medium text-xs">Mwalimu Anaongea (Live Audio)</span>
+            </div>
+
+            <!-- Volume / Speaker Toggle -->
+            <button type="button" id="btn-toggle-speaker" onclick="toggleSpeaker()" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs transition" title="Washa / Zima Sauti">
+                <span id="speaker-icon">🔊</span>
+            </button>
+
+            <!-- Navigation Links -->
+            <a href="index.html" class="hidden sm:inline px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-semibold transition">
+                Rudi Nyumbani
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Live Classroom Layout -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 overflow-hidden min-h-[calc(100vh-53px)]">
+
+        <!-- LECTURE STAGE (Left 8 or 9 cols) -->
+        <section class="lg:col-span-8 xl:col-span-9 flex flex-col bg-slate-950/70 border-r border-slate-800/80 overflow-y-auto">
+
+            <!-- Stage Header Banner -->
+            <div class="bg-slate-900/80 border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between gap-3 sticky top-0 z-30">
+                <div class="flex items-center gap-2.5">
+                    <span id="classroom-mode-pill" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase bg-blue-600/20 text-blue-400 border border-blue-500/30">
+                        INTERACTIVE SLIDES
+                    </span>
+                    <span id="lecture-title-header" class="text-xs font-bold text-slate-200 truncate max-w-sm">
+                        Inapakia somo la leo...
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs font-mono-sg text-slate-400">
+                    <span>Mwalimu:</span>
+                    <span id="instructor-name-header" class="font-bold text-white">Super Administrator</span>
+                </div>
+            </div>
+
+            <!-- Presentation Display Canvas -->
+            <div class="flex-1 p-4 sm:p-6 lg:p-8 flex items-center justify-center relative overflow-hidden bg-slate-950">
+
+                <!-- 1. SLIDES VIEW -->
+                <div id="student-slides-container" class="w-full max-w-5xl h-full min-h-[500px] flex flex-col justify-between p-6 sm:p-8 lg:p-10 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-blue-500/30 slide-glow relative overflow-hidden">
+                    <!-- Laser Dot -->
+                    <div id="student-laser-dot" class="laser-dot hidden"></div>
+
+                    <!-- Slide Header -->
+                    <div>
+                        <div class="flex items-center justify-between gap-3 mb-3">
+                            <span id="student-slide-category" class="px-3 py-1 rounded-full text-[11px] font-mono-sg font-black tracking-wider uppercase bg-blue-600/20 border border-blue-500/40 text-blue-400">
+                                LOW-LEVEL ARCHITECTURE
+                            </span>
+                            <span class="text-xs font-mono-sg text-slate-400">
+                                SILLYGER Live Lecture
+                            </span>
+                        </div>
+                        <h1 id="student-slide-title" class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                            Karibu kwenye Darasa la Moja kwa Moja
+                        </h1>
+                        <p id="student-slide-subtitle" class="text-sm sm:text-base text-slate-300 mt-2 font-medium">
+                            Mwalimu anapobadilisha slide au kushare screen, utaona hapa papo hapo.
+                        </p>
+                    </div>
+
+                    <!-- Slide Body -->
+                    <div class="my-6 space-y-6">
+                        <!-- Bullets -->
+                        <div id="student-bullets-container" class="space-y-3">
+                            <!-- Injected dynamically -->
+                        </div>
+
+                        <!-- Code Snippet -->
+                        <div id="student-code-wrapper" class="hidden">
+                            <div class="bg-slate-950 rounded-xl border border-slate-800 p-4 font-mono-sg text-xs sm:text-sm text-emerald-400 overflow-x-auto shadow-inner">
+                                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-800/80 text-[10px] text-slate-400">
+                                    <span id="student-code-lang">SOURCE CODE</span>
+                                    <button type="button" onclick="copyCurrentCode()" class="hover:text-white px-2.5 py-1 rounded bg-slate-900 border border-slate-800 flex items-center gap-1.5 transition">
+                                        <span>📋</span>
+                                        <span>Nakili Code</span>
+                                    </button>
+                                </div>
+                                <pre id="student-code-snippet" class="whitespace-pre"><code>// code</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Slide Footer -->
+                    <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono-sg">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                            <span>Imeunganishwa Moja kwa Moja na Mwalimu</span>
+                        </div>
+                        <div>
+                            <span id="student-slide-counter" class="font-bold text-white bg-slate-800 px-3 py-1 rounded-full border border-slate-700">
+                                1 / 9
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. SCREEN SHARE VIEW -->
+                <div id="student-screen-container" class="hidden w-full max-w-6xl h-full min-h-[500px] flex flex-col rounded-2xl bg-black border border-emerald-500/40 overflow-hidden shadow-2xl relative">
+                    <div class="bg-slate-900 px-4 py-2 flex items-center justify-between border-b border-slate-800 text-xs">
+                        <div class="flex items-center gap-2 text-emerald-400 font-mono-sg font-bold">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>KIOO CHA MWALIMU KINACHEZA MOJA KWA MOJA</span>
+                        </div>
+                        <button type="button" onclick="toggleScreenFullscreen()" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] transition">
+                            Fungua Fullscreen ⛶
+                        </button>
+                    </div>
+                    <div class="flex-1 bg-black flex items-center justify-center overflow-hidden">
+                        <video id="student-screen-video" autoplay playsinline class="w-full h-full object-contain"></video>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- SIDEBAR: LIVE CHAT & ASK QUESTION (Right 4 or 3 cols) -->
+        <aside class="lg:col-span-4 xl:col-span-3 flex flex-col bg-slate-900/60 border-t lg:border-t-0 border-slate-800">
+
+            <div class="px-4 py-3 border-b border-slate-800 bg-slate-950/70 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-blue-400">💬</span>
+                    <h3 class="font-bold text-xs uppercase tracking-wider text-slate-200 font-mono-sg">
+                        Maswali & Mijadala ya Darasa
+                    </h3>
+                </div>
+                <span class="text-[10px] font-mono-sg text-slate-500">Live Sync</span>
+            </div>
+
+            <!-- Messages Stream -->
+            <div id="student-chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3">
+                <div class="text-center text-xs text-slate-500 font-mono-sg py-4">
+                    Inapakia maswali na mazungumzo ya darasa...
+                </div>
+            </div>
+
+            <!-- Send Question / Message Form -->
+            <form id="student-chat-form" onsubmit="handleSendStudentMessage(event)" class="p-3 border-t border-slate-800 bg-slate-950 space-y-2">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="student-chat-input" placeholder="Andika swali au maoni yako hapa..." class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                    <button type="submit" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition flex items-center gap-1 shadow-md shadow-blue-600/30">
+                        <span>Tuma</span>
+                        <span>➤</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center justify-between text-[11px] text-slate-400">
+                    <label class="flex items-center gap-1.5 cursor-pointer">
+                        <input type="checkbox" id="check-is-question" class="rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-0">
+                        <span class="text-amber-400 font-medium">Weka alama kama SWALI la somo</span>
+                    </label>
+                    <span class="text-slate-500 text-[10px]">SG Student Hall</span>
+                </div>
+            </form>
+
+        </aside>
+
+    </main>
+
+    <!-- Supabase & Custom Script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/store.js"></script>
+    <script>
+        let supabaseClient = null;
+        let currentSession = null;
+        let currentDeck = null;
+        let currentSlideIndex = 0;
+        let realtimeChannel = null;
+        let isSpeakerMuted = false;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                supabaseClient = supabase.createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY);
+            } catch (e) {
+                console.error(e);
+            }
+
+            await loadClassroomState();
+            subscribeRealtimeClassroom();
+        });
+
+        // Load active lecture state
+        async function loadClassroomState() {
+            try {
+                const { data, error } = await supabaseClient.rpc('sg_classroom_get_state');
+                if (error) throw error;
+
+                if (data && data.has_session) {
+                    currentSession = data.session;
+                    currentDeck = data.deck;
+                    currentSlideIndex = currentSession.current_slide_index || 0;
+
+                    document.getElementById('lecture-title-header').textContent = currentSession.title || 'SILLYGER Masterclass';
+                    document.getElementById('instructor-name-header').textContent = currentSession.instructor_name || 'Super Administrator';
+
+                    renderSlideForStudent();
+                    updatePresentationMode(currentSession.presentation_mode);
+                    updateAudioStatus(currentSession.is_audio_active);
+                    renderStudentChat(data.chat || []);
+                }
+            } catch (err) {
+                console.error('Error loading classroom state:', err);
+            }
+        }
+
+        // Realtime Subscription
+        function subscribeRealtimeClassroom() {
+            if (!supabaseClient) return;
+
+            realtimeChannel = supabaseClient.channel('classroom_student_sync')
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'classroom_sessions' }, payload => {
+                    const updated = payload.new;
+                    if (updated.id === currentSession?.id) {
+                        // Check slide change
+                        if (updated.current_slide_index !== currentSlideIndex) {
+                            currentSlideIndex = updated.current_slide_index;
+                            renderSlideForStudent();
+                        }
+                        // Check deck change
+                        if (updated.deck_id !== currentSession.deck_id) {
+                            loadClassroomState(); // Reload entire deck
+                        }
+                        // Check mode change (Slides vs Screen)
+                        if (updated.presentation_mode !== currentSession.presentation_mode) {
+                            updatePresentationMode(updated.presentation_mode);
+                        }
+                        // Check audio change
+                        if (updated.is_audio_active !== currentSession.is_audio_active) {
+                            updateAudioStatus(updated.is_audio_active);
+                        }
+
+                        currentSession = updated;
+                    }
+                })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'classroom_live_chat' }, payload => {
+                    appendStudentChatMessage(payload.new);
+                })
+                .subscribe();
+        }
+
+        // Render Slide
+        function renderSlideForStudent() {
+            if (!currentDeck || !currentDeck.slides || !currentDeck.slides.length) return;
+            const slides = currentDeck.slides;
+            const slide = slides[currentSlideIndex] || slides[0];
+
+            document.getElementById('student-slide-category').textContent = slide.category || 'SOMO LA TEHAMA';
+            document.getElementById('student-slide-title').textContent = slide.title || `Slide ${currentSlideIndex + 1}`;
+            document.getElementById('student-slide-subtitle').textContent = slide.subtitle || '';
+            document.getElementById('student-slide-counter').textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+
+            // Bullets
+            const bulletsContainer = document.getElementById('student-bullets-container');
+            if (slide.bullet_points && slide.bullet_points.length) {
+                bulletsContainer.innerHTML = slide.bullet_points.map(b => `
+                    <div class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-200 text-sm leading-relaxed">
+                        <span class="text-blue-400 font-bold shrink-0 text-base">•</span>
+                        <span>${SGUtils.escapeHtml(b)}</span>
+                    </div>
+                `).join('');
+                bulletsContainer.classList.remove('hidden');
+            } else {
+                bulletsContainer.innerHTML = '';
+                bulletsContainer.classList.add('hidden');
+            }
+
+            // Code Snippet
+            const codeWrapper = document.getElementById('student-code-wrapper');
+            const codeSnippet = document.getElementById('student-code-snippet');
+            const codeLang = document.getElementById('student-code-lang');
+            if (slide.code_snippet && slide.code_snippet.trim().length > 0) {
+                codeSnippet.textContent = slide.code_snippet;
+                codeLang.textContent = (slide.code_language || 'C / ASM').toUpperCase();
+                codeWrapper.classList.remove('hidden');
+            } else {
+                codeWrapper.classList.add('hidden');
+            }
+        }
+
+        // Update Mode (Slides vs Screen Share)
+        function updatePresentationMode(mode) {
+            const pill = document.getElementById('classroom-mode-pill');
+            const slidesView = document.getElementById('student-slides-container');
+            const screenView = document.getElementById('student-screen-container');
+
+            if (mode === 'SCREEN_SHARE') {
+                pill.className = "px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase bg-emerald-600/20 text-emerald-400 border border-emerald-500/40";
+                pill.textContent = "KIOO CHA MWALIMU (SCREEN SHARE)";
+                slidesView.classList.add('hidden');
+                screenView.classList.remove('hidden');
+            } else {
+                pill.className = "px-2.5 py-0.5 rounded-full text-[10px] font-mono-sg font-bold uppercase bg-blue-600/20 text-blue-400 border border-blue-500/30";
+                pill.textContent = "INTERACTIVE SLIDES";
+                slidesView.classList.remove('hidden');
+                screenView.classList.add('hidden');
+            }
+        }
+
+        // Update Audio Status
+        function updateAudioStatus(isActive) {
+            const box = document.getElementById('audio-status-box');
+            const label = document.getElementById('audio-status-label');
+            if (isActive) {
+                box.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-xs";
+                label.className = "text-emerald-400 font-medium text-xs";
+                label.textContent = "Mwalimu Anaongea (Live Voice)";
+            } else {
+                box.className = "flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-400";
+                label.className = "text-slate-400 text-xs";
+                label.textContent = "Mwalimu amezima mic";
+            }
+        }
+
+        function toggleSpeaker() {
+            isSpeakerMuted = !isSpeakerMuted;
+            document.getElementById('speaker-icon').textContent = isSpeakerMuted ? '🔇' : '🔊';
+        }
+
+        // Chat & Questions
+        function renderStudentChat(messages) {
+            const container = document.getElementById('student-chat-messages');
+            if (!container) return;
+            if (!messages || !messages.length) {
+                container.innerHTML = `<div class="text-center text-xs text-slate-500 font-mono-sg py-4">Kuwa wa kwanza kuuliza swali au kutoa maoni!</div>`;
+                return;
+            }
+            container.innerHTML = messages.map(m => createChatMessageHTML(m)).join('');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function appendStudentChatMessage(msg) {
+            const container = document.getElementById('student-chat-messages');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.innerHTML = createChatMessageHTML(msg);
+            container.appendChild(el.firstElementChild);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function createChatMessageHTML(m) {
+            const isQuestion = m.is_question;
+            const isInstructor = m.role === 'INSTRUCTOR';
+
+            return `
+                <div class="p-3 rounded-xl border ${
+                    isQuestion
+                        ? 'bg-amber-950/30 border-amber-500/40'
+                        : isInstructor
+                            ? 'bg-blue-950/30 border-blue-500/40'
+                            : 'bg-slate-950 border-slate-800'
+                } space-y-1">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-bold ${isInstructor ? 'text-blue-400' : 'text-slate-300'}">
+                            ${SGUtils.escapeHtml(m.sender_name)}
+                        </span>
+                        ${isQuestion ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-mono-sg font-black bg-amber-500/20 text-amber-300 uppercase">SWALI</span>' : ''}
+                    </div>
+                    <p class="text-xs text-slate-200 leading-relaxed">${SGUtils.escapeHtml(m.message)}</p>
+                </div>
+            `;
+        }
+
+        async function handleSendStudentMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('student-chat-input');
+            const isQuestion = document.getElementById('check-is-question').checked;
+            const text = input.value.trim();
+            if (!text || !currentSession) return;
+
+            const session = SGStore.getCurrentSession();
+            const token = session ? session.token : 'guest';
+
+            try {
+                await supabaseClient.rpc('sg_classroom_send_chat', {
+                    p_session_token: token,
+                    p_session_id: currentSession.id,
+                    p_message: text,
+                    p_is_question: isQuestion
+                });
+                input.value = '';
+                document.getElementById('check-is-question').checked = false;
+            } catch (err) {
+                console.error(err);
+                SGUtils.showToast('Tafadhali ingia kwenye akaunti yako ili kuuliza swali.', 'error');
+            }
+        }
+
+        function copyCurrentCode() {
+            const codeEl = document.getElementById('student-code-snippet');
+            if (codeEl) {
+                SGUtils.copyText(codeEl.textContent, 'Code imenakiliwa kikamilifu!');
+            }
+        }
+
+        function toggleScreenFullscreen() {
+            const videoEl = document.getElementById('student-screen-video');
+            if (videoEl) {
+                if (!document.fullscreenElement) {
+                    videoEl.requestFullscreen?.();
+                } else {
+                    document.exitFullscreen?.();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
